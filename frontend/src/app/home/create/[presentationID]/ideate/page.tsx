@@ -8,13 +8,13 @@ import { useEffect, useState, useCallback } from 'react';
 import { io } from "socket.io-client";
 import { debounce } from 'lodash';
 import { useRouter } from 'next/navigation';
+import MainStructure from '@/components/main-structure';
 
 export default function Page({ params }: { params: { presentationID: string } }) {
   const interfaceName = "ideate";
   const redirectPath = `/home/create/${params.presentationID}/research`;
   console.log(`presentationID: ${params.presentationID}`);
 
-  const [isWideScreen, setIsWideScreen] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
   const [socket, setSocket] = useState<any>(null);
   const [blockChat, setBlockChat] = useState<boolean>(false);
@@ -109,25 +109,12 @@ export default function Page({ params }: { params: { presentationID: string } })
     }, 500),
     [socket]
   );
-  
+
   useEffect(() => {
     emitInterfaceUpdate({ topic, audience, goal });
   }, [topic, audience, goal, emitInterfaceUpdate]);
 
-  // Resize event listener for chat and interface responsive layout
-  useEffect(() => {
-    const handleResize = () => {
-      setIsWideScreen(window.innerWidth >= 1280);
-    };
-
-    handleResize();
-    window.addEventListener('resize', handleResize);
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
-
+  
   const chat = <Chat
     presentationID={params.presentationID}
     messages={messages}
@@ -150,42 +137,6 @@ export default function Page({ params }: { params: { presentationID: string } })
    />;
 
   return (
-    <div className="flex w-full flex-col p-5">
-      {isWideScreen ? (
-        <div className="flex">
-          <div className="w-1/2 mr-5">
-            <Card>
-              <CardBody>
-                {chat}
-              </CardBody>
-            </Card>
-          </div>
-          <div className="w-1/2 height-full">
-            <Card>
-              <CardBody>
-                {interfaceComponent}
-              </CardBody>
-            </Card>
-          </div>
-        </div>
-      ) : (
-        <Tabs size="lg" aria-label="Options">
-          <Tab key="interface" title="Chat">
-            <Card>
-              <CardBody>
-                {chat}
-              </CardBody>
-            </Card>
-          </Tab>
-          <Tab key="chat" title="Configure">
-            <Card>
-              <CardBody>
-                {interfaceComponent}
-              </CardBody>
-            </Card>
-          </Tab>
-        </Tabs>
-      )}
-    </div>
+    <MainStructure chat={chat} interfaceComponent={interfaceComponent} />
   );
 }

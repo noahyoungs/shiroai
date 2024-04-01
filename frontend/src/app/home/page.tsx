@@ -1,4 +1,4 @@
-import PresentationTable from "@/components/presentation-table"
+import PresentationListbox from "@/components/presentation-listbox"
 import CreatePresentation from "@/components/create-presentation-button"
 import { getPresentationsByUserID } from "@/utils/dynamodb"
 import { getServerSession } from "next-auth";
@@ -21,9 +21,8 @@ export default async function Page() {
   });
 
   return (
-    <PresentationTable
+    <PresentationListbox
      presentations={sortedPresentations}
-     bottomContent={<CreatePresentation />}
      />
   )
 }

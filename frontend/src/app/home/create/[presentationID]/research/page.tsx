@@ -7,6 +7,7 @@ import { Tabs, Tab, Card, CardBody } from "@nextui-org/react";
 import { useEffect, useState, useCallback } from 'react';
 import { io } from "socket.io-client";
 import { useRouter } from 'next/navigation';
+import MainStructure from '@/components/main-structure';
 
 
 export default function Page({ params }: { params: { presentationID: string } }) {
@@ -149,42 +150,6 @@ export default function Page({ params }: { params: { presentationID: string } })
    />;
 
   return (
-    <div className="flex w-full flex-col p-5">
-      {isWideScreen ? (
-        <div className="flex">
-          <div className="w-1/2 pr-5">
-            <Card>
-              <CardBody>
-                {chat}
-              </CardBody>
-            </Card>
-          </div>
-          <div className="w-1/2 height-full">
-            <Card>
-              <CardBody>
-                {interfaceComponent}
-              </CardBody>
-            </Card>
-          </div>
-        </div>
-      ) : (
-        <Tabs size="lg" aria-label="Options">
-          <Tab key="interface" title="Chat">
-            <Card>
-              <CardBody>
-                {chat}
-              </CardBody>
-            </Card>
-          </Tab>
-          <Tab key="chat" title="Configure">
-            <Card>
-              <CardBody>
-                {interfaceComponent}
-              </CardBody>
-            </Card>
-          </Tab>
-        </Tabs>
-      )}
-    </div>
+    <MainStructure chat={chat} interfaceComponent={interfaceComponent} />
   );
 }

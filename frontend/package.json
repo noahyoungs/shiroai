@@ -15,6 +15,7 @@
     "@aws-sdk/util-dynamodb": "^3.535.0",
     "@mantine/dropzone": "^7.6.2",
     "@nextui-org/react": "^2.2.10",
+    "@tailwindcss/line-clamp": "^0.4.4",
     "amazon-cognito-identity-js": "^6.3.12",
     "clsx": "^2.1.0",
     "framer-motion": "^10.12.16",

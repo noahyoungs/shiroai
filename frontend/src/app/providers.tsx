@@ -12,7 +12,7 @@ type Props = {
 export function Providers({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   return (
-    <ThemeProvider attribute="class">
+    <ThemeProvider attribute="class" enableSystem={true}>
       <NextUIProvider navigate={router.push}>
         {children}
       </NextUIProvider>

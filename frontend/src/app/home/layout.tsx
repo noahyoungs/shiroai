@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
-import NavBar from "@/components/navbar/navbar";
-
+import SideBar from "@/components/sidebar-with-gradient-background/sidebar";
+import SidebarList from "@/components/sidebar-with-gradient-background/sidebar-list";
 
 type LayoutProps = {
     children: ReactNode;
@@ -16,9 +16,13 @@ async function Layout({ children }: LayoutProps) {
     }
 
     return (
-        <section style={{height: '100vh'}}>
-            <NavBar />
-            {children}
+        <section style={{ height: '100vh' }}>
+            <SideBar
+                nav={<SidebarList />}
+            >
+                {children}
+            </SideBar>
+
         </section>
     );
 }
