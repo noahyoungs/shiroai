@@ -26,13 +26,13 @@ async def get_completion(
     
     # Check if all interface fields are truthy
     complete = all(interfaceData.values())
+
+    messages.append(ideate_prompts.getInterfaceUpdateSystemMessage(interface, interfaceData))
     
     if complete:
         if not memory.get("ideate_confirmation_message_sent", False):
             messages.append(ideate_prompts.ideate_confirmation_message)
             memory["ideate_confirmation_message_sent"] = True
-    
-    messages.append(ideate_prompts.getInterfaceUpdateSystemMessage(interface, interfaceData))
         
     completion = await client.chat.completions.create(
         messages=messages,
