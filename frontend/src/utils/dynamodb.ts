@@ -8,7 +8,7 @@ import {
 } from "@aws-sdk/client-dynamodb";
 import { marshall as Marshall } from "@aws-sdk/util-dynamodb";
 import { unmarshall } from "@aws-sdk/util-dynamodb";
-import { v4 as uuidv4 } from "uuid";
+import { uuidv7 } from "uuidv7";
 
 const client = new DynamoDBClient({});
 
@@ -188,7 +188,7 @@ export async function createSource(presentationID: string, source: any) {
     throw new Error("Presentation ID is required.");
   }
 
-  const sourceID = uuidv4();
+  const sourceID = uuidv7();
 
   const params = {
     TableName: tableName,

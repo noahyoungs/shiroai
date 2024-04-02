@@ -1,13 +1,13 @@
 "use server"
 import { getServerSession } from "next-auth";
 import { hashEmail } from '@/utils/hash-email';
-import { v4 as uuidv4 } from 'uuid';
+import { uuidv7 } from "uuidv7";
 import { updatePresentationByID } from "@/utils/dynamodb";
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation'
 
 export default async function CreatePresentation() {
-  let uuid = uuidv4();
+  let uuid = uuidv7();
 
   const session = await getServerSession();
   console.log(`Session: ${JSON.stringify(session)}`);
@@ -26,8 +26,7 @@ export default async function CreatePresentation() {
 
   await updatePresentationByID(uuid, presentation);
 
-  revalidatePath('/home');
-  redirect(`home/create/${uuid}/ideate`)
+  redirect(`/home/create/${uuid}/ideate`)
 
   return uuid;
 }

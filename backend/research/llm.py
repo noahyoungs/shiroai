@@ -8,7 +8,7 @@ from research.brave_search import search_brave
 from typing import List
 from pydantic import Field
 from research.prompts import getCurrentSourceListMessage
-import uuid
+from uuid_extensions import uuid7str
 from dynamodb import delete_source
 from s3 import delete_file
 from dynamodb import batch_update_sources
@@ -93,7 +93,7 @@ async def complete(presentationID, messages, interfaceData, emit, max_turns=5, m
         async def post_run(self, search_results):
             post_messages = [{'role':'system', 'content': "You must now use the `AddSourcesByID` function to pick only the best web sources from the web search results. Pick sources from reputable websites. Do not pick search results from forums, social media, or SEO blog articles or SEO content writing articles from companies marketing a product."}]
             # add id to each search result
-            search_results = [{**result, 'id': str(uuid.uuid4())} for result in search_results]
+            search_results = [{**result, 'id': uuid7str()} for result in search_results]
             
             # web search meta message
             web_search_message = { 'role': 'meta_web_search', 'content': {'sources': search_results, 'query': self.query}}
@@ -112,37 +112,37 @@ async def complete(presentationID, messages, interfaceData, emit, max_turns=5, m
             
             return tool_results, post_messages
         
-    class RemoveSourcesFromListByID(OpenAISchema):
-        """Remove sources from the list of sources by IDs"""
-        ids: List[str] = Field(
-            ...,
-            description="The IDs of the sources to remove.",
-            examples=[["a1b2c3d4", "e5f6g7h8"]],
-        )
+    # class RemoveSourcesFromListByID(OpenAISchema):
+    #     """Remove sources from the list of sources by IDs"""
+    #     ids: List[str] = Field(
+    #         ...,
+    #         description="The IDs of the sources to remove.",
+    #         examples=[["a1b2c3d4", "e5f6g7h8"]],
+    #     )
         
-        # errors raised here are considered the model's mistake
-        async def run(self):
-            for id in self.ids:
-                source = next((s for s in interfaceData['sources'] if s.get("id", "").startswith(id)), None)
-                if source:
-                    interfaceData['sources'].remove(source)
-                    if source.get('type') != 'web':
-                        await asyncio.gather(
-                            delete_file(presentationID, source.get('s3_filepath', '')),
-                            delete_source(presentationID, source['id'])
-                        )
-                else:
-                    raise ValueError(f"Source with ID {id} not found. Please provide a valid source ID.")
-            return f"Success: Successfully removed sources with IDs {', '.join(self.ids)} from the list of sources."
+    #     # errors raised here are considered the model's mistake
+    #     async def run(self):
+    #         for id in self.ids:
+    #             source = next((s for s in interfaceData['sources'] if s.get("id", "").startswith(id)), None)
+    #             if source:
+    #                 interfaceData['sources'].remove(source)
+    #                 if source.get('type') != 'web':
+    #                     await asyncio.gather(
+    #                         delete_file(presentationID, source.get('s3_filepath', '')),
+    #                         delete_source(presentationID, source['id'])
+    #                     )
+    #             else:
+    #                 raise ValueError(f"Source with ID {id} not found. Please provide a valid source ID.")
+    #         return f"Success: Successfully removed sources with IDs {', '.join(self.ids)} from the list of sources."
         
-        # errors raised here are not caught
-        # second param is the output of the run function
-        async def post_run(self, output):
-            post_messages = [getCurrentSourceListMessage(interfaceData)]
-            # fire and forget interface update
-            asyncio.create_task(emit_interface_update(interfaceData))
+    #     # errors raised here are not caught
+    #     # second param is the output of the run function
+    #     async def post_run(self, output):
+    #         post_messages = [getCurrentSourceListMessage(interfaceData)]
+    #         # fire and forget interface update
+    #         asyncio.create_task(emit_interface_update(interfaceData))
             
-            return f"Success: Successfully removed sources with IDs {', '.join(self.ids)} from the list of sources.", post_messages
+    #         return f"Success: Successfully removed sources with IDs {', '.join(self.ids)} from the list of sources.", post_messages
     
     class AddSourcesByID(OpenAISchema):
         """Add sources to the list of sources by IDs found in the web search"""
@@ -188,7 +188,7 @@ async def complete(presentationID, messages, interfaceData, emit, max_turns=5, m
             
             # option 2: update dynamodb immediately then refresh interface
             await batch_update_sources(presentationID, additional_sources)
-            interfaceData['souces'] = await interface_update(presentationID, interfaceData, {'action': 'refresh'})
+            interfaceData = await interface_update(presentationID, interfaceData, {'action': 'refresh'})
             
             # fire and forget interface update
             asyncio.create_task(emit_interface_update(interfaceData))
