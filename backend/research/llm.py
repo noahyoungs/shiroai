@@ -14,7 +14,8 @@ from s3 import delete_file
 from dynamodb import batch_update_sources
 from research.interface_update import interface_update
 from init_llm import client
-    
+from summarize import summarize_source
+from copy import deepcopy
 
 def pydantic_to_dict(obj):
     if isinstance(obj, BaseModel):
@@ -37,9 +38,12 @@ def pydantic_to_dict(obj):
 # %%
 async def complete(presentationID, messages, interfaceData, emit, max_turns=5, memory=None):
     
+    
     # helper functions for emitting messages
-    async def emit_interface_update(data):
-        await emit('interface_update', data)
+    async def emit_interface_update():
+        nonlocal interfaceData, presentationID
+        interfaceData = await interface_update(presentationID, interfaceData, {'action': 'refresh'})
+        await emit('interface_update', interfaceData)
         
     async def emit_web_search(message):
         print("Emitting web search results")
@@ -91,6 +95,7 @@ async def complete(presentationID, messages, interfaceData, emit, max_turns=5, m
         # errors raised here are not caght 
         # second param is the output of the run function
         async def post_run(self, search_results):
+            nonlocal memory, interfaceData, presentationID
             post_messages = [{'role':'system', 'content': "You must now use the `AddSourcesByID` function to pick only the best web sources from the web search results. Pick sources from reputable websites. Do not pick search results from forums, social media, or SEO blog articles or SEO content writing articles from companies marketing a product."}]
             # add id to each search result
             search_results = [{**result, 'id': uuid7str()} for result in search_results]
@@ -123,7 +128,7 @@ async def complete(presentationID, messages, interfaceData, emit, max_turns=5, m
     #     # errors raised here are considered the model's mistake
     #     async def run(self):
     #         for id in self.ids:
-    #             source = next((s for s in interfaceData['sources'] if s.get("id", "").startswith(id)), None)
+    #             source = next((s for s in interfaceData['sources'] if s.get("id", "").endswith(id)), None)
     #             if source:
     #                 interfaceData['sources'].remove(source)
     #                 if source.get('type') != 'web':
@@ -156,7 +161,7 @@ async def complete(presentationID, messages, interfaceData, emit, max_turns=5, m
         async def run(self):
             source_dicts = []
             for id in self.ids:
-                source_dict = next((d for d in memory['search_results'] if d.get("id", "").startswith(id)), None)
+                source_dict = next((d for d in memory['search_results'] if d.get("id", "").endswith(id)), None)
                 if source_dict:
                     source_dicts.append(source_dict)
                 else:
@@ -168,30 +173,48 @@ async def complete(presentationID, messages, interfaceData, emit, max_turns=5, m
         # errors raised here are not caught
         # second param is the output of the run function
         async def post_run(self, web_sources):
+            nonlocal memory, interfaceData
+
             additional_sources = []
             if len(web_sources) == 0:
-                return "Error: No sources found with the provided IDs.", post_messages
-            added_source_ids = [source['id'][:8] for source in web_sources]
+                return "Error: No sources found with the provided IDs."
+
+            # print("DEBUG: web_sources array:")
+            # print(web_sources)
+
+            added_source_ids = [source['id'][-8:] for source in web_sources if 'id' in source]
+
             for web_source in web_sources:
-                source_id = web_source.pop('id')
+                # print("DEBUG: current web_source:")
+                # print(web_source)
+
+                source_id = web_source.get('id', None)
+                if source_id is None:
+                    print("DEBUG: 'id' key not found in web_source")
+                    continue  # Skip processing if 'id' is missing
+
                 additional_sources.append({
                     "type": "web",
-                    "url":web_source['url'],
-                    "id":source_id,
+                    "url": web_source['url'],
+                    "id": source_id,
                     "web_source": {key: value for key, value in web_source.items() if key != 'id'},
                     "name": f"{web_source['profile']['name']} | {web_source['title']}",
-                    })
+                })
             # append to sources
             
-            # option 1: append to sources directly and update dynamodb on disconnect
-            # interfaceData['sources'] += additional_sources
-            
-            # option 2: update dynamodb immediately then refresh interface
+            # for some reason this call is popping ids off of additional sources so im making a copy because im too lazy to fix issue
+            additional_sources_copy = deepcopy(additional_sources)
+            # print(f"DEBUG: additional_sources_copy: {additional_sources_copy}")
             await batch_update_sources(presentationID, additional_sources)
-            interfaceData = await interface_update(presentationID, interfaceData, {'action': 'refresh'})
             
             # fire and forget interface update
-            asyncio.create_task(emit_interface_update(interfaceData))
+            asyncio.create_task(emit_interface_update())
+            
+            # for each source in additional_sources_copy
+            # print(f"DEBUG: additional_sources_copy: {additional_sources_copy}")
+            for source in additional_sources_copy:
+                # start summarizing
+                asyncio.create_task(summarize_source(source, presentationID, emit_interface_update))
             
             # get new source list message after adding sources
             post_messages = [getCurrentSourceListMessage(interfaceData)]
@@ -304,9 +327,8 @@ async def complete(presentationID, messages, interfaceData, emit, max_turns=5, m
             messages.append(messages_dict)
             
             for tool_call in completion.choices[0].message.tool_calls:
-                
                 try: 
-                    tool_result, post_messages = await execute_tool(tool_call, [WebSearch, AddSourcesByID, ProceedToNextStep, RemoveSourcesFromListByID])
+                    tool_result, post_messages = await execute_tool(tool_call, [WebSearch, AddSourcesByID, ProceedToNextStep])
                     print(f"Tool Result: {tool_result}")
                 except ProceedToNextStepException:
                     return messages, {"role": "system", "content": "Proceeding to the next step..."}, True
@@ -319,9 +341,9 @@ async def complete(presentationID, messages, interfaceData, emit, max_turns=5, m
                     "content": tool_result
                     })
                 
-                # Append the post messages
-                if post_messages not in (None, []):
-                    messages += post_messages
+            # Append the post messages
+            if post_messages not in (None, []):
+                messages += post_messages
                 
             # recursively call complete until no tool calls
             return await turn(messages, max_turns, turns + 1, memory=memory)
@@ -342,7 +364,7 @@ def format_search_results(results):
     # Iterate over each item in the parsed data
     for index, item in enumerate(results, start=1):
         # Extract relevant information from each item
-        id = item['id'][:8]
+        id = item['id'][-8:]
         title = item['title']
         url = item['url']
         description = item['description']

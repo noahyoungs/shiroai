@@ -46,6 +46,20 @@ async def delete_file(presentationID, filename):
     except Exception as e:
         print(f"Error deleting file '{filename}' from {presentationID} folder: {str(e)}")
         return False
+    
+async def get_object(file_path):
+    try:
+        session = get_session()
+        async with session.create_client('s3', region_name=AWS_REGION,
+                                         aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+                                         aws_access_key_id=AWS_ACCESS_KEY_ID) as s3:
+            bucket_name = os.environ.get('SOURCES_BUCKET_NAME')
+            response = await s3.get_object(Bucket=bucket_name, Key=file_path)
+            data = await response['Body'].read()
+            return data
+    except Exception as e:
+        print(f"Error retrieving file '{file_path}' from S3: {str(e)}")
+        return None
 
 async def main():
     presentationID = "example_presentation"

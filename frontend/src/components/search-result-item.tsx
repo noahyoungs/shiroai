@@ -6,9 +6,10 @@ type SearchResultItemProps = {
     source: any
     index?: number
     className?: string
+    description?: boolean
 };
 
-export function SearchResultItem({ source, index, className }: SearchResultItemProps) {
+export function SearchResultItem({ source, index, className, description=true }: SearchResultItemProps) {
 
     return (
         <div className={cn("flex flex-col", className)}>
@@ -18,13 +19,13 @@ export function SearchResultItem({ source, index, className }: SearchResultItemP
                 <Image
                     src={source.profile.img}
                     radius="lg"
-                    className="bg-white min-w-[32px] border border-foreground"
+                    className="bg-white min-w-[32px] border border-default-500"
                     fallbackSrc="/tabler--world-www.svg"
                     width={32}
                 />
-                <div className="flex flex-col">
+                <div className="flex flex-col w-[85%]">
                     <p className="text-foreground">{source.profile.name}</p>
-                    <p className="text-foreground text-tiny max-w-[65vw] xl:max-w-[35vw] break-words">{source.netloc + " " + source.path}</p>
+                    <p className="text-foreground text-tiny truncate max-w-full">{source.netloc + " " + source.path}</p>
                 </div>
             </div>
             <Link
@@ -35,7 +36,7 @@ export function SearchResultItem({ source, index, className }: SearchResultItemP
             >
                 {source.title}
             </Link>
-            <p className="text-foreground/70 text-sm" dangerouslySetInnerHTML={{ __html: source.description }} />
+                { description && <p className="text-foreground/70 text-sm max-w-[95%]" dangerouslySetInnerHTML={{ __html: source.description }} /> }
         </div>
     )
 }

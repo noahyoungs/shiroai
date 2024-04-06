@@ -16,7 +16,8 @@ export default function Component({
   setBlockSend,
   sources,
   presentationID,
-  refreshSources
+  refreshSources,
+  onHeightChange,
 }: {
   socket: any,
   block: boolean,
@@ -24,6 +25,7 @@ export default function Component({
   sources: any,
   presentationID: string,
   refreshSources: () => void,
+  onHeightChange?: (height: number, meta: { rowHeight: number }) => void,
 }) {
   // const [isRegenerating, setIsRegenerating] = useState<boolean>(false);
   const [prompt, setPrompt] = useState<string>("");
@@ -168,34 +170,42 @@ export default function Component({
   }
 
   return (
-    <div {...getRootProps()} className="flex w-full flex-col gap-4">
-      <form className="flex w-full flex-col items-start rounded-medium bg-default-100 transition-colors hover:bg-default-200/70">
-        <div className="flex items-center justify-start w-full px-4 pt-4 gap-4">
+    <div {...getRootProps()} className="flex w-full flex-col gap-4 flex-grow">
+      <form className="flex w-full flex-col items-start rounded-t-xl bg-default-100 transition-colors hover:bg-default-200/70 h-full">
+        <div className={cn("flex w-full items-center justify-start px-4 gap-4 h-full", files.length > 0 && "mt-3")}>
           {files.length > 0 && (
             files.map((file, index) => (
               <Badge
-                content={<Icon icon="tabler:x" width={17} className="p-0 m-0" />}
+                content={<Icon icon="tabler:x" width={17} className="flex-none p-0 m-0" />}
                 color="danger"
                 shape="rectangle"
                 showOutline={false}
                 isOneChar
                 onClick={deleteFile.bind(null, index)}
               >
-                <Tooltip content={file.name} size="lg" offset={20} className="p-1" closeDelay={0} placement="top-start">
+                <Tooltip content={file.name} size="lg" offset={20} className="px-2 py-1" closeDelay={0} placement="top-start">
                   <Card key={index} className="bg-default/40">
                     <CardBody className="flex flex-row gap-2 items-center">
-                      <Icon icon={getIcon(file.name)} width={25} className="text-default-600" />
+                      <Icon icon={getIcon(file.name) || 'tabler:file-unknown'} width={25} className="text-default-600" />
                     </CardBody>
                   </Card>
                 </Tooltip>
               </Badge>
             )))}
+          <div className="flex-grow"></div>
+          {
+            uploading && (
+              <div className="text-default-600">
+                <svg xmlns="http://www.w3.org/2000/svg" width={48} height={48} viewBox="0 0 24 24"><g fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth={1.25}><path strokeDasharray="2 4" strokeDashoffset={6} d="M12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3"><animate attributeName="stroke-dashoffset" dur="0.6s" repeatCount="indefinite" values="6;0"></animate></path><path strokeDasharray={30} strokeDashoffset={30} d="M12 3C16.9706 3 21 7.02944 21 12C21 16.9706 16.9706 21 12 21"><animate fill="freeze" attributeName="stroke-dashoffset" begin="0.1s" dur="0.3s" values="30;0"></animate></path><path strokeDasharray={10} strokeDashoffset={10} d="M12 16v-7.5"><animate fill="freeze" attributeName="stroke-dashoffset" begin="0.5s" dur="0.2s" values="10;0"></animate></path><path strokeDasharray={6} strokeDashoffset={6} d="M12 8.5l3.5 3.5M12 8.5l-3.5 3.5"><animate fill="freeze" attributeName="stroke-dashoffset" begin="0.7s" dur="0.2s" values="6;0"></animate></path></g></svg>
+              </div>
+            )
+          }
         </div>
         <PromptInput
           classNames={{
-            inputWrapper: "!bg-transparent shadow-none",
-            innerWrapper: "relative",
-            input: "pt-1 pl-2 pb-6 !pr-10 text-medium",
+            inputWrapper: "!bg-transparent shadow-none h-full flex-grow p-4",
+            innerWrapper: "relative h-full",
+            input: "pr-10 text-medium h-full",
           }}
           endContent={
             <div className="flex items-end gap-1.5">
@@ -205,7 +215,7 @@ export default function Component({
                 color="default"
                 content="Attach files"
               >
-              <Button
+                <Button
                   size="sm"
                   isIconOnly
                   variant="solid"
@@ -213,7 +223,7 @@ export default function Component({
                   onClick={open}
                 >
                   <Icon className="text-default-500" icon="tabler:paperclip" width={18} />
-              </Button>
+                </Button>
               </Tooltip>
               <Tooltip
                 showArrow
@@ -221,38 +231,37 @@ export default function Component({
                 color={block ? "warning" : "default"}
                 content={block ? 'Please wait until the assistant replies' : 'Send message'}
               >
-              <Button
-                isIconOnly
-                color={!(prompt || (files.length > 0)) ? "default" : "primary"}
-                isDisabled={!(prompt || (files.length > 0))}
-                radius="lg"
-                size="sm"
-                variant="solid"
-              >
-                <Icon
-                  className={cn(
-                    "[&>path]:stroke-[2px]",
-                    !(prompt || (files.length > 0)) || block ? "text-default-600" : "text-primary-foreground",
-                  )}
-                  icon={uploading ? "line-md:uploading-loop" : "tabler:arrow-narrow-up"}
-                  // icon="line-md:uploading-loop"
-                  width={20}
-                  onClick={() => { if (!block) sendMessage() }}
-                />
-              </Button>
+                <Button
+                  isIconOnly
+                  color={!(prompt || (files.length > 0)) || block ? "default" : "primary"}
+                  radius="lg"
+                  size="sm"
+                  variant="solid"
+                >
+                  <Icon
+                    className={cn(
+                      "[&>path]:stroke-[2px]",
+                      !(prompt || (files.length > 0)) || block ? "text-default-600" : "text-primary-foreground",
+                    )}
+                    icon="tabler:arrow-narrow-up"
+                    // icon={uploading ? "line-md:uploading-loop" : "tabler:arrow-narrow-up"}
+                    // icon="line-md:uploading-loop"
+                    width={20}
+                    onClick={() => { if (!block) sendMessage() }}
+                  />
+                </Button>
               </Tooltip>
             </div>
           }
-          minRows={3}
           radius="lg"
           value={prompt}
           variant="flat"
           onValueChange={setPrompt}
           onSendMessage={() => { if (!block) sendMessage() }}
-          disableAutosize
-          placeholder={"Enter a prompt and drag and drop files here"}
+          placeholder={"Message Shiro or drag and drop files here..."}
+          onHeightChange={onHeightChange}
         />
-        <div className="flex w-full flex-wrap items-center justify-between gap-2 px-4 pb-4">
+        <div className="flex w-full flex-wrap items-center justify-between gap-2 px-4">
           <div className="flex flex-wrap gap-3">
             <input {...getInputProps()}></input>
           </div>

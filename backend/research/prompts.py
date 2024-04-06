@@ -104,14 +104,19 @@
 def getCurrentSourceListMessage(interfaceData):
     if not isinstance(interfaceData['sources'], list):
         raise ValueError("Sources must be a list")
+    
+    # sort sources by id
+    if isinstance(interfaceData['sources'], list) and len(interfaceData['sources']) > 0:
+        sorted_sources = sorted(interfaceData['sources'], key=lambda x: x['id'])
+    else:
+        sorted_sources = []
 
-    string = "Here is the current list of sources:\nDO NOT REPEAT THIS LIST BACK TO THE USER because they can already see the list next to the chat interface.\n\n"
-    if len(interfaceData.get('sources', [])) == 0:
+    string = "Here is the current list of sources:\n\n"
+    if sorted_sources == []:
         string += "<Empty>\n\n"
-    for i, source in enumerate(interfaceData['sources']):
-        
+    for i, source in enumerate(sorted_sources):
         string += f"Source {i + 1}:\n"
-        string += f"ID: {str(source['id'])[:8]}\n"
+        string += f"ID: {str(source['id'])[-8:]}\n"
         string += f"Name: {source.get('name', 'Unknown')}\n"
         if 'url' in source:
             string += f"URL: {source['url']}\n"
@@ -120,6 +125,8 @@ def getCurrentSourceListMessage(interfaceData):
             string += "Type: A source found on the web\n\n"
         else:
             string += f"Type: A {source['type']} file uploaded by the user\n\n"
+    
+    string += "DO NOT REPEAT THIS LIST BACK TO THE USER because they can already see the list next to the chat interface."
 
 
     return {'role': 'system', 'content': string.strip()}

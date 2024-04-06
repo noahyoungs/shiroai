@@ -3,17 +3,18 @@ import MessageCard from "./message-card";
 import WebSearchCard from "./web-search-card";
 import {Spinner} from "@nextui-org/react";
 import { Icon } from "@iconify/react";
+import { cn } from "@/utils/cn";
 
-export default function Component({ messages = [] as any[], typing = false}) {
+export default function Component({ messages = [] as any[], typing = false, classNames= ""}) {
   return (
     <>
       {/* {JSON.stringify(messages)} */}
       {!messages || messages.length < 1 ? (
-        <div className="flex items-center justify-center h-full">
+        <div className={cn("flex flex-col items-center justify-center flex-grow", classNames)}>
           <Spinner size="lg" />
         </div>
       ) : (
-        <div className="flex flex-col gap-4 px-1">
+        <div className={cn("flex flex-col gap-4 px-1", classNames)}>
           {messages.map(({ role, content }, index) => (
             (role == "assistant" || role == "error" || role == "user") ? (
               content && (

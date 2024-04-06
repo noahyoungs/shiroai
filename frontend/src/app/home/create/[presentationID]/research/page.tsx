@@ -7,7 +7,7 @@ import { Tabs, Tab, Card, CardBody } from "@nextui-org/react";
 import { useEffect, useState, useCallback } from 'react';
 import { io } from "socket.io-client";
 import { useRouter } from 'next/navigation';
-import MainStructure from '@/components/main-structure';
+import ChatConfigureLayout from '@/components/chat-configure-layout';
 
 
 export default function Page({ params }: { params: { presentationID: string } }) {
@@ -100,24 +100,10 @@ export default function Page({ params }: { params: { presentationID: string } })
   }, []);
 
 
-  // Resize event listener for chat and interface responsive layout
-  useEffect(() => {
-    const handleResize = () => {
-      setIsWideScreen(window.innerWidth >= 1280);
-    };
-
-    handleResize();
-    window.addEventListener('resize', handleResize);
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
-
   const refreshSources = useCallback(() => {
     if (socket) {
       setSourcesLoading(true);
-      socket.emit("interface_update", {action: "refresh"});
+      socket.emit("interface_update", {action: "refresh_upload"});
     }
   }, [socket]);
 
@@ -145,11 +131,11 @@ export default function Page({ params }: { params: { presentationID: string } })
     presentationID={params.presentationID}
     refreshSources={refreshSources}
     deleteSource={deleteSource}
-    sourcesLoading={sourcesLoading}
+    loading={sourcesLoading}
     redirectPath={redirectPath}
    />;
 
   return (
-    <MainStructure chat={chat} interfaceComponent={interfaceComponent} />
+    <ChatConfigureLayout chat={chat} interfaceComponent={interfaceComponent} />
   );
 }

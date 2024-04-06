@@ -177,6 +177,35 @@ async def get_source(presentation_id, source_id, attributes=None):
     
 
 async def update_source(presentation_id, source_id, **kwargs):
+    """
+    Update the attributes of a source in the DynamoDB table.
+
+    Parameters:
+        presentation_id (str): The ID of the presentation.
+        source_id (str): The ID of the source to update.
+        **kwargs: Arbitrary keyword arguments representing the attributes to update.
+            Each key-value pair in kwargs corresponds to an attribute and its new value.
+            Supported attribute types are:
+                - String attributes
+                - Numeric attributes (passed as int)
+                - Boolean attributes
+                - 'web_source' attribute (passed as a dictionary, will be JSON-serialized)
+
+    Returns:
+        dict: The updated source item attributes.
+
+    Raises:
+        botocore.exceptions.ClientError: If an error occurs during the DynamoDB update operation.
+
+    Example:
+        # Update the 'name' and 'enabled' attributes of a source
+        updated_source = await update_source(
+            presentation_id='123',
+            source_id='456',
+            name='Updated Source Name',
+            enabled=True
+        )
+    """
     table_name = await get_table()
     async with get_session().create_client('dynamodb', region_name=AWS_REGION) as client:
         update_expression = 'SET '
@@ -252,8 +281,8 @@ async def delete_source(presentation_id, source_id):
         
         
 async def batch_update_sources(presentation_id, sources):
-    print("Updating sources, presentation_id: ", presentation_id)
-    print("Sources: ", sources)
+    # print("Updating sources, presentation_id: ", presentation_id)
+    # print("Sources: ", sources)
 
     table_name = await get_table()
     async with get_session().create_client('dynamodb', region_name=AWS_REGION) as client:
@@ -296,9 +325,9 @@ async def batch_update_sources(presentation_id, sources):
             # Remove the trailing comma and space from the update expression
             update_expression = update_expression.rstrip(', ')
 
-            print("Update Expression:", update_expression)
-            print("Expression Attribute Values:", expression_attribute_values)
-            print("Expression Attribute Names:", expression_attribute_names)
+            # print("Update Expression:", update_expression)
+            # print("Expression Attribute Values:", expression_attribute_values)
+            # print("Expression Attribute Names:", expression_attribute_names)
 
             update_request = {
                 "Update": {

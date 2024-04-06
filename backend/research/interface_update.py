@@ -26,7 +26,7 @@ def merge_lists(list1, list2):
 
 async def interface_update(presentationID, interfaceData, data):
     oldsources = interfaceData.get('sources', [])
-    if data['action'] == 'refresh':
+    if data['action'] == 'refresh' or data['action'] == 'refresh_upload':
         sources = await get_sources(presentationID)
         sources = merge_lists(oldsources, sources)
     elif data['action'] == 'delete':

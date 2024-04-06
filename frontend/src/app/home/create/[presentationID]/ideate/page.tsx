@@ -8,7 +8,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { io } from "socket.io-client";
 import { debounce } from 'lodash';
 import { useRouter } from 'next/navigation';
-import MainStructure from '@/components/main-structure';
+import ChatConfigureLayout from '@/components/chat-configure-layout';
 
 export default function Page({ params }: { params: { presentationID: string } }) {
   const interfaceName = "ideate";
@@ -137,6 +137,6 @@ export default function Page({ params }: { params: { presentationID: string } })
    />;
 
   return (
-    <MainStructure chat={chat} interfaceComponent={interfaceComponent} />
+    <ChatConfigureLayout chat={chat} interfaceComponent={interfaceComponent} />
   );
 }

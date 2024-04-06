@@ -11,7 +11,7 @@ export type ActionCardProps = CardProps & {
   icon: string;
   title: string;
   color?: "primary" | "secondary" | "warning" | "danger";
-  description: string;
+  description?: string;
   action: () => Promise<any>
 };
 
@@ -69,7 +69,7 @@ const ActionCard = React.forwardRef<HTMLDivElement, ActionCardProps>(
           </div>
           <div className="flex flex-col">
             <p className="text-medium">{title}</p>
-            <p className="text-small text-default-400">{description || children}</p>
+            <p className="text-small text-default-400">{description ? description : children}</p>
           </div>
         </CardBody>
       </Card>

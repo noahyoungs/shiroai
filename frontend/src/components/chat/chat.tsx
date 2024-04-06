@@ -3,24 +3,25 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ScrollShadow } from "@nextui-org/react";
 import Conversation from "./conversation";
-import PromptInputWithRegenerateButton from "./prompt-input-with-regenerate-button";
+import PromptInputBasic from "./prompt-input-basic";
 import PromptInputDropbox from "./prompt-input-dropbox";
 import { set } from "lodash";
 
-export interface ChatProps {
+export type ChatProps = {
   presentationID: string;
-  messages: any[];
+  messages: any;
   socket: any;
   block: boolean;
   setBlock: (block: boolean) => void;
-  typing: boolean;
-  sources?: any[];
+  typing: any;
+  sources?: any;
   refreshSources?: () => void;
-}
+  title?: string;
+};
 
-export function Chat({ presentationID, messages, socket, block, setBlock, typing, sources, refreshSources }: ChatProps) {
+export function Chat({ presentationID, messages, socket, block, setBlock, typing, sources, refreshSources, title="Chat with Shiro" }: ChatProps) {
   const scrollShadowRef = useRef<HTMLDivElement>(null);
-
+  const promptInputRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (scrollShadowRef.current) {
@@ -28,34 +29,67 @@ export function Chat({ presentationID, messages, socket, block, setBlock, typing
     }
   }, [messages]);
 
+  useEffect(() => {
+    const observer = new ResizeObserver(() => {
+      if (scrollShadowRef.current) {
+        scrollShadowRef.current.scrollTop = scrollShadowRef.current.scrollHeight;
+      }
+    });
+
+    if (promptInputRef.current) {
+      observer.observe(promptInputRef.current);
+    }
+
+    return () => {
+      if (promptInputRef.current) {
+        observer.unobserve(promptInputRef.current);
+      }
+    };
+  }, []);
+
   return (
     <>
-      <div className="flex h-full w-full max-w-full flex-col gap-10">
-        <ScrollShadow className="flex h-[66vh] xl:h-[65vh] flex-col" ref={scrollShadowRef}>
-          <Conversation messages={messages} typing={typing} />
+      <div className="flex flex-col h-full">
+        <div className="text-center p-1 translate-y-2 flex-none">
+          <p>{title}</p>
+          </div>
+        <ScrollShadow
+          className="flex flex-col flex-auto grow"
+          ref={scrollShadowRef}
+          hideScrollBar
+          size={80}
+        >
+          <Conversation
+            messages={messages}
+            typing={typing}
+            classNames="py-4"
+          />
         </ScrollShadow>
-        <div className="flex flex-col gap-2">
-          {
-            (Array.isArray(sources) && refreshSources) ?
-              <PromptInputDropbox
-                socket={socket}
-                block={block}
-                setBlockSend={setBlock}
-                sources={sources}
-                presentationID={presentationID}
-                refreshSources={refreshSources}
-              />
-              :
-              <PromptInputWithRegenerateButton
-                socket={socket}
-                block={block}
-                setBlockSend={setBlock}
-              />
-          }
 
+        <div className="flex flex-col gap-2">
           <p className="px-2 text-tiny text-default-400">
-            AI Presenter can make mistakes. Consider checking important information.
+            Shiro can make mistakes. Consider checking important information.
           </p>
+
+          <div ref={promptInputRef}>
+            {
+              (Array.isArray(sources) && refreshSources) ?
+                <PromptInputDropbox
+                  socket={socket}
+                  block={block}
+                  setBlockSend={setBlock}
+                  sources={sources}
+                  presentationID={presentationID}
+                  refreshSources={refreshSources}
+                />
+                :
+                <PromptInputBasic
+                  socket={socket}
+                  block={block}
+                  setBlockSend={setBlock}
+                />
+            }
+          </div>
         </div>
       </div>
     </>

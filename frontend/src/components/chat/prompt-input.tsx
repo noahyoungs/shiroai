@@ -13,13 +13,11 @@ const PromptInput = React.forwardRef<
     <Textarea
       ref={ref}
       aria-label="Prompt"
-      className="min-h-[40px]"
       classNames={{
         ...classNames,
         label: cn("hidden", classNames?.label),
         input: cn("py-0", classNames?.input),
       }}
-      minRows={1}
       radius="lg"
       variant="bordered"
       onKeyDown={(e) => {
@@ -28,6 +26,8 @@ const PromptInput = React.forwardRef<
           onSendMessage();
         }
       }}
+      maxRows={6}
+      minRows={1}
       {...props}
     />
   );

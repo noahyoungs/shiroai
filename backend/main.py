@@ -1,25 +1,21 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from urllib.parse import parse_qs
 import http.cookies
 from socketio_setup import socketio_mount  
 from auth.authorize import authorize 
-from dynamodb import get_presentation, update_presentation 
-import json
-import global_prompts_config
 import functools
 import asyncio
 
 from ideate.llm import get_completion as ideate_get_completion
-import ideate.prompts as ideate_prompts
 from ideate.on_connect import initialize as ideate_initialize
 from ideate.on_disconnect import save_progress as ideate_save_progress
 
 from research.llm import complete as research_get_completion
-import research.prompts as research_prompts
 from research.on_connect import initialize as research_initialize
 from research.on_disconnect import save_progress as research_save_progress
 from research.interface_update import interface_update as research_interface_update
+from summarize import summarize_source
 
 app = FastAPI()
 
@@ -160,6 +156,27 @@ async def interface_update(sid, data):
             connected_users[sid]["presentationID"],
             connected_users[sid]["interfaceData"],
             data)
+        if data['action'] == 'refresh_upload':
+            # summaize
+            # callback for after summarizing is done
+            async def summarize_done():
+                connected_users[sid]["interfaceData"] = await research_interface_update(
+                    connected_users[sid]["presentationID"],
+                    connected_users[sid]["interfaceData"],
+                    {'action': 'refresh'}
+                )
+                sio.emit('interface_update', connected_users[sid]["interfaceData"], room=sid)
+                
+            # for each source in interfaceData['sources'] with no summary
+            for source in connected_users[sid]["interfaceData"]['sources']:
+                if 'summary' not in source and 'summarizing' not in source:
+                    # start summarizing
+                    asyncio.create_task(summarize_source(
+                        source,
+                        connected_users[sid]["presentationID"],
+                        summarize_done
+                    )) 
+                    source['summarizing'] = True
         connected_users[sid]["loadingInterface"] = False
         print("Interface updated")
         await sio.emit('interface_update', connected_users[sid]["interfaceData"], room=sid)
@@ -178,12 +195,13 @@ async def disconnect(sid):
             connected_users[sid]["memory"]
         )
     elif connected_users[sid]["interface"] == "research":
-        await research_save_progress(
-            connected_users[sid]["presentationID"],
-            connected_users[sid]["messages"],
-            connected_users[sid]["interfaceData"],
-            connected_users[sid]["memory"]
-        )
+        # await research_save_progress(
+        #     connected_users[sid]["presentationID"],
+        #     connected_users[sid]["messages"],
+        #     connected_users[sid]["interfaceData"],
+        #     connected_users[sid]["memory"]
+        # )
+        pass
     else :
         raise ValueError("Interface not found")
     
