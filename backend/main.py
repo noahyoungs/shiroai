@@ -15,7 +15,9 @@ from research.llm import complete as research_get_completion
 from research.on_connect import initialize as research_initialize
 from research.on_disconnect import save_progress as research_save_progress
 from research.interface_update import interface_update as research_interface_update
-from summarize import summarize_source
+from research.summarize import summarize_source
+
+from background_tasks.tasks.test_task import run_test_task
 
 app = FastAPI()
 
@@ -42,6 +44,9 @@ async def updateInterface(sid, data):
 @sio.event
 async def connect(sid, environ):
     print(f"Client {sid} connected")
+    
+    duration = 30  # Specify the duration in seconds
+    task = run_test_task.apply_async(args=[duration])
     
     # Parse query params
     query_string = environ.get('QUERY_STRING', '')
@@ -165,7 +170,7 @@ async def interface_update(sid, data):
                     connected_users[sid]["interfaceData"],
                     {'action': 'refresh'}
                 )
-                sio.emit('interface_update', connected_users[sid]["interfaceData"], room=sid)
+                await sio.emit('interface_update', connected_users[sid]["interfaceData"], room=sid)
                 
             # for each source in interfaceData['sources'] with no summary
             for source in connected_users[sid]["interfaceData"]['sources']:
@@ -195,12 +200,12 @@ async def disconnect(sid):
             connected_users[sid]["memory"]
         )
     elif connected_users[sid]["interface"] == "research":
-        # await research_save_progress(
-        #     connected_users[sid]["presentationID"],
-        #     connected_users[sid]["messages"],
-        #     connected_users[sid]["interfaceData"],
-        #     connected_users[sid]["memory"]
-        # )
+        await research_save_progress(
+            connected_users[sid]["presentationID"],
+            connected_users[sid]["messages"],
+            connected_users[sid]["interfaceData"],
+            connected_users[sid]["memory"]
+        )
         pass
     else :
         raise ValueError("Interface not found")

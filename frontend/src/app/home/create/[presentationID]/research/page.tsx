@@ -25,6 +25,7 @@ export default function Page({ params }: { params: { presentationID: string } })
 
   // Interface states
   const [sources, setSources] = useState<any[]>([]);
+  const [progress, setProgress] = useState<number>(0);
   const [sourcesLoading, setSourcesLoading] = useState(false);
 
   const router = useRouter();
@@ -80,6 +81,7 @@ export default function Page({ params }: { params: { presentationID: string } })
     newSocket.on('interface_update', (socketMessage: any) => {
       console.log('Received interface update:', socketMessage);
       setSources(socketMessage.sources);
+      setProgress(socketMessage.progress);
       setBlockInterface(false);
       setSourcesLoading(false);
     }
@@ -133,6 +135,7 @@ export default function Page({ params }: { params: { presentationID: string } })
     deleteSource={deleteSource}
     loading={sourcesLoading}
     redirectPath={redirectPath}
+    progress={progress}
    />;
 
   return (

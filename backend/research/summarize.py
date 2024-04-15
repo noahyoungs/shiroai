@@ -476,7 +476,7 @@ async def summarize_source(source, presentationID, callback=None):
         if documents is None:
             return "Could not extract enough text from this web source to summarize."
         summary = await summarize_documents(documents)
-    else:
+    else: # file source (S3)
         s3_path = f"{presentationID}/{source['s3_filepath']}"
 
         if source["type"] in ["csv", "xls", "xlsx", "tsv"]:

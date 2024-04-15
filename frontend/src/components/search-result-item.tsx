@@ -19,7 +19,7 @@ export function SearchResultItem({ source, index, className, description=true }:
                 <Image
                     src={source.profile.img}
                     radius="lg"
-                    className="bg-white min-w-[32px] border border-default-500"
+                    className="bg-[#eee] min-w-[32px] border border-default-500"
                     fallbackSrc="/tabler--world-www.svg"
                     width={32}
                 />
@@ -36,7 +36,7 @@ export function SearchResultItem({ source, index, className, description=true }:
             >
                 {source.title}
             </Link>
-                { description && <p className="text-foreground/70 text-sm max-w-[95%]" dangerouslySetInnerHTML={{ __html: source.description }} /> }
+                { description && <p className="text-foreground/70 text-tiny max-w-[95%]" dangerouslySetInnerHTML={{ __html: source.description }} /> }
         </div>
     )
 }

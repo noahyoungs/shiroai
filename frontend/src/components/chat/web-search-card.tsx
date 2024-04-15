@@ -57,7 +57,6 @@ const WebSearchCard = React.forwardRef<HTMLDivElement, WebSearchCardProps>(
                   <SearchResultItem
                     key={index}
                     source={source}
-                    index={index}
                     className=""
                   />
                 ))}

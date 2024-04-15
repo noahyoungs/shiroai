@@ -14,7 +14,7 @@ from s3 import delete_file
 from dynamodb import batch_update_sources
 from research.interface_update import interface_update
 from init_llm import client
-from summarize import summarize_source
+from research.summarize import summarize_source
 from copy import deepcopy
 
 def pydantic_to_dict(obj):

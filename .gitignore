@@ -1,39 +1,33 @@
-# Top level
-.env*
-.history
-.DS_Store
-*.pem
-
-# archive and scratch folders
-archive/
-scratch/
-
-# Python Backend
-.conda 
-__pycache__
-
-# Nextjs Frontend
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/frontend/node_modules
-/frontend/.pnp
+node_modules
+.pnp
 .pnp.js
 .yarn/install-state.gz
 
 # testing
-/frontend/coverage
+coverage
 
 # next.js
-/frontend/.next/
+.next/
 /frontend/out/
 
 # production
 /frontend/build
 
+# misc
+.DS_Store
+*.pem
+
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# local env files
+.env*.local
+.env*
 
 # vercel
 .vercel
@@ -42,3 +36,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Python
+__pycache__/
+.conda/
+
+# history
+.history/
