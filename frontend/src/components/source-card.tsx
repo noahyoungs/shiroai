@@ -12,9 +12,11 @@ import { Icon } from "@iconify/react"
 import { getIcon } from "@/utils/get-file-icon";
 import { cn } from "@/utils/cn";
 
+
 export function SourceCard({ source, deleteSource, className, index }: SourceCardProps) {
+    let pending = !source.char_count ? "opacity-50" : "";
     return (
-        <div className={cn("rounded-xl flex flex-col bg-content2 max-w-full overflow-hidden", className)} >
+        <div className={cn("rounded-xl flex flex-col bg-content2 max-w-full overflow-hidden", className, pending)} >
             <div className="flex gap-3 p-3 relative">
                 <>
                     {source.type === "web" ? (
@@ -34,19 +36,12 @@ export function SourceCard({ source, deleteSource, className, index }: SourceCar
                     />
                 </>
             </div>
-            {
-                source.summary ? (
-                    <>
-                        <Divider />
-                        <div className="p-3">
-                            <p>{source.summary}</p>
-                        </div>
-                    </>
-                ) : (
-                    <div></div>
-                )
-
-            }
+                <>
+                    <Divider />
+                    <div className="p-3">
+                        <p>{source.summary || "Shiro is reading this source..."}</p>
+                    </div>
+                </>
         </div>
     )
 

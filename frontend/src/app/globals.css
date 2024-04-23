@@ -21,7 +21,7 @@ h3 {
 } */
 
 .chat-markdown {
-    @apply text-gray-800 dark:text-gray-200 leading-relaxed;
+    @apply text-gray-800 dark:text-gray-200 leading-normal;
 }
 
 .chat-markdown p {
@@ -40,6 +40,22 @@ h3 {
     @apply my-2;
 }
 
+.chat-markdown ul li p,
+.chat-markdown ol li p {
+  @apply inline;
+}
+
+.chat-markdown ul li,
+.chat-markdown ol li {
+  @apply pl-2;
+}
+
+.chat-markdown ul,
+.chat-markdown ol {
+  @apply list-outside ml-4;
+}
+
+.source-markdown,
 .chat-markdown blockquote {
     @apply border-l-4 border-gray-300 pl-4 italic my-4;
 }

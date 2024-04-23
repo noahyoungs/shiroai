@@ -11,11 +11,12 @@ from research.prompts import getCurrentSourceListMessage
 from uuid_extensions import uuid7str
 from dynamodb import delete_source
 from s3 import delete_file
-from dynamodb import batch_update_sources
+from dynamodb import batch_update_sources, delete_source, get_sources
 from research.interface_update import interface_update
 from init_llm import client
-from research.summarize import summarize_source
+from research.read import read_and_summarize_source
 from copy import deepcopy
+import tokentrim as tt
 
 def pydantic_to_dict(obj):
     if isinstance(obj, BaseModel):
@@ -36,14 +37,21 @@ def pydantic_to_dict(obj):
         return obj
     
 # %%
-async def complete(presentationID, messages, interfaceData, emit, max_turns=5, memory=None):
-    
+async def complete(presentationID, messages, interfaceData, emit, max_turns=15, memory=None):
     
     # helper functions for emitting messages
-    async def emit_interface_update():
+    async def emit_interface_update(updateOnly=False):
         nonlocal interfaceData, presentationID
         interfaceData = await interface_update(presentationID, interfaceData, {'action': 'refresh'})
+        if not updateOnly:
+            await emit('interface_update', interfaceData)
+        return interfaceData
+    
+    async def emit_delete_interface_update(id):
+        nonlocal interfaceData, presentationID
+        interfaceData = await interface_update(presentationID, interfaceData, {'action': 'delete', 'id': id})
         await emit('interface_update', interfaceData)
+        return interfaceData
         
     async def emit_web_search(message):
         print("Emitting web search results")
@@ -80,16 +88,16 @@ async def complete(presentationID, messages, interfaceData, emit, max_turns=5, m
                         ]
         )
         
-        num_results: int = Field(
-            ...,
-            description="The number of search results to return.",
-            examples=[5, 10, 15],
-            ge=5,
-            le=15
-        )
         # errors raised here are considered the model's mistake
         async def run(self):
-            results = await search_brave(self.query, self.num_results)
+            nonlocal interfaceData
+            results = await search_brave(self.query, 15)
+            if not results:
+                raise ValueError("No relevant sources found. Please try a different search query.")
+            # filter out sources that are already in the source list, limit to 8 results
+            results = [result for result in results if result['url'] not in [source.get('url') for source in interfaceData.get('sources', [])]][:8]
+            if not results:
+                raise ValueError("Every search result from this query is already in the source list. Please try a different search query.")
             return results
         
         # errors raised here are not caght 
@@ -117,37 +125,34 @@ async def complete(presentationID, messages, interfaceData, emit, max_turns=5, m
             
             return tool_results, post_messages
         
-    # class RemoveSourcesFromListByID(OpenAISchema):
-    #     """Remove sources from the list of sources by IDs"""
-    #     ids: List[str] = Field(
-    #         ...,
-    #         description="The IDs of the sources to remove.",
-    #         examples=[["a1b2c3d4", "e5f6g7h8"]],
-    #     )
+    class RemoveSourcesFromListByID(OpenAISchema):
+        """Remove sources from the list of sources by IDs"""
         
-    #     # errors raised here are considered the model's mistake
-    #     async def run(self):
-    #         for id in self.ids:
-    #             source = next((s for s in interfaceData['sources'] if s.get("id", "").endswith(id)), None)
-    #             if source:
-    #                 interfaceData['sources'].remove(source)
-    #                 if source.get('type') != 'web':
-    #                     await asyncio.gather(
-    #                         delete_file(presentationID, source.get('s3_filepath', '')),
-    #                         delete_source(presentationID, source['id'])
-    #                     )
-    #             else:
-    #                 raise ValueError(f"Source with ID {id} not found. Please provide a valid source ID.")
-    #         return f"Success: Successfully removed sources with IDs {', '.join(self.ids)} from the list of sources."
+        ids: List[str] = Field(
+            ...,
+            description="The IDs of the sources to remove.",
+            examples=[["a1b2c3d4", "e5f6g7h8"]],
+        )
         
-    #     # errors raised here are not caught
-    #     # second param is the output of the run function
-    #     async def post_run(self, output):
-    #         post_messages = [getCurrentSourceListMessage(interfaceData)]
-    #         # fire and forget interface update
-    #         asyncio.create_task(emit_interface_update(interfaceData))
-            
-    #         return f"Success: Successfully removed sources with IDs {', '.join(self.ids)} from the list of sources.", post_messages
+        # errors raised here are considered the model's mistake
+        async def run(self):
+            nonlocal memory, interfaceData
+            for id in self.ids:
+                source = next((s for s in interfaceData.get('sources', None) if s.get("id", "").endswith(id)), None)
+                if source:
+                    pass
+                else:
+                    raise ValueError(f"Source with ID {id} is not in the source list. Please provide a valid source ID. Make sure are not confusing the source list and the web search result list.")
+            return source["id"]
+        
+        # errors raised here are not caught
+        # second param is the output of the run function
+        async def post_run(self, id):
+            nonlocal memory, interfaceData
+            # await interface updata to get latest source list for next completiom 
+            await emit_delete_interface_update(id)
+            post_messages = [getCurrentSourceListMessage(interfaceData)]
+            return f"Success: Successfully removed sources with IDs {', '.join(self.ids)} from the list of sources.", post_messages
     
     class AddSourcesByID(OpenAISchema):
         """Add sources to the list of sources by IDs found in the web search"""
@@ -159,10 +164,13 @@ async def complete(presentationID, messages, interfaceData, emit, max_turns=5, m
         
         # errors raised here are considered the model's mistake
         async def run(self):
+            nonlocal memory, interfaceData
             source_dicts = []
             for id in self.ids:
                 source_dict = next((d for d in memory['search_results'] if d.get("id", "").endswith(id)), None)
                 if source_dict:
+                    if source_dict.get('url') in [source.get('url') for source in interfaceData.get('sources', [])]:
+                        raise ValueError(f"Source with ID {id} is already in the source list (possibly under a differend ID). Please provide a different source.")
                     source_dicts.append(source_dict)
                 else:
                     raise ValueError(f"Source with ID {id} not found. Please provide a valid source ID.")
@@ -205,19 +213,49 @@ async def complete(presentationID, messages, interfaceData, emit, max_turns=5, m
             # for some reason this call is popping ids off of additional sources so im making a copy because im too lazy to fix issue
             additional_sources_copy = deepcopy(additional_sources)
             # print(f"DEBUG: additional_sources_copy: {additional_sources_copy}")
-            await batch_update_sources(presentationID, additional_sources)
+            await batch_update_sources(presentationID, additional_sources_copy)
             
-            # fire and forget interface update
-            asyncio.create_task(emit_interface_update())
+            # await interface updata to get latest source list for next completiom 
+            await emit_interface_update()
             
-            # for each source in additional_sources_copy
-            # print(f"DEBUG: additional_sources_copy: {additional_sources_copy}")
-            for source in additional_sources_copy:
-                # start summarizing
-                asyncio.create_task(summarize_source(source, presentationID, emit_interface_update))
+            # create a list to store the reading tasks
+            reading_tasks = []
+
+            for source in additional_sources:
+                # create a task for reading and add it to the list
+                reading_task = asyncio.create_task(read_and_summarize_source(source, presentationID, emit_interface_update))
+                reading_tasks.append(reading_task)
+
+            # wait for all reading tasks to complete
+            await asyncio.gather(*reading_tasks)
+            
+            # here the interface should already be updated by the callbacks but we need to update interfaceData here to get the character count
+            await emit_interface_update(updateOnly=True)
             
             # get new source list message after adding sources
             post_messages = [getCurrentSourceListMessage(interfaceData)]
+            
+            # System messages that go after each time model adds sources
+            char_count = 0
+            for source in interfaceData.get('sources', []):
+                char_count += source.get('char_count', 0)
+            percentage = round((char_count/50000)*100)
+            
+            char_count_status_message = {"role": "system", "content": f"You have gathered {percentage}% of the required amount of research. Keep going."}
+            # message about proceeding to the next step if we have 5 or more sources
+            proceed_message = {"role": "system", "content": "You have met the minimum amout of research needed. If you haven't already, ask the user if they are satisfied with the current list of sources. If they are, proceed to the next step. If not, do as the user says. DO NOT call the `ProceedToNextStep` function tool until the user has confirmed they are satisfied with the sources."}
+            user_files_only_proceed_message = {"role": "system", "content": "The user has uploaded file(s) with enough text that you can base the entire presentation around the file(s) that the user uploaded. Ask the user if they want you to find additional sources on the web (Say 'Would you like me to search for additional sources on the web?`). If they do, use the `WebSearch` function tool to find additional sources. If they don't, proceed to the next step. DO NOT call the `ProceedToNextStep` function tool until the user has confirmed they are satisfied with the sources."}
+            
+            if percentage > 100:
+                print("Percentage of research completed 241: ", percentage)
+                if all(source.get('type', '') != 'web' for source in interfaceData.get('sources', [])):
+                    post_messages.append(user_files_only_proceed_message)
+                else:
+                    post_messages.append(proceed_message)
+            else:
+                if not len(interfaceData.get('sources', [])) == 0:
+                    post_messages.append(char_count_status_message)
+                    
             return f"Success: Successfully added source(s) {added_source_ids} to the list of sources.", post_messages
     
     # function to execute the tool function
@@ -257,50 +295,70 @@ async def complete(presentationID, messages, interfaceData, emit, max_turns=5, m
         if func is not None and hasattr(func, 'post_run'):
             tool_result, post_messages = await func.post_run(output)
 
-        return f"Success: {tool_result}", post_messages
+        return tool_result, post_messages
         
     
-    # message about proceeding to the next step if we have 5 or more sources
-    proceed_message = {"role": "system", "content": "You have gathered 5 or more sources. If you haven't already, ask the user if they are satisfied with the current list of sources. If they are, proceed to the next step. If not, continue searching for more sources. DO NOT call the `ProceedToNextStep` function tool until the user has confirmed they are satisfied with the sources."}
-    if interfaceData['sources'] and len(interfaceData['sources']) >= 5:
-        if not memory.get('proceed_message_sent', False):
-            messages.append(proceed_message)
-            memory['proceed_message_sent'] = True
+    interfaceData = await emit_interface_update(updateOnly=True)
     
+    # Update the model on sources in case user added sources
+    char_count = 0
+    for source in interfaceData.get('sources', []):
+        char_count += source.get('char_count', 0)
+    percentage = round((char_count/50000)*100)
+    print("Percentage of research completed 294: ", percentage)
+        
+    char_count_status_message = {"role": "system", "content": f"You have {percentage}% of the required amount of research. Keep going."}
+    # message about proceeding to the next step if we have 5 or more sources
+    proceed_message = {"role": "system", "content": "The minimum amout of research needed has been reached. If you haven't already, ask the user if they are satisfied with the current list of sources. If they are, proceed to the next step. If not, do as the user says. DO NOT call the `ProceedToNextStep` function tool until the user has confirmed they are satisfied with the sources."}
+    
+    if percentage > 100:
+        messages.append(proceed_message)
+    else:
+        if not len(interfaceData.get('sources', [])) == 0:
+            messages.append(char_count_status_message)
+            
     # update LLM on current sources because the user may have added sources
     messages.append(getCurrentSourceListMessage(interfaceData))
     
-    print(messages)
+    # print(messages)
     async def turn(messages, max_turns, turns=0, memory=None):     
         # print(f"Turn {turns}, Sources: {interfaceData['sources']}, Memory: {memory}")
+        char_count = 0
+        for source in interfaceData.get('sources', []):
+            char_count += source.get('char_count', 0)
+
+        with open('messages.json', 'w') as f:
+                json.dump(messages, f)
+                
         completion = await client.chat.completions.create(
             model="gpt-3.5-turbo-0125",
             # filter out any messages with roles that start with meta
-            messages=[message for message in messages if not message['role'].startswith('meta')],
+            messages=tt.trim(
+                messages=[message for message in messages if not message["role"].startswith("meta")],
+                model="gpt-3.5-turbo-16k",
+            ),
             tools=[
-                {
-                    "type": "function",
-                    "function": dict(WebSearch.openai_schema),  
-                },
-            ] + ([
-                {
-                    "type": "function",
-                    "function": dict(AddSourcesByID.openai_schema),  
-                }
-            ] if memory.get('web_searched', False) else [])
-            + ([
-                {
-                    "type": "function",
-                    "function": dict(ProceedToNextStep.openai_schema), 
-                }
-            ] if len(interfaceData.get('sources', [])) >= 5 else []),
-            # + ([
-            #     {
-            #     "type": "function",
-            #     "function": dict(RemoveSourcesFromListByID.openai_schema),
-            #     }
-            # ] if len(interfaceData.get('sources', [])) > 0 else []),
-            tool_choice=("auto" if turns < max_turns else "none")
+                    {
+                        "type": "function",
+                        "function": dict(WebSearch.openai_schema),
+                    },
+                ] + (
+                    [{
+                        "type": "function",
+                        "function": dict(AddSourcesByID.openai_schema),
+                    }] if memory.get('web_searched', False) else []
+                ) + (
+                    [{
+                        "type": "function",
+                        "function": dict(ProceedToNextStep.openai_schema),
+                    }] if round((char_count/50000)*100) >= 100 else []                
+                ) + (
+                    [{
+                        "type": "function",
+                        "function": dict(RemoveSourcesFromListByID.openai_schema),
+                    }] if interfaceData.get('sources', []) else []
+                ),
+            tool_choice=("auto" if turns < max_turns else "none"),
         )
         
         if completion.choices[0].message.tool_calls:
@@ -326,12 +384,21 @@ async def complete(presentationID, messages, interfaceData, emit, max_turns=5, m
             messages_dict = pydantic_to_dict(completion.choices[0].message)
             messages.append(messages_dict)
             
+            all_post_messages = []
             for tool_call in completion.choices[0].message.tool_calls:
                 try: 
-                    tool_result, post_messages = await execute_tool(tool_call, [WebSearch, AddSourcesByID, ProceedToNextStep])
-                    print(f"Tool Result: {tool_result}")
+                    tool_result, post_messages = await execute_tool(tool_call, [WebSearch, AddSourcesByID, ProceedToNextStep, RemoveSourcesFromListByID])
+                    if post_messages:
+                        all_post_messages += post_messages
+                    print(f"Tool Result: {tool_result[:100]}")
                 except ProceedToNextStepException:
-                    return messages, {"role": "system", "content": "Proceeding to the next step..."}, True
+                    messages.append({
+                    "role": "tool",
+                    "tool_call_id": tool_call.id,
+                    "name": tool_call.function.name,
+                    "content": "Succcess: Proceeding to the next step..."
+                    })
+                    return messages, [{"role": "assistant", "content": "Proceeding to the next step..."}], True
 
                 # Append the tool result
                 messages.append({
@@ -342,17 +409,20 @@ async def complete(presentationID, messages, interfaceData, emit, max_turns=5, m
                     })
                 
             # Append the post messages
-            if post_messages not in (None, []):
-                messages += post_messages
+            if all_post_messages not in (None, []):
+                messages += all_post_messages
                 
             # recursively call complete until no tool calls
+            # save messages to json
+            with open('messages.json', 'w') as f:
+                json.dump(messages, f)
             return await turn(messages, max_turns, turns + 1, memory=memory)
         
         else:
             assert completion.choices[0].message.content
             responseMessage = {'role':'assistant', 'content': completion.choices[0].message.content}
             messages.append(responseMessage)
-            return messages, responseMessage, False
+            return messages, [responseMessage], False
     
     return await turn(messages, max_turns, turns=0, memory=memory)
         

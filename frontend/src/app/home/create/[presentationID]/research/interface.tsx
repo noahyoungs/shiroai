@@ -77,7 +77,7 @@ export default function Interface({ sources, deleteSource, block, presentationID
 
       </ScrollShadow>
       {
-        progress == 100 ? (
+        progress >= 100 ? (
           <Button
             color="primary"
             className="min-h-[64px] flex flex-row rounded-b-none text-base"
@@ -86,7 +86,7 @@ export default function Interface({ sources, deleteSource, block, presentationID
               !block && router.push(redirectPath);
             }}
           >
-            <span>Proceed to the next step</span>
+            <span>Proceed to the next step ({progress}%)</span>
             <Icon icon="tabler:arrow-narrow-right" width={30} />
 
           </Button>

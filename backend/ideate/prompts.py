@@ -18,7 +18,7 @@ def getInterfaceUpdateSystemMessage(interface, interfaceData):
     for key in interface_keys_for_interface[interface]:
         if key not in interfaceData:
             raise ValueError(f"Interface data missing key: {key}")
-    content = "Here are the current parameters displayed to the user in the configuration screen. The user can edit these paraneters directly, and you can edit them using the function tools. Both of you will see each other's edits immediately:\n"
+    content = "Here are the current parameters displayed to the user in the configuration screen. You must keep these parameters updated as the conversation progresses. Use the set_topic, set_audience, and set_goal function tools to make sure these parameters are kept up with the conversation:\n"
     for key, value in interfaceData.items():
         if value == "":
             value = "<Empty>"
@@ -59,6 +59,27 @@ def getTools(fields, complete):
             },
         }
         function_objects.append(function_object)
+        
+    research_agent_function_object = {
+        "type": "function",
+        "function": {
+            "name": "ask_research_agent_a_question",
+            "description": "Ask the research agent a question about anything the user mentions that you aren't familiar with.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "question": {
+                        "type": "string",
+                        "description": "The question you would like to ask the research agent",
+                        "examples": ["Who is the current president of El Salvador?", "What is OpenAI's Sora Model?"],
+                    },
+                },
+                "required": ["question"],
+            }
+        }
+    }
+    
+    function_objects.append(research_agent_function_object)
         
     if complete:
         function_object = {

@@ -134,11 +134,12 @@ One Sentence Summary:
 This source"""
 
     response = (await mistral7b.ainvoke(prompt, max_tokens=250)).strip()
-    first_sentence = get_first_sentence(response)
-    with_first_char_lower = first_sentence[0].lower() + first_sentence[1:]
-    with_this_source = f"This source {with_first_char_lower}"
-    
-    return with_this_source
+    cleaned = response[0].lower() + response[1:]
+    if not cleaned.lower().startswith("this source"):
+        cleaned = f"This source {cleaned}"
+    # capitalize first letter
+    cleaned = cleaned[0].upper() + cleaned[1:]
+    return cleaned
 
 
 # %%
@@ -239,7 +240,7 @@ async def summarize_long(documents):
     # Usually if you have 10 passages from a book you can tell what it's about
     num_clusters = 11
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
+    with concurrent.futures.ProcessPoolExecutor() as executor:
         # Perform K-means clustering
         kmeans_future = executor.submit(
             KMeans(n_clusters=num_clusters, random_state=42).fit, vectors)
@@ -440,10 +441,7 @@ async def summarize_documents(documents):
     # print("-- Before split --")
     tokens = analyze(documents)
 
-    if tokens <= 300:
-        print("The text extracted from the document is too short to summarize.")
-        summary = "The text extracted from the document is too short to summarize."
-    elif tokens <= 5000:
+    if tokens <= 5000:
         print("This is a short document so we will summarize it in one go.")
         # Short so we sumamrize in one go
         summary = await summarize_short(documents)
@@ -461,34 +459,61 @@ async def summarize_documents(documents):
     return summary
 
 
-async def summarize_source(source, presentationID, callback=None):
+async def summarize_source(source, presentationID, document=None, callback=None):
+    """
+   Summarize a source file based on its type and update the source with the generated summary.
+
+   Args:
+       source (dict): A dictionary representing the source file to be summarized.
+           The dictionary must contain an 'id' field and a 'type' field indicating the file type.
+       presentationID (str): The ID of the presentation associated with the source file.
+       document (Optional[Document]): A Document object representing the loaded source file.
+           This argument is required for non-tabular source files.
+       callback (Optional[callable]): An optional asynchronous callback function to be executed
+           after the source is summarized and updated.
+
+   Returns:
+       str: The generated summary of the source file.
+
+   Raises:
+       ValueError: If the source dictionary does not have an 'id' field or if the document argument
+           is not provided for non-tabular source files.
+
+   Description:
+       This function summarizes a source file based on its type (tabular or non-tabular) and updates
+       the corresponding source entry in the database with the generated summary. The function
+       determines the summarization method based on the file type:
+       - For tabular files (CSV, XLS, XLSX, TSV), it calls the `summarize_tabular_file` function.
+       - For non-tabular files, it requires a `document` argument and calls the `summarize_documents`
+         function.
+
+       After generating the summary, the function updates the source entry in the database using the
+       `update_source` function, associating the summary with the source.
+
+       If a `callback` function is provided, it is executed asynchronously after the source is
+       summarized and updated.
+
+   Example:
+       source = {"id": "source123", "type": "csv", "s3_filepath": "data.csv"}
+       summary = await summarize_source(source, "presentation456")
+       print(summary)
+   """
     # print(f"Summarizing source {source}...")
     
     if source.get("id", None) is None:
         raise ValueError("Source must have an 'id' field.")
 
-    if source["type"] == "web":
-        try:
-            documents = await load_web_source(source["url"])
-        except Exception as e:
-            print(f"Error loading web source: {e}")
-            return "Could not extract enough text from this web source to summarize."
-        if documents is None:
-            return "Could not extract enough text from this web source to summarize."
-        summary = await summarize_documents(documents)
-    else: # file source (S3)
+    if source["type"] in ["csv", "xls", "xlsx", "tsv"]:
         s3_path = f"{presentationID}/{source['s3_filepath']}"
-
-        if source["type"] in ["csv", "xls", "xlsx", "tsv"]:
-            summary = await summarize_tabular_file(s3_path)
-        else:
-            documents = await load_file_source_async(s3_path)
-            summary = await summarize_documents(documents)
-    
-    print(f"Summary: {summary}")
+        summary = await summarize_tabular_file(s3_path)
+    else:
+        if document is None:
+            raise ValueError("Document must be provided for non-tabular sources.")
+        summary = await summarize_documents([document])
     
     await update_source(presentationID, source["id"], summary=summary)
     
+    print("Finished summarizing one source.")
     # run callback
     if callback:
         await callback()

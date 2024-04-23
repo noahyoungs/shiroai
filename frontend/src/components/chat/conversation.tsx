@@ -16,19 +16,19 @@ export default function Component({ messages = [] as any[], typing = false, clas
       ) : (
         <div className={cn("flex flex-col gap-4 px-1", classNames)}>
           {messages.map(({ role, content }, index) => (
-            (role == "assistant" || role == "error" || role == "user") ? (
+            (role == "assistant" || role == "error" || role == "user" || role == "meta_research_agent") ? (
               content && (
                 <MessageCard
                 key={index}
                 // attempts={index === 1 ? 2 : 1}
                 avatar={
-                  role === "assistant" || role === "error"
+                  role === "assistant" || role === "error" || role === "meta_research_agent"
                     ? "https://nextuipro.nyc3.cdn.digitaloceanspaces.com/components-images/avatar_ai.png"
                     : "https://d2u8k2ocievbld.cloudfront.net/memojis/male/6.png"
                 }
                 // currentAttempt={index === 1 ? 2 : 1}
                 message={content}
-                messageClassName={role === "user" ? "bg-content3 text-content3-foreground" : ""}
+                messageClassName={role === "user" ? "bg-content3 text-content3-foreground" : role === "meta_research_agent" ? "bg-sky-50 dark:bg-sky-950" : ""}
                 showFeedback={role === "assistant"}
                 status={role === "error" ? "failed" : "success"}
               />

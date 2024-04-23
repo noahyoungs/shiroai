@@ -1,6 +1,5 @@
 "use server"
 import PresentationListbox from "@/components/presentation-listbox"
-import CreatePresentation from "@/components/create-presentation-button"
 import { getPresentationsByUserID } from "@/utils/dynamodb"
 import { getServerSession } from "next-auth";
 import { hashEmail } from '@/utils/hash-email';
@@ -12,7 +11,7 @@ export default async function NavbarList() {
   }
 
   let presentations = await getPresentationsByUserID(hashEmail(session.user.email), ["topic", "status", "time_updated"])
-  console.log(`Presentations: ${JSON.stringify(presentations)}`)
+  // console.log(`Presentations: ${JSON.stringify(presentations)}`)
 
   const sortedPresentations = presentations?.sort((a, b) => {
     if (isNaN(a.time_updated) || isNaN(b.time_updated)) {
@@ -30,6 +29,8 @@ export default async function NavbarList() {
       href = `/home/create/${presentation.id}/ideate`;
     } else if (presentation.status === "research") {
       href = `/home/create/${presentation.id}/research`;
+    } else if (presentation.status === "outline") {
+      href = `/home/create/${presentation.id}/outline`;
     }
     return {
       ...presentation,

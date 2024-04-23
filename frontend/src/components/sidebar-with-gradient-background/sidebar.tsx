@@ -54,14 +54,14 @@ export default function Component({
       <div className="flex flex-row justify-between">
         <h3 className="mb-0">Presentations</h3>
         <Icon
-          icon="tabler:square-rounded-plus"
-          width={32}
-          height={32}
+          icon="tabler:square-plus"
+          width={29}
+          height={29}
           onClick={async () => {
             const uuid = await CreatePresentation()
             onClose()
           }}
-          className="text-foreground/70 hover:text-foreground"
+          className="text-foreground/70 hover:text-foreground mr-[2px]"
         />
       </div>
 

@@ -81,11 +81,16 @@ export default function Page({ params }: { params: { presentationID: string } })
     newSocket.on('interface_update', (socketMessage: any) => {
       console.log('Received interface update:', socketMessage);
       setSources(socketMessage.sources);
-      setProgress(socketMessage.progress);
+      setProgress(() => {
+        let charCount = 0;
+        for (const source of (socketMessage.sources || [])) {
+          charCount += source.char_count || 0;
+        }
+        return Math.round((charCount/50000)*100);
+      });
       setBlockInterface(false);
       setSourcesLoading(false);
-    }
-    );
+    });
 
     newSocket.on('proceed', (socketMessage: any) => {
       console.log('Proceeding to next step:', socketMessage);

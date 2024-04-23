@@ -204,3 +204,43 @@ export async function createSource(presentationID: string, source: any) {
   console.log("Created new source with ID: ", sourceID);
   return sourceID;
 }
+
+export async function getSources(presentationID: string, attributes?: string[]) {
+  const params = {
+    TableName: tableName,
+    KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",
+    ExpressionAttributeValues: {
+      ":pk": { S: `PRESENTATION#${presentationID}` },
+      ":sk": { S: "SOURCE#" },
+    },
+    ProjectionExpression: attributes ? attributes.join(", ") : undefined,
+  };
+
+  const command = new QueryCommand(params);
+  const response = await client.send(command);
+
+  const sources = response.Items?.map((item) => {
+    const unmarshalled = unmarshall(item);
+    const simplified: any = {};
+
+    for (const [k, v] of Object.entries(unmarshalled)) {
+      if (k === "SK") {
+        simplified["id"] = (v as string).split("#")[1];
+      } else if (k === "PK") {
+        simplified["presentation_id"] = (v as string).split("#")[1];
+      } else if (k === "web_source") {
+        simplified[k] = JSON.parse(v as string);
+      } else if (typeof v === "string") {
+        simplified[k] = v;
+      } else if (typeof v === "number") {
+        simplified[k] = v;
+      } else if (typeof v === "boolean") {
+        simplified[k] = v;
+      }
+    }
+
+    return simplified;
+  });
+
+  return sources;
+}

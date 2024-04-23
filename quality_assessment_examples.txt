@@ -1,0 +1,229 @@
+<bad_examples>
+---
+AWS
+
+Managed NoSQL database
+View product
+
+Your AI-powered productivity tool for the IDE and command line
+View product
+Networking & Content Delivery
+
+Virtual servers in the cloud
+View product
+Storage
+
+Global content delivery network
+View product
+Developer Tools
+
+Launch and manage virtual private servers
+View product
+Database
+
+---
+View All Financial Services Customer Stories __
+
+Customer Name
+Customer Name
+No products found for this category.
+View All Government Stories __
+Customer Name
+Customer Name
+No products found for this category.
+View All Healthcare & Life Sciences Customer Stories __
+Customer Name
+Customer Name
+No products found for this category.
+View All Manufacturing Customer Stories __
+Customer Name
+Customer Name
+No products found for this category.
+
+
+Customer Name
+Customer Name
+No products found for this category.
+View All Manufacturing Customer Stories __
+Customer Name
+Customer Name
+No products found for this category.
+View All Media & Entertainment Customer Stories __
+Customer Name
+Customer Name
+No products found for this category.
+View All Retail & Consumer Goods Customer Stories __
+Customer Name
+Customer Name
+No products found for this category.
+
+
+View All Aerospace & Satellite Customer Stories __
+
+Customer Name
+Customer Name
+No products found for this category.
+View All Agriculture Customer Stories __
+Customer Name
+Customer Name
+No products found for this category.
+View All Automotive Customer Stories __
+Customer Name
+Customer Name
+No products found for this category.
+View All Education Customer Stories __
+Customer Name
+Customer Name
+No products found for this category.
+
+
+Customer Name
+Customer Name
+No products found for this category.
+View All Education Customer Stories __
+Customer Name
+Customer Name
+No products found for this category.
+View All Energy Customer Stories __
+Customer Name
+Customer Name
+No products found for this category.
+View All Financial Services Customer Stories __
+Customer Name
+Customer Name
+No products found for this category.
+View All Government Stories __
+Customer Name
+Customer Name
+
+
+Customer Name
+Customer Name
+No products found for this category.
+View All Customer Stories __
+Customer Name
+Customer Name
+No products found for this category.
+View All Advertising & Marketing Customer Stories __
+Customer Name
+Customer Name
+No products found for this category.
+View All Aerospace & Satellite Customer Stories __
+Customer Name
+Customer Name
+No products found for this category.
+View All Agriculture Customer Stories __
+Customer Name
+---
+Beginners who want to learn AWS can start with the basics first. Once you have mastered AWS basics you can move on to the advanced topics.
+This free AWS training consists of 11 hours of video content that will help you understand AWS thoroughly.
+It is recommended that you always start with AWS basics first. For a better understanding, watch the learning videos in sequence without skipping any.
+
+As the world increasingly turns to cloud-based services, it's no surprise that Amazon Web Services (AWS) is becoming one of the most in-demand technology platforms. With so much demand, you must have a strong understanding of AWS if you're hoping to land a job with AWS in the future. In this article, we've compiled a list of the top 90+ questions and answers for your AWS interview preparation.
+Lesson 14: Amazon Interview Questions and Answers That You Should Know
+
+Share your certificate with prospective employers and your professional network on LinkedIn.
+Expected growth rate for public cloud spending globally
+Annual median salary of an AWS solutions architect
+There are no prerequisites to learn AWS basics. This free AWS course has been designed to cater to the understanding level of beginners.
+Beginners who want to learn AWS can start with the basics first. Once you have mastered AWS basics you can move on to the advanced topics.
+
+It is recommended that you always start with AWS basics first. For a better understanding, watch the learning videos in sequence without skipping any.
+The videos that you find in this AWS Basics course are created by mentors who are industry leaders with vast experience in the field. They are aware of the needs of different learners and have designed the course to be easy to learn.
+The AWS basics covered in this free course include:
+
+As soon as the certificate is unlocked, you will receive a mail with a link to your SkillUp learning dashboard on your registered mail address. Click the link to view and download your certificate. You can even add the certificate to your resume and share it on social media platforms.
+After completing this free AWS basics course, you can opt for the AWS Cloud Architect Master's Program or Post Graduate Program in Cloud Computing provided by Simplilearn.
+---
+Eggs
+
+Organic Consumers Association. “Regenerative Farming Starts Here-with Chickens.” Organic Consumers Association , 28 Feb. 2018, https://www.organicconsumers.org/blog/regenerative-farming-starts-here-chickens.
+Karsten, H.D., et al. “Vitamins A, E and Fatty Acid Composition of the Eggs of Caged Hens and Pastured Hens.” Renewable Agriculture and Food Systems , vol. 25, no. 1, 12 Jan. 2010, pp. 45–54., https://doi.org/10.1017/s1742170509990214.
+Koefoed, Alexis.
+
+Goetz, Gretchen. “Who Inspects What? A Food Safety Scramble.” Food Safety News , Marler Clark, 16 Dec. 2010, https://www.foodsafetynews.com/2010/12/who-inspects-what-a-food-safety-scramble/.
+Ibid.
+“Salmonella .” Centers for Disease Control and Prevention , Centers for Disease Control and Prevention, 20 Oct. 2022, https://www.cdc.gov/salmonella/index.html.
+Center for Food Safety and Applied Nutrition. “What You Need to Know about Egg Safety.” _U.S.
+
+O’Keefe, Terrence. “Top U.S. Egg Producer Rankings for 2018: Cage-Free Surplus.” Egg Industry , Feb. 2018, https://www.eggindustry-digital.com/eggindustry/201802/MobilePagedReplica.action?pm=2&folio=Cover#pg1.
+Fassler, Joe. “What Are ‘Pasture-Raised Eggs,” Really?” The Counter , 18 May 2016, https://thecounter.org/pasture-raised-eggs-part-one/.
+Sherwin, C.M., et al. “Comparison of the Welfare of Layer Hens in 4 Housing Systems in the UK.” British Poultry Science , vol. 51, no.
+
+Karsten, H.D., et al. “Vitamins A, E and Fatty Acid Composition of the Eggs of Caged Hens and Pastured Hens.” Renewable Agriculture and Food Systems , vol. 25, no. 1, 12 Jan. 2010, pp. 45–54., https://doi.org/10.1017/s1742170509990214.
+Dekker, S.E.M., et al. “Emissions of Ammonia, Nitrous Oxide, and Methane from Aviaries with Organic Laying Hen Husbandry.” Biosystems Engineering , vol. 110, no. 2, Oct. 2011, pp. 123–133., https://doi.org/10.1016/j.biosystemseng.2011.07.006.
+
+2022, https://www.cdc.gov/salmonella/index.html. 38. Center for Food Safety and Applied Nutrition. “What You Need to Know about Egg Safety.” U.S. Food and Drug Administration , U.S. Food and Drug Administration, 10 May 2022, https://www.fda.gov/food/buy-store-serve-safe-food/what-you-need-know-about-egg-safety. 39. Smithers, Rebecca. “Egg Safety – We’ve Cracked It, Food Watchdog Tells Britons.” The Guardian , Guardian News and Media, 10 Oct.
+---
+Coton
+It really works!" Photo courtesy of Cotons of Adam's Eden
+Ami, a female Coton de Tulear puppy
+"Ziggy, our male Coton de Tulear at 8 years old. Our family's sweetheart. We adore him!"
+
+We call her "Captain Reno"" Photo courtesy of Cotons of Adam's Eden
+"Reno is one of three Cotons that we own and is definitely the "Queen" of the dogs. She is a very kind leader but if one of the others gets out of line she lets them know. When her puppies are young she guards them well, allowing the others only a little sniff or two but she NEVER gets upset when one of her human family members or their friends pets and snuggles them.
+
+"Another favorite pastime for Reno is riding on the lawnmower with my husband. She somehow knows when it's time to cut the grass and waits for him to start the mower. She eagerly jumps on and will ride with him the entire two hours it takes to cut our lawn. We call her "Captain Reno"" Photo courtesy of Cotons of Adam's Eden
+"Reno is one of three Cotons that we own and is definitely the "Queen" of the dogs.
+
+    NKC = National Kennel Club
+    Photo courtesy of Chesterfield Coton de Tulear
+    "This is our dog, Reno. She is a three-year-old Coton de Tulear and the joy of our home. Reno is the reason we decided to breed the Coton. Her friendly, calm and smart demeanor is unlike any dog we have ever owned. She is truly a big dog in a little dog body.
+    "Reno is content to lie on our lap or at our feet but the minute we mention the word "outside" she is eager to play. Reno LOVES to play Frisbee.
+
+She is truly a big dog in a little dog body.
+"Reno is content to lie on our lap or at our feet but the minute we mention the word "outside" she is eager to play. Reno LOVES to play Frisbee. So much so that we have to spell the word F-R-I-S-B-E-E or she will run in circles and dance on two feet until we get our jackets and shoes on to go and throw it for her.
+"Another favorite pastime for Reno is riding on the lawnmower with my husband.
+---
+microplastics
+Chemosphere (2018) 205:80–7. 10.1016/j.chemosphere.2018.04.076 [PubMed] [CrossRef] [Google Scholar] [Ref list]
+86. Naji A, Nuri M, Vethaak AD. Microplastics Contamination in Molluscs From the Northern Part of the Persian Gulf. Environ Pollut (2018) 235:113–20. 10.1016/j.envpol.2017.12.046 [PubMed] [CrossRef] [Google Scholar] [Ref list]
+87. Li Q, Sun C, Wang Y, Cai H, Li L, Li J, et al.. Fusion of Microplastics Into the Mussel Byssus. Environ Pollut (2019) 252:420–6.
+
+Sci Rep (2017) 7(1):1–10. 10.1038/srep46687 [PMC free article] [PubMed] [CrossRef] [Google Scholar] [Ref list]
+182. Lu L, Wan Z, Luo T, Fu Z, Jin Y. Polystyrene Microplastics Induce Gut Microbiota Dysbiosis and Hepatic Lipid Metabolism Disorder in Mice. Sci Total Environ (2018) 631:449–58. 10.1016/j.scitotenv.2018.03.051 [PubMed] [CrossRef] [Google Scholar] [Ref list]
+183. Deng Y, Zhang Y, Qiao R, Bonilla MM, Yang X, Ren H, et al..
+
+[PubMed] [Google Scholar] [Ref list]
+116. Gasperi J, Wright SL, Dris R, Collard F, Mandin C, Guerrouache M, et al.. Microplastics in Air: Are We Breathing It in? Curr Opin J Environ Sci Health (2018) 1:1–5. 10.1016/j.coesh.2017.10.002 [CrossRef] [Google Scholar] [Ref list]
+117. Vethaak AD, Leslie HA. Plastic Debris Is a Human Health Issue. Environ Sci Technol (2016) 50(13):6825–6. 10.1021/acs.est.6b02569 [PubMed] [CrossRef] [Google Scholar] [Ref list]
+118.
+
+Environ Pollut (2019) 244:153–64. 10.1016/j.envpol.2018.10.039 [PubMed] [CrossRef] [Google Scholar] [Ref list]
+17. Karbalaei S, Hanachi P, Walker TR, Cole M. Occurrence, Sources, Human Health Impacts and Mitigation of Microplastic Pollution. Environ Sci Pollut Res (2018) 25(36):36046–63. 10.1007/s11356-018-3508-7 [PubMed] [CrossRef] [Google Scholar] [Ref list]
+18. Andrady AL. Microplastics in the Marine Environment. Mari Pollut Bull (2011) 62(8):1596–605.
+
+10.1007/s11356-018-3508-7 [PubMed] [CrossRef] [Google Scholar] [Ref list]
+18. Andrady AL. Microplastics in the Marine Environment. Mari Pollut Bull (2011) 62(8):1596–605. 10.1016/j.marpolbul.2011.05.030 [PubMed] [CrossRef] [Google Scholar] [Ref list]
+21. Rillig MC. Microplastic in Terrestrial Ecosystems and the Soil? Environ Sci Technol (2012) 46(12):6453–4. 10.1021/es302011r [PubMed] [CrossRef] [Google Scholar] [Ref list]
+22.
+---
+Mirjana Andjelkovic
+3. Center of Excellence for Molecular Food Sciences & Department of Biochemistry, University of Belgrade-Faculty of Chemistry, Studentski trg 12–16, Belgrade, 11000, Serbia
+Tanja Cirkovic-Velickovic
+4. Department of Food Technology, Food Safety and Health, Faculty of Bioscience Engineering, Ghent University, Coupure links 653, B-9000, Ghent, Belgium
+Andreja Rajkovic
+Authors
+
+    Bozidar Udovicki
+    View author publications
+
+This article was submitted to Obesity, a section of the journal Frontiers in Endocrinology
+Received 2021 Jun 14; Accepted 2021 Jul 26.
+Copyright © 2021 Kannan and Vimalkumar
+This is an open-access article distributed under the terms of the Creative Commons Attribution License (CC BY).
+
+Received 2021 Jun 14; Accepted 2021 Jul 26.
+Copyright © 2021 Kannan and Vimalkumar
+This is an open-access article distributed under the terms of the Creative Commons Attribution License (CC BY). The use, distribution or reproduction in other forums is permitted, provided the original author(s) and the copyright owner(s) are credited and that the original publication in this journal is cited, in accordance with accepted academic practice.
+
+Edited by: Malarvannan Govindan, University of Antwerp, Belgium
+Reviewed by: Thomas McGrath, University of Antwerp, Belgium; Thava Palanisami, The University of Newcastle, Australia; K. Ramu, National Centre for Coastal Research, India
+*Correspondence: Kurunthachalam Kannan, gro.enognaluyn@nannak.malahcahtnuruK
+This article was submitted to Obesity, a section of the journal Frontiers in Endocrinology
+Received 2021 Jun 14; Accepted 2021 Jul 26.
+Copyright © 2021 Kannan and Vimalkumar
+
+The images or other third party material in this article are included in the article's Creative Commons licence, unless indicated otherwise in a credit line to the material. If material is not included in the article's Creative Commons licence and your intended use is not permitted by statutory regulation or exceeds the permitted use, you will need to obtain permission directly from the copyright holder. To view a copy of this licence, visit http://creativecommons.org/licenses/by/4.0/.
+---
+</bad_examples>

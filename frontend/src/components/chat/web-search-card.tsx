@@ -51,7 +51,7 @@ const WebSearchCard = React.forwardRef<HTMLDivElement, WebSearchCardProps>(
               <div className="flex flex-row">
                 <h3>Web Search: "{query}"</h3>
               </div>
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-6">
                 {sources && sources.length >= 1 && sources.map((source: any, index: number) => (
                   // Search item
                   <SearchResultItem

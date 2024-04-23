@@ -15,9 +15,13 @@ from research.llm import complete as research_get_completion
 from research.on_connect import initialize as research_initialize
 from research.on_disconnect import save_progress as research_save_progress
 from research.interface_update import interface_update as research_interface_update
-from research.summarize import summarize_source
+from research.read import read_and_summarize_source
 
-from background_tasks.tasks.test_task import run_test_task
+from outline.on_connect import initialize as outline_initialize
+from outline.on_disconnect import save_progress as outline_save_progress
+from outline.llm import complete as outline_get_completion
+from outline.load_topics import load_topics as outline_load_topics
+
 
 app = FastAPI()
 
@@ -44,9 +48,6 @@ async def updateInterface(sid, data):
 @sio.event
 async def connect(sid, environ):
     print(f"Client {sid} connected")
-    
-    duration = 30  # Specify the duration in seconds
-    task = run_test_task.apply_async(args=[duration])
     
     # Parse query params
     query_string = environ.get('QUERY_STRING', '')
@@ -99,16 +100,25 @@ async def connect(sid, environ):
         connected_users[sid]["messages"], connected_users[sid]["interfaceData"], connected_users[sid]["memory"] = await ideate_initialize(presentationID)
     elif connected_users[sid]["interface"] == "research":
         connected_users[sid]["messages"], connected_users[sid]["interfaceData"], connected_users[sid]["memory"] = await research_initialize(presentationID)
-    else :
+    elif connected_users[sid]["interface"] == "outline":
+        connected_users[sid]["messages"], connected_users[sid]["interfaceData"], connected_users[sid]["memory"] = await outline_initialize(presentationID)
+    else:
         raise ValueError(f"Interface not found: `{connected_users[sid]['interface']}`")
         
     # filter out system and function messages
     messagesToSend = [message for message in connected_users[sid]["messages"] if message['role'] != 'system' and message['role'] != 'function']
     
-    # print(f"Messages to send: {messagesToSend}")
-    await sio.emit('initMessages', messagesToSend, room=sid)
     
+    # print(f"Messages to send: {messagesToSend}")
+    print(f"Emitting initial messages")
+    await sio.emit('initMessages', messagesToSend, room=sid)
     await sio.emit('interface_update', connected_users[sid]["interfaceData"], room=sid)
+    
+    # for outline we have to do extra work before first user message
+    if connected_users[sid]["interface"] == "outline" and connected_users[sid]["interfaceData"]['all_topics'] is None:
+        # load topics, send emitter as a partial function to emit to the room when done
+        asyncio.create_task(outline_load_topics(presentationID, connected_users[sid]["messages"], connected_users[sid]["interfaceData"], connected_users[sid]["memory"], emitter=functools.partial(sio.emit, room=sid)))
+        
 
 @sio.event
 async def message(sid, data):
@@ -120,7 +130,7 @@ async def message(sid, data):
     
     # Route based on interface
     if connected_users[sid]["interface"] == "ideate" or connected_users[sid]["interface"] == "new":
-        connected_users[sid]["messages"], completion_message, proceed = await ideate_get_completion(
+        connected_users[sid]["messages"], completion_messages, proceed = await ideate_get_completion(
             connected_users[sid]["messages"],
             connected_users[sid]["interface"],
             connected_users[sid]["interfaceData"],
@@ -135,23 +145,31 @@ async def message(sid, data):
             print("Waiting for interface update...")
             await asyncio.sleep(0.5)
     
-        connected_users[sid]["messages"], completion_message, proceed = await research_get_completion(
+        connected_users[sid]["messages"], completion_messages, proceed = await research_get_completion(
             connected_users[sid]["presentationID"],
             connected_users[sid]["messages"],
             connected_users[sid]["interfaceData"],
             functools.partial(sio.emit, room=sid),
             memory=connected_users[sid]["memory"],
         )
-        
+    elif connected_users[sid]["interface"] == "outline":
+        connected_users[sid]["messages"], completion_messages, proceed = await outline_get_completion(
+            connected_users[sid]["presentationID"],
+            connected_users[sid]["messages"],
+            connected_users[sid]["interfaceData"],
+            emitter=functools.partial(sio.emit, room=sid),
+            memory=connected_users[sid]["memory"]
+        )
     else:
         raise ValueError("Interface not found")
-    await sio.emit('message', completion_message, room=sid)
+    for completion_message in completion_messages:
+        await sio.emit('message', completion_message, room=sid)
     if proceed:
         await sio.emit('proceed', room=sid)
 
 @sio.event
 async def interface_update(sid, data):
-    print(f"Client {sid} requested interface data update: {data}")
+    print(f"Client {sid} requested interface data update: {str(data)[:100]}")
     if connected_users[sid]["interface"] == "ideate":
         connected_users[sid]["interfaceData"] = data
     elif connected_users[sid]["interface"] == "research":
@@ -162,29 +180,47 @@ async def interface_update(sid, data):
             connected_users[sid]["interfaceData"],
             data)
         if data['action'] == 'refresh_upload':
-            # summaize
             # callback for after summarizing is done
-            async def summarize_done():
+            async def read_or_summarize_done():
                 connected_users[sid]["interfaceData"] = await research_interface_update(
                     connected_users[sid]["presentationID"],
                     connected_users[sid]["interfaceData"],
                     {'action': 'refresh'}
                 )
                 await sio.emit('interface_update', connected_users[sid]["interfaceData"], room=sid)
-                
+
+            # create a list to store the reading tasks
+            reading_tasks = []
+
             # for each source in interfaceData['sources'] with no summary
             for source in connected_users[sid]["interfaceData"]['sources']:
-                if 'summary' not in source and 'summarizing' not in source:
-                    # start summarizing
-                    asyncio.create_task(summarize_source(
+                if 'summary' not in source and 'reading_and_summarizing' not in source:
+                    # create a task for reading and add it to the list
+                    reading_task = asyncio.create_task(read_and_summarize_source(
                         source,
                         connected_users[sid]["presentationID"],
-                        summarize_done
-                    )) 
-                    source['summarizing'] = True
+                        read_or_summarize_done
+                    ))
+                    reading_tasks.append(reading_task)
+                    source['reading_and_summarizing'] = True
+
+            # wait for all reading tasks to complete
+            await asyncio.gather(*reading_tasks)
+
+            # run the callback code after all reading tasks are finished
+            await read_or_summarize_done()
+
         connected_users[sid]["loadingInterface"] = False
         print("Interface updated")
         await sio.emit('interface_update', connected_users[sid]["interfaceData"], room=sid)
+    elif connected_users[sid]["interface"] == "outline":
+        # if connected_users[sid]['interfaceData']['all_topics'] == None:
+        #     print(f"main 215 Interface Data all_topics none")
+        # else:
+        #     print(f"main 216 Interface Data all_topics length: {len(connected_users[sid]['interfaceData']['all_topics'])}")
+        connected_users[sid]["interfaceData"]['outline'] = data['outline']
+        # print(f"Outline updated: {connected_users[sid]['interfaceData']['outline']}")
+
     else:
         raise ValueError("Interface not found")
     
@@ -201,6 +237,13 @@ async def disconnect(sid):
         )
     elif connected_users[sid]["interface"] == "research":
         await research_save_progress(
+            connected_users[sid]["presentationID"],
+            connected_users[sid]["messages"],
+            connected_users[sid]["interfaceData"],
+            connected_users[sid]["memory"]
+        )
+    elif connected_users[sid]["interface"] == "outline":
+        await outline_save_progress(
             connected_users[sid]["presentationID"],
             connected_users[sid]["messages"],
             connected_users[sid]["interfaceData"],

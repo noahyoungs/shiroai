@@ -16,19 +16,22 @@ export type ChatProps = {
   typing: any;
   sources?: any;
   refreshSources?: () => void;
+  placeholder?: string;
   title?: string;
 };
 
-export function Chat({ presentationID, messages, socket, block, setBlock, typing, sources, refreshSources, title="Chat with Shiro" }: ChatProps) {
+export function Chat({ presentationID, messages, socket, block, setBlock, typing, sources, refreshSources, placeholder, title="Chat with Shiro" }: ChatProps) {
   const scrollShadowRef = useRef<HTMLDivElement>(null);
   const promptInputRef = useRef<HTMLDivElement>(null);
 
+  // Scroll to bottom when new message is added
   useEffect(() => {
     if (scrollShadowRef.current) {
       scrollShadowRef.current.scrollTop = scrollShadowRef.current.scrollHeight;
     }
   }, [messages]);
 
+  // Scroll to bottom when prompt input is resized
   useEffect(() => {
     const observer = new ResizeObserver(() => {
       if (scrollShadowRef.current) {
@@ -46,6 +49,10 @@ export function Chat({ presentationID, messages, socket, block, setBlock, typing
       }
     };
   }, []);
+
+  if (!messages.length && placeholder) {
+    messages = [{ role: "assistant", content: placeholder }];
+  }
 
   return (
     <>

@@ -3,6 +3,7 @@ import time
 from dotenv import load_dotenv
 from aiobotocore.session import get_session
 import json
+from typing import List, Dict, Any
 
 load_dotenv()
 
@@ -17,6 +18,34 @@ async def get_table():
         return response['Table']['TableName']
 
 async def get_presentation(presentation_id, attributes=None):
+    """
+   Retrieve a presentation from the DynamoDB table.
+
+   Args:
+       presentation_id (str): The ID of the presentation to retrieve.
+       attributes (list, optional): A list of attribute names to retrieve. If not provided, all attributes will be retrieved.
+
+   Returns:
+       dict: A dictionary representing the retrieved presentation with simplified attribute values.
+             The dictionary includes the original presentation ID as the "id" key.
+       None: If the presentation is not found in the table.
+
+   Description:
+       This function retrieves a presentation from the DynamoDB table based on the provided presentation ID.
+       It allows specifying a list of attribute names to retrieve, enabling projection of specific attributes.
+       The function handles reserved keywords in the attribute names using expression attribute names.
+       It uses the DynamoDB GetItem API to retrieve the item and simplifies the attribute values in the returned dictionary.
+
+   Raises:
+       botocore.exceptions.ClientError: If an error occurs while retrieving the item from DynamoDB.
+
+   Example:
+       presentation = await get_presentation('presentation123', attributes=['title', 'description', 'created_at'])
+       if presentation:
+           print(presentation)
+       else:
+           print("Presentation not found")
+   """
     table_name = await get_table()
     async with get_session().create_client('dynamodb', region_name=AWS_REGION) as client:
         key = {
@@ -47,6 +76,35 @@ async def get_presentation(presentation_id, attributes=None):
             return None
 
 async def update_presentation(presentation_id, **kwargs):
+    """
+   Update attributes of a presentation in the DynamoDB table.
+
+   Args:
+       presentation_id (str): The ID of the presentation to update.
+       **kwargs: Arbitrary keyword arguments representing the attributes and their values to update.
+
+   Returns:
+       dict: The updated attributes of the presentation.
+
+   Description:
+       This function updates the specified attributes of a presentation in the DynamoDB table.
+       It constructs an update expression based on the provided keyword arguments, handling
+       reserved keywords and different value types (string, integer, boolean).
+       The function also updates the 'time_updated' attribute with the current Unix timestamp.
+       It uses the DynamoDB UpdateItem API to perform the update operation and returns the
+       updated attributes of the presentation.
+
+   Raises:
+       botocore.exceptions.ClientError: If an error occurs while updating the item in DynamoDB.
+
+   Example:
+       updated_attrs = await update_presentation(
+           'presentation123',
+           title='New Title',
+           description='Updated description',
+           is_published=True
+       )
+   """
     table_name = await get_table()
     async with get_session().create_client('dynamodb', region_name=AWS_REGION) as client:
         update_expression = 'SET '
@@ -87,6 +145,60 @@ async def update_presentation(presentation_id, **kwargs):
         }
         response = await client.update_item(**update_params)
         return response['Attributes']
+    
+async def increment_presentation_attribute(presentation_id, attribute_key, increment_value):
+    """
+    Increment a numeric attribute of a presentation in the DynamoDB table.
+    If the attribute doesn't exist, it will be created with the given increment_value.
+
+    Args:
+        presentation_id (str): The ID of the presentation to update.
+        attribute_key (str): The name of the attribute to increment.
+        increment_value (int or float): The value to increment the attribute by.
+
+    Returns:
+        dict: The updated attribute value of the presentation.
+
+    Description:
+        This function increments a specified numeric attribute of a presentation in the DynamoDB table.
+        If the attribute doesn't exist, it will be created with the given increment_value.
+        It uses the DynamoDB UpdateItem API with the ADD action to increment the attribute value.
+        The function returns the updated value of the attribute.
+
+    Raises:
+        botocore.exceptions.ClientError: If an error occurs while updating the item in DynamoDB.
+        ValueError: If the increment_value is not a numeric value.
+
+    Example:
+        updated_attribute = await increment_presentation_attribute(
+            'presentation123',
+            'view_count',
+            1
+        )
+    """
+    if not isinstance(increment_value, (int, float)):
+        raise ValueError("The increment_value must be a numeric value.")
+
+    table_name = await get_table()
+
+    async with get_session().create_client('dynamodb', region_name=AWS_REGION) as client:
+        update_params = {
+            "TableName": table_name,
+            "Key": {
+                'PK': {'S': f'PRESENTATION#{presentation_id}'},
+                'SK': {'S': f'PRESENTATION#{presentation_id}'}
+            },
+            "UpdateExpression": f"SET {attribute_key} = if_not_exists({attribute_key}, :start) + :increment",
+            "ExpressionAttributeValues": {
+                ":start": {'N': '0'},
+                ":increment": {'N': str(increment_value)}
+            },
+            "ReturnValues": "UPDATED_NEW"
+        }
+
+        response = await client.update_item(**update_params)
+
+    return response['Attributes'][attribute_key]
     
 async def get_sources(presentation_id, attributes=None):
     table_name = await get_table()
@@ -134,6 +246,41 @@ async def get_sources(presentation_id, attributes=None):
 
     
 async def get_source(presentation_id, source_id, attributes=None):
+    """
+    Retrieve a source item from the DynamoDB table based on the provided presentation ID and source ID.
+
+    Args:
+        presentation_id (str): The ID of the presentation associated with the source.
+        source_id (str): The ID of the source to retrieve.
+        attributes (list, optional): A list of attributes to retrieve from the source item. If not provided,
+            all attributes will be retrieved. Defaults to None.
+
+    Returns:
+        dict: A dictionary representing the simplified source item with the specified attributes.
+            The dictionary contains the following keys:
+            - 'id' (str): The ID of the source.
+            - 'presentation_id' (str): The ID of the presentation associated with the source.
+            - Other keys based on the retrieved attributes.
+            If the source item is not found, None is returned.
+
+    Raises:
+        botocore.exceptions.ClientError: If an error occurs while interacting with the DynamoDB table.
+
+    Description:
+        This function retrieves a source item from the DynamoDB table based on the provided presentation ID
+        and source ID. It uses the DynamoDB GetItem operation to fetch the item.
+
+        If the `attributes` parameter is provided, only the specified attributes will be retrieved from the
+        source item. The function constructs a projection expression based on the provided attributes.
+
+        The retrieved item is simplified by converting the DynamoDB attribute values to their corresponding
+        Python data types. The 'SK' attribute is used to extract the source ID, and the 'PK' attribute is
+        used to extract the presentation ID. The 'web_source' attribute, if present, is parsed as JSON.
+
+        If the source item is found, the simplified item is returned as a dictionary. If the source item is
+        not found, None is returned.
+    """    
+    
     table_name = await get_table()
     async with get_session().create_client('dynamodb', region_name=AWS_REGION) as client:
         key = {
@@ -174,7 +321,6 @@ async def get_source(presentation_id, source_id, attributes=None):
         else:
             return None
         
-    
 
 async def update_source(presentation_id, source_id, **kwargs):
     """
@@ -257,45 +403,105 @@ async def update_source(presentation_id, source_id, **kwargs):
         return response['Attributes']
 
 async def delete_source(presentation_id, source_id):
-    table_name = await get_table()
+   """
+   Delete a source from the DynamoDB table.
 
-    async with get_session().create_client('dynamodb', region_name=AWS_REGION) as client:
-        key = {
-            'PK': {'S': f'PRESENTATION#{presentation_id}'},
-            'SK': {'S': f'SOURCE#{source_id}'}
-        }
+   This function deletes a source item from the DynamoDB table based on the provided
+   presentation ID and source ID. It constructs the primary key (PK) and sort key (SK)
+   using the provided IDs and attempts to delete the item from the table.
 
-        try:
-            response = await client.delete_item(
-                TableName=table_name,
-                Key=key
-            )
+   Args:
+       presentation_id (str): The ID of the presentation associated with the source.
+       source_id (str): The ID of the source to be deleted.
 
-            if response['ResponseMetadata']['HTTPStatusCode'] == 200:
-                return True
-            else:
-                return False
-        except Exception as e:
-            print(f"Error deleting source: {e}")
-            return False
+   Returns:
+       bool: True if the source is successfully deleted, False otherwise.
+
+   Raises:
+       Exception: If an error occurs during the deletion process.
+
+   Example:
+       result = await delete_source("presentation123", "source456")
+       if result:
+           print("Source deleted successfully.")
+       else:
+           print("Failed to delete the source.")
+   """
+   table_name = await get_table()
+
+   async with get_session().create_client('dynamodb', region_name=AWS_REGION) as client:
+       key = {
+           'PK': {'S': f'PRESENTATION#{presentation_id}'},
+           'SK': {'S': f'SOURCE#{source_id}'}
+       }
+
+       try:
+           response = await client.delete_item(
+               TableName=table_name,
+               Key=key
+           )
+
+           if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+               return True
+           else:
+               return False
+       except Exception as e:
+           print(f"Error deleting source: {e}")
+           return False
         
         
-async def batch_update_sources(presentation_id, sources):
-    # print("Updating sources, presentation_id: ", presentation_id)
-    # print("Sources: ", sources)
+async def batch_update_sources(presentation_id: str, sources: List[Dict[str, Any]]) -> bool:
+    """
+    Update multiple sources for a given presentation in a single DynamoDB transaction.
+
+    Args:
+        presentation_id (str): The ID of the presentation to which the sources belong.
+        sources (List[Dict[str, Any]]): A list of source dictionaries to be updated. Each dictionary must contain an 'id' key.
+
+    Returns:
+        bool: True if the update operation was successful, False otherwise.
+
+    Description:
+        This function updates multiple sources for a given presentation in a single DynamoDB transaction.
+        It iterates over each source dictionary in the 'sources' list and constructs an update request for each source.
+        The update request includes the necessary update expressions, attribute values, and attribute names.
+        The function handles reserved keywords for known attributes and sets the 'time_updated' attribute to the current Unix timestamp.
+        The update requests are then executed in a single DynamoDB transact_write_items operation.
+
+    Notes:
+        - This function assumes the existence of a 'get_table' function that returns the name of the DynamoDB table.
+        - The function uses the 'get_session' function to create a DynamoDB client session.
+        - The 'reserved_attrs' variable is assumed to be defined and contains a list of reserved attribute names.
+        - The function creates a copy of each source dictionary to avoid modifying the original dictionaries.
+        - The function returns True if the update operation was successful (HTTP status code 200), False otherwise.
+
+    Example:
+        sources = [
+            {'id': '1', 'name': 'Source 1', 'description': 'Description 1'},
+            {'id': '2', 'name': 'Source 2', 'description': 'Description 2'}
+        ]
+        success = await batch_update_sources('presentation123', sources)
+        if success:
+            print("Sources updated successfully.")
+        else:
+            print("Failed to update sources.")
+    """
 
     table_name = await get_table()
+
     async with get_session().create_client('dynamodb', region_name=AWS_REGION) as client:
         update_requests = []
         current_timestamp = int(time.time())
 
         for source in sources:
-            source_id = source.pop('id')
+            source_copy = source.copy()  # Create a copy of the source dictionary
+            source_id = source_copy.pop('id')
+
             update_expression = 'SET '
             expression_attribute_values = {}
             expression_attribute_names = {}
 
-            for key, value in source.items():
+            for key, value in source_copy.items():
                 if key == 'web_source':
                     update_expression += '#web_source = :web_source, '
                     expression_attribute_names['#web_source'] = 'web_source'
@@ -344,6 +550,7 @@ async def batch_update_sources(presentation_id, sources):
             update_requests.append(update_request)
 
         response = await client.transact_write_items(TransactItems=update_requests)
+
         if response['ResponseMetadata']['HTTPStatusCode'] == 200:
             return True
         else:
