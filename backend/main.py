@@ -22,6 +22,9 @@ from outline.on_disconnect import save_progress as outline_save_progress
 from outline.llm import complete as outline_get_completion
 from outline.load_topics import load_topics as outline_load_topics
 
+from slides.on_connect import initialize as slides_initialize
+from slides.load_slides import load_slides as slides_load_slides
+
 
 app = FastAPI()
 
@@ -102,12 +105,14 @@ async def connect(sid, environ):
         connected_users[sid]["messages"], connected_users[sid]["interfaceData"], connected_users[sid]["memory"] = await research_initialize(presentationID)
     elif connected_users[sid]["interface"] == "outline":
         connected_users[sid]["messages"], connected_users[sid]["interfaceData"], connected_users[sid]["memory"] = await outline_initialize(presentationID)
+    elif connected_users[sid]["interface"] == "slides":
+        connected_users[sid]["messages"], connected_users[sid]["interfaceData"], connected_users[sid]["memory"] = await slides_initialize(presentationID)
+        
     else:
         raise ValueError(f"Interface not found: `{connected_users[sid]['interface']}`")
         
     # filter out system and function messages
     messagesToSend = [message for message in connected_users[sid]["messages"] if message['role'] != 'system' and message['role'] != 'function']
-    
     
     # print(f"Messages to send: {messagesToSend}")
     print(f"Emitting initial messages")
@@ -118,6 +123,11 @@ async def connect(sid, environ):
     if connected_users[sid]["interface"] == "outline" and connected_users[sid]["interfaceData"]['all_topics'] is None:
         # load topics, send emitter as a partial function to emit to the room when done
         asyncio.create_task(outline_load_topics(presentationID, connected_users[sid]["messages"], connected_users[sid]["interfaceData"], connected_users[sid]["memory"], emitter=functools.partial(sio.emit, room=sid)))
+        
+    # for slides we have to do extra work before first user message
+    if connected_users[sid]["interface"] == "slides" and not connected_users[sid]["interfaceData"]['slides_created']:
+        # load topics, send emitter as a partial function to emit to the room when done
+        asyncio.create_task(slides_load_slides(presentationID, connected_users[sid]["messages"], connected_users[sid]["interfaceData"], connected_users[sid]["memory"], emitter=functools.partial(sio.emit, room=sid)))
         
 
 @sio.event
@@ -152,7 +162,9 @@ async def message(sid, data):
             functools.partial(sio.emit, room=sid),
             memory=connected_users[sid]["memory"],
         )
+        
     elif connected_users[sid]["interface"] == "outline":
+        
         connected_users[sid]["messages"], completion_messages, proceed = await outline_get_completion(
             connected_users[sid]["presentationID"],
             connected_users[sid]["messages"],
@@ -160,6 +172,10 @@ async def message(sid, data):
             emitter=functools.partial(sio.emit, room=sid),
             memory=connected_users[sid]["memory"]
         )
+    
+    elif connected_users[sid]["interface"] == "slides":
+        pass
+    
     else:
         raise ValueError("Interface not found")
     for completion_message in completion_messages:
@@ -220,7 +236,8 @@ async def interface_update(sid, data):
         #     print(f"main 216 Interface Data all_topics length: {len(connected_users[sid]['interfaceData']['all_topics'])}")
         connected_users[sid]["interfaceData"]['outline'] = data['outline']
         # print(f"Outline updated: {connected_users[sid]['interfaceData']['outline']}")
-
+    elif connected_users[sid]["interface"] == "slides":
+        pass
     else:
         raise ValueError("Interface not found")
     

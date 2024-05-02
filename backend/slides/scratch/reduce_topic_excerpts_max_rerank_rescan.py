@@ -8,7 +8,7 @@ sys.path.append(os.getenv('PYTHON_PATH'))
 
 from s3 import download_model_list_from_s3
 from langchain.docstore.document import Document
-from format import format_topic
+from backend.slides.format import format_topic
 from langchain_openai import OpenAIEmbeddings
 from portkey_ai import PORTKEY_GATEWAY_URL, createHeaders, AsyncPortkey
 import numpy as np

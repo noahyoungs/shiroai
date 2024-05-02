@@ -6,7 +6,7 @@ import re
 import os
 import asyncio
 from dynamodb import get_sources, update_presentation, get_presentation
-from s3 import download_model_from_s3, upload_data_to_s3, upload_model_list_to_s3
+from s3 import download_model_from_s3, upload_model_list_to_s3, upload_np_array_to_s3
 from bertopic import BERTopic
 from bertopic.representation import KeyBERTInspired
 from hdbscan import HDBSCAN
@@ -77,15 +77,15 @@ def split_markdown_documents(documents):
         split_docs += batch_split_docs
     return split_docs
 
-async def vectorize_docs(docs):
+async def get_embeddings(docs):
     portkeyHeaders = createHeaders(
         provider="openai",
         api_key=os.getenv("PORTKEY_API_KEY"),
     )
     openai_embeddings = OpenAIEmbeddings(model="text-embedding-3-small", dimensions=512, base_url=PORTKEY_GATEWAY_URL, default_headers=portkeyHeaders)
     doc_embeddings = await openai_embeddings.aembed_documents([doc.page_content for doc in docs])
-    docs = [doc.copy(update={"metadata": {**doc.metadata, "embedding": embedding}}) for doc, embedding in zip(docs, doc_embeddings)]
-    return docs 
+    # docs = [doc.copy(update={"metadata": {**doc.metadata, "embedding": embedding}}) for doc, embedding in zip(docs, doc_embeddings)]
+    return np.array(doc_embeddings)
 
 def process_topics(chunk_strings, embeddings, portkey_trace=None):
     # embeddings maker for BERTopic, not used to make embeddings for docs
@@ -174,7 +174,7 @@ async def _label_documents_and_extract_topics(presentationID):
     # remove short documents
     final_chunked_docs = [doc for doc in docs_split_recursive if len(doc.page_content) > 30]    
     # vectorize the documents
-    final_chunked_docs = await vectorize_docs(final_chunked_docs)
+    embeddings = await get_embeddings(final_chunked_docs)
     
     # sources = [doc.metadata.get("source", "Unknown") for doc in final_chunked_docs]
 
@@ -185,7 +185,6 @@ async def _label_documents_and_extract_topics(presentationID):
 
     #Bertopic only takes strings and embeddings no metadata
     chunk_strings = [doc.page_content for doc in final_chunked_docs]
-    embeddings = np.array([doc.metadata['embedding'] for doc in final_chunked_docs])
     
     loop = asyncio.get_running_loop()
     with concurrent.futures.ProcessPoolExecutor() as process_executor:
@@ -301,6 +300,7 @@ async def _label_documents_and_extract_topics(presentationID):
 
         return names, relevance_ratings, relevance_reasonings, value_ratings, value_reasonings
 
+    # Name topics and set CustomName
     names, relevance_ratings, relevance_reasonings, value_ratings, value_reasonings = await name_and_rate_topics(topic_info, 10)
     topic_info['CustomName'] = topic_info['Topic'].map(names)
     document_info['CustomName'] = document_info['Topic'].map(names)
@@ -308,18 +308,25 @@ async def _label_documents_and_extract_topics(presentationID):
     # calculate prevalence of topics per class and show a graph
     # topics_per_class = topic_model.topics_per_class(bertopic_docs, classes=sources)
     # topic_model.visualize_topics_per_class(topics_per_class, top_n_topics=10, custom_labels=True)
+    
+    #Add uuid7str to every topic in topic_info
+    topic_info['id'] = [uuid7str() for _ in range(len(topic_info))]
 
     # aggregate a list of documents with topics in metadata
     docs_with_topics = deepcopy(final_chunked_docs)
     
     document_topic_data = document_info[['Topic', 'CustomName', 'Probability']].rename(columns={'Topic':'TopicNumber', 'CustomName': 'TopicName'})
+    
     assert len(docs_with_topics) == len(document_topic_data)
     for i in range(len(docs_with_topics)):
         if document_topic_data.iloc[i]['TopicNumber'] != -1:
+            # get matching id from topic_info
+            topic_id = topic_info[topic_info['Topic'] == document_topic_data.iloc[i]['TopicNumber']]['id'].values[0]
             docs_with_topics[i].metadata["topic"] = {
                 "number": int(document_topic_data.iloc[i]['TopicNumber']),
                 "name": document_topic_data.iloc[i]['TopicName'],
                 "probability": float(document_topic_data.iloc[i]['Probability']),
+                "id": topic_id,
             }
     # docs_with_topics is now filled with topics in metadata (list of Document objects)
     
@@ -327,16 +334,13 @@ async def _label_documents_and_extract_topics(presentationID):
     for doc in docs_with_topics:
         doc.metadata['id'] = uuid7str()
     
-    # upload docs_with_topics to S3
-    docs_with_topics_s3_key = f"{presentationID}/all_sources_chunked_docs_with_topics.json"
-    
-    await upload_model_list_to_s3(docs_with_topics, docs_with_topics_s3_key)
     
     # get all the rows in topic_info except where Topic is -1
     valid_topic_info = topic_info[topic_info['Topic'] != -1]
     
     # aggregate a list of topics with relevance ratings and reasonings
     topic_names = list(valid_topic_info['CustomName'])
+    topic_ids = list(valid_topic_info['id'])
     representative_docs = list(valid_topic_info['Representative_Docs'])
     keywords = list(valid_topic_info['Representation'])
     
@@ -363,7 +367,7 @@ async def _label_documents_and_extract_topics(presentationID):
             excerpts.append(excerpt)
         
         topic = {
-            'id': uuid7str(),
+            'id': topic_ids[i],
             'name': topic_names[i],
             'relevance_rating': relevance_ratings[i],
             'relevance_reasoning': relevance_reasonings[i],
@@ -375,8 +379,18 @@ async def _label_documents_and_extract_topics(presentationID):
         topics.append(topic)
     # topics is now filled with topics and their relevance ratings and reasonings (list of dicts)
     
-    # upload topics to DynamoDB
-    await update_presentation(presentationID, candidate_topics=json.dumps(topics))
+    # upload docs_with_topics to S3
+    docs_with_topics_s3_key = f"{presentationID}/all_sources_chunked_docs_with_topics.json"
+
+    # upload embeddings to S3
+    embeddings_s3_key = f"{presentationID}/all_sources_chunked_embeddings.npy"
+
+    # Execute all uploads concurrently using asyncio.gather
+    await asyncio.gather(
+        upload_model_list_to_s3(docs_with_topics, docs_with_topics_s3_key),
+        upload_np_array_to_s3(embeddings, embeddings_s3_key),
+        update_presentation(presentationID, candidate_topics=json.dumps(topics))
+    )
     
     print(f"Finished labeling documents and extracting topics for presentation {presentationID}")
     return topics
@@ -390,4 +404,4 @@ async def label_documents_extract_topics(presentationID):
     
     
 if __name__ == "__main__":
-    asyncio.run(label_documents_extract_topics("018f0604-74de-7d5f-ab9b-de88b9804f9a"))
+    asyncio.run(label_documents_extract_topics("018f0eec-b73b-708d-964f-38b16e60d3be"))

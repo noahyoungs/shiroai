@@ -3,14 +3,15 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { Tabs, Tab, Card, CardBody } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
+import { cn } from "@/utils/cn";
 
 type ChatConfigureLayoutProps = {
     chat: ReactNode;
     interfaceComponent: ReactNode;
-
+    thirds?: boolean;
 };
 
-export default function ChatConfigureLayout({ chat, interfaceComponent }: ChatConfigureLayoutProps) {
+export default function ChatConfigureLayout({ chat, interfaceComponent, thirds=false }: ChatConfigureLayoutProps) {
     const [isWideScreen, setIsWideScreen] = useState(false);
     const [activeTab, setActiveTab] = useState("chat");
 
@@ -33,10 +34,10 @@ export default function ChatConfigureLayout({ chat, interfaceComponent }: ChatCo
         <>
             {isWideScreen ? (
                 <div className="flex flex-row h-screen w-screen px-8">
-                    <div className="w-1/2 pr-4">
+                    <div className={cn("pr-4", thirds? "w-1/3" : "w-1/2")}>
                         {chat}
                     </div>
-                    <div className="w-1/2 pl-4">
+                    <div className={cn("pl-4", thirds? "w-2/3" : "w-1/2")}>
                         {interfaceComponent}
                     </div>
                 </div>

@@ -7,6 +7,8 @@ from pydantic import BaseModel
 from typing import Type, Optional, List, Union, Dict
 import json
 from fastapi.encoders import jsonable_encoder
+import numpy as np
+import io
 
 AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
@@ -435,10 +437,164 @@ async def download_data_from_s3(object_key: str) -> Optional[Union[List, Dict]]:
         print(f"Error downloading data from S3 with key: {object_key}. Error: {str(e)}")
         return None
 
+
+async def upload_np_array_to_s3(array: np.ndarray, object_key: str):
+    """
+    Upload a NumPy array to an S3 bucket as a .npy file.
+
+    This function saves the provided NumPy array as a .npy file and uploads it to an S3 bucket
+    with the specified `object_key`. It makes an asynchronous request to the S3 API
+    using the AWS SDK for Python (Boto3) to put the object.
+
+    Args:
+        array (np.ndarray): The NumPy array to be uploaded.
+        object_key (str): The key (path) of the object in the S3 bucket.
+
+    Returns:
+        bool: True if the array is successfully uploaded, False otherwise.
+
+    Raises:
+        botocore.exceptions.ClientError: If an error occurs while communicating with the S3 API.
+        Exception: If any other unexpected error occurs during the execution of the function.
+
+    Example:
+        my_array = np.array([[1, 2, 3], [4, 5, 6]])
+        result = await upload_np_array_to_s3(my_array, "data/array.npy")
+        if result:
+            print("Array uploaded successfully.")
+        else:
+            print("Failed to upload the array.")
+    """
+    try:
+        session = get_session()
+        async with session.create_client('s3', region_name=AWS_REGION,
+                                         aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+                                         aws_access_key_id=AWS_ACCESS_KEY_ID) as s3:
+            bucket_name = os.environ.get('SOURCES_BUCKET_NAME')
+            
+            # Save the NumPy array as a .npy file
+            with io.BytesIO() as buffer:
+                np.save(buffer, array)
+                buffer.seek(0)
+                
+                # Upload the .npy file to S3
+                response = await s3.put_object(Bucket=bucket_name, Key=object_key, Body=buffer)
+                status_code = response['ResponseMetadata']['HTTPStatusCode']
+                
+                if status_code == 200:
+                    print(f"Array uploaded successfully to S3 with key: {object_key}")
+                    return True
+                else:
+                    print(f"Failed to upload array to S3 with key: {object_key}. Status code: {status_code}")
+                    return False
+
+    except Exception as e:
+        print(f"Error uploading array to S3 with key: {object_key}. Error: {str(e)}")
+        return False
+
+
+async def download_np_array_from_s3(object_key: str) -> Optional[np.ndarray]:
+    """
+    Download a NumPy array from an S3 bucket stored as a .npy file.
+
+    This function downloads the .npy file from an S3 bucket with the specified `object_key`
+    and loads it into a NumPy array. It makes an asynchronous request to the S3 API
+    using the AWS SDK for Python (Boto3) to get the object.
+
+    Args:
+        object_key (str): The key (path) of the object in the S3 bucket.
+
+    Returns:
+        Optional[np.ndarray]: The downloaded NumPy array if successful, None otherwise.
+
+    Raises:
+        botocore.exceptions.ClientError: If an error occurs while communicating with the S3 API.
+        Exception: If any other unexpected error occurs during the execution of the function.
+
+    Example:
+        array = await download_np_array_from_s3("data/array.npy")
+        if array is not None:
+            print("Downloaded array:", array)
+        else:
+            print("Failed to download the array.")
+    """
+    try:
+        session = get_session()
+        async with session.create_client('s3', region_name=AWS_REGION,
+                                         aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+                                         aws_access_key_id=AWS_ACCESS_KEY_ID) as s3:
+            bucket_name = os.environ.get('SOURCES_BUCKET_NAME')
+            
+            # Download the .npy file from S3
+            response = await s3.get_object(Bucket=bucket_name, Key=object_key)
+            data = await response['Body'].read()
+            
+            # Load the .npy file into a NumPy array
+            with io.BytesIO(data) as buffer:
+                array = np.load(buffer)
+            
+            return array
+    
+    except Exception as e:
+        print(f"Error downloading array from S3 with key: {object_key}. Error: {str(e)}")
+        return None
+    
+async def upload_bytes_to_s3(data: bytes, object_key: str):
+    """
+    Upload bytes to a file in an S3 bucket.
+
+    This function uploads the provided bytes to a file in an S3 bucket
+    with the specified `object_key`. It makes an asynchronous request to the S3 API
+    using the AWS SDK for Python (Boto3) to put the object.
+
+    Args:
+        data (bytes): The bytes to be uploaded.
+        object_key (str): The key (path) of the object in the S3 bucket.
+
+    Returns:
+        bool: True if the bytes are successfully uploaded, False otherwise.
+
+    Raises:
+        botocore.exceptions.ClientError: If an error occurs while communicating with the S3 API.
+        Exception: If any other unexpected error occurs during the execution of the function.
+
+    Example:
+        my_bytes = b'Hello, World!'
+        result = await upload_bytes_to_s3(my_bytes, "data/file.txt")
+        if result:
+            print("Bytes uploaded successfully.")
+        else:
+            print("Failed to upload the bytes.")
+    """
+    try:
+        session = get_session()
+        async with session.create_client('s3', region_name=AWS_REGION,
+                                         aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+                                         aws_access_key_id=AWS_ACCESS_KEY_ID) as s3:
+            bucket_name = os.environ.get('SOURCES_BUCKET_NAME')
+            
+            # Upload the bytes to S3
+            response = await s3.put_object(Bucket=bucket_name, Key=object_key, Body=data)
+            status_code = response['ResponseMetadata']['HTTPStatusCode']
+            
+            if status_code == 200:
+                print(f"Bytes uploaded successfully to S3 with key: {object_key}")
+                return True
+            else:
+                print(f"Failed to upload bytes to S3 with key: {object_key}. Status code: {status_code}")
+                return False
+
+    except Exception as e:
+        print(f"Error uploading bytes to S3 with key: {object_key}. Error: {str(e)}")
+        return False
+
+
 class User(BaseModel):
    name: str
    age: int
    email: str
+   
+   
 
 async def main():
    presentationID = "example_presentation"

@@ -1,0 +1,8 @@
+/* FILEPATH: /Users/noahyoungs/VSCode/ai-presenter-v2/frontend/src/components/mdx-editor/styles.css */
+.mdxeditor-toolbar {
+    @apply absolute bg-content1 box-border shadow-small rounded-medium px-2.5 py-1 left-1/2 transform -translate-x-1/2 -translate-y-[120%];
+  }
+  
+.mdxeditor-root-contenteditable {
+    @apply overflow-hidden;
+}

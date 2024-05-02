@@ -1,6 +1,5 @@
 import json 
 
-
 def remove_overlaps(strings):
     result = []
     prev_string = ""

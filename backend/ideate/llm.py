@@ -3,7 +3,7 @@ import asyncio
 import json
 import ideate.prompts as ideate_prompts
 from ideate.config import interface_fields, get_interface_keys
-from init_llm import client
+from init_llm import client, groq_client, perplexity_client
 from portkey_ai import AsyncPortkey
 import traceback
 import tokentrim as tt
@@ -12,13 +12,8 @@ import os
 
 # load_dotenv()
 
-perplexity_portkey = AsyncPortkey(
-    virtual_key="perplexity-de187f",
-    api_key=os.getenv("PORTKEY_API_KEY")
-)
-
 async def ask_perplexity(question):
-    response = await perplexity_portkey.chat.completions.create(
+    response = await perplexity_client.chat.completions.create(
                             messages= [{ "role": 'user', "content": f"{question} Keep your answer short. No longer than a short paragraph."}],
                             model= 'sonar-small-online'
                         )
@@ -60,6 +55,7 @@ async def get_completion(
         attributes_not_set = [key for key, value in interfaceData.items() if not value]
         messages.append({"role":"system", "content": f"You still need to set the following attributes: {', '.join(attributes_not_set)}"})
         
+    # openai
     completion = await client.chat.completions.create(
         # filter out messages where role starts with "meta"
         messages=tt.trim(
@@ -70,6 +66,19 @@ async def get_completion(
         tools=ideate_prompts.getTools(interface_fields[interface], complete),
         user=user,
     )
+    
+    # # llama 3 8b 
+    # completion = await groq_client.chat.completions.create(
+    #     # filter out messages where role starts with "meta"
+    #     messages=tt.trim(
+    #         messages=[message for message in messages if not message["role"].startswith("meta")],
+    #         model="gpt-4",
+    #         ),
+    #     model="llama3-8b-8192",
+    #     tools=ideate_prompts.getTools(interface_fields[interface], complete),
+    #     user=user,
+    # )
+    
     # Tool Call Case
     key = None
     

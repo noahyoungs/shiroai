@@ -4,18 +4,21 @@ from dotenv import load_dotenv
 from aiobotocore.session import get_session
 import json
 from typing import List, Dict, Any
-
+import asyncio
+from uuid_extensions import uuid7str
 load_dotenv()
 
 AWS_REGION = os.getenv('AWS_REGION')
 
 reserved_attrs = ['status', 'type', 'order', 'content', 'user', 'name', 'url']
 
+
 async def get_table():
     session = get_session()
     async with session.create_client('dynamodb', region_name=AWS_REGION) as client:
         response = await client.describe_table(TableName='AiPresenter2')
         return response['Table']['TableName']
+
 
 async def get_presentation(presentation_id, attributes=None):
     """
@@ -53,8 +56,10 @@ async def get_presentation(presentation_id, attributes=None):
             'SK': {'S': f'PRESENTATION#{presentation_id}'}
         }
         if attributes:
-            projection_expression = ', '.join(f'#{attr}' if attr in reserved_attrs else attr for attr in attributes)
-            expression_attribute_names = {f'#{attr}': attr for attr in attributes if attr in reserved_attrs}
+            projection_expression = ', '.join(
+                f'#{attr}' if attr in reserved_attrs else attr for attr in attributes)
+            expression_attribute_names = {
+                f'#{attr}': attr for attr in attributes if attr in reserved_attrs}
             if expression_attribute_names:
                 response = await client.get_item(TableName=table_name, Key=key, ProjectionExpression=projection_expression, ExpressionAttributeNames=expression_attribute_names)
             else:
@@ -63,7 +68,8 @@ async def get_presentation(presentation_id, attributes=None):
             response = await client.get_item(TableName=table_name, Key=key)
         if 'Item' in response:
             item = response['Item']
-            simplified_item = {'id': presentation_id}  # Add the original presentation ID as "id" in the returned dict
+            # Add the original presentation ID as "id" in the returned dict
+            simplified_item = {'id': presentation_id}
             for k, v in item.items():
                 if 'S' in v:
                     simplified_item[k] = v['S']
@@ -74,6 +80,7 @@ async def get_presentation(presentation_id, attributes=None):
             return simplified_item
         else:
             return None
+
 
 async def update_presentation(presentation_id, **kwargs):
     """
@@ -129,7 +136,8 @@ async def update_presentation(presentation_id, **kwargs):
         current_timestamp = int(time.time())
         update_expression += '#time_updated = :time_updated, '
         expression_attribute_names['#time_updated'] = 'time_updated'
-        expression_attribute_values[':time_updated'] = {'N': str(current_timestamp)}
+        expression_attribute_values[':time_updated'] = {
+            'N': str(current_timestamp)}
         # Remove the trailing comma and space from the update expression
         update_expression = update_expression.rstrip(', ')
         update_params = {
@@ -145,7 +153,8 @@ async def update_presentation(presentation_id, **kwargs):
         }
         response = await client.update_item(**update_params)
         return response['Attributes']
-    
+
+
 async def increment_presentation_attribute(presentation_id, attribute_key, increment_value):
     """
     Increment a numeric attribute of a presentation in the DynamoDB table.
@@ -199,7 +208,8 @@ async def increment_presentation_attribute(presentation_id, attribute_key, incre
         response = await client.update_item(**update_params)
 
     return response['Attributes'][attribute_key]
-    
+
+
 async def get_sources(presentation_id, attributes=None):
     table_name = await get_table()
     async with get_session().create_client('dynamodb', region_name=AWS_REGION) as client:
@@ -244,7 +254,7 @@ async def get_sources(presentation_id, attributes=None):
 
         return sources
 
-    
+
 async def get_source(presentation_id, source_id, attributes=None):
     """
     Retrieve a source item from the DynamoDB table based on the provided presentation ID and source ID.
@@ -279,8 +289,8 @@ async def get_source(presentation_id, source_id, attributes=None):
 
         If the source item is found, the simplified item is returned as a dictionary. If the source item is
         not found, None is returned.
-    """    
-    
+    """
+
     table_name = await get_table()
     async with get_session().create_client('dynamodb', region_name=AWS_REGION) as client:
         key = {
@@ -320,7 +330,7 @@ async def get_source(presentation_id, source_id, attributes=None):
             return simplified_item
         else:
             return None
-        
+
 
 async def update_source(presentation_id, source_id, **kwargs):
     """
@@ -369,7 +379,8 @@ async def update_source(presentation_id, source_id, **kwargs):
 
             # Set the value type based on Python type
             if key == 'web_source':
-                expression_attribute_values[f':{key}'] = {'S': json.dumps(value)}
+                expression_attribute_values[f':{key}'] = {
+                    'S': json.dumps(value)}
             elif isinstance(value, str):
                 expression_attribute_values[f':{key}'] = {'S': value}
             elif isinstance(value, int):
@@ -381,7 +392,8 @@ async def update_source(presentation_id, source_id, **kwargs):
         current_timestamp = int(time.time())
         update_expression += '#time_updated = :time_updated, '
         expression_attribute_names['#time_updated'] = 'time_updated'
-        expression_attribute_values[':time_updated'] = {'N': str(current_timestamp)}
+        expression_attribute_values[':time_updated'] = {
+            'N': str(current_timestamp)}
 
         # Remove the trailing comma and space from the update expression
         update_expression = update_expression.rstrip(', ')
@@ -401,6 +413,7 @@ async def update_source(presentation_id, source_id, **kwargs):
         response = await client.update_item(**update_params)
 
         return response['Attributes']
+
 
 async def delete_source(presentation_id, source_id):
    """
@@ -448,8 +461,8 @@ async def delete_source(presentation_id, source_id):
        except Exception as e:
            print(f"Error deleting source: {e}")
            return False
-        
-        
+
+
 async def batch_update_sources(presentation_id: str, sources: List[Dict[str, Any]]) -> bool:
     """
     Update multiple sources for a given presentation in a single DynamoDB transaction.
@@ -505,7 +518,8 @@ async def batch_update_sources(presentation_id: str, sources: List[Dict[str, Any
                 if key == 'web_source':
                     update_expression += '#web_source = :web_source, '
                     expression_attribute_names['#web_source'] = 'web_source'
-                    expression_attribute_values[':web_source'] = {'S': json.dumps(value)}
+                    expression_attribute_values[':web_source'] = {
+                        'S': json.dumps(value)}
                 else:
                     # Use reserved keyword handling for known attributes
                     if key in reserved_attrs:
@@ -519,14 +533,17 @@ async def batch_update_sources(presentation_id: str, sources: List[Dict[str, Any
                     if isinstance(value, str):
                         expression_attribute_values[f':{key}'] = {'S': value}
                     elif isinstance(value, int):
-                        expression_attribute_values[f':{key}'] = {'N': str(value)}
+                        expression_attribute_values[f':{key}'] = {
+                            'N': str(value)}
                     elif isinstance(value, bool):
-                        expression_attribute_values[f':{key}'] = {'BOOL': value}
+                        expression_attribute_values[f':{key}'] = {
+                            'BOOL': value}
 
             # Set the time_updated attribute to the current Unix timestamp
             update_expression += '#time_updated = :time_updated'
             expression_attribute_names['#time_updated'] = 'time_updated'
-            expression_attribute_values[':time_updated'] = {'N': str(current_timestamp)}
+            expression_attribute_values[':time_updated'] = {
+                'N': str(current_timestamp)}
 
             # Remove the trailing comma and space from the update expression
             update_expression = update_expression.rstrip(', ')
@@ -556,33 +573,419 @@ async def batch_update_sources(presentation_id: str, sources: List[Dict[str, Any
         else:
             return False
 
-async def main():
-    # # Example usage of updatePresentation
-    # await updatePresentation("123", status="In Progress", topic="Machine Learning", presenter="Alex Doe", viewss=100)
 
-    # # Example usage of getPresentation
-    # presentation = await getPresentation("123", ["status", "topic", "presenter", "viewss"])
-    # print(presentation)
-    # await update_presentation("64332c6a-1645-4c4f-b06a-502b6fbc2004", messages="""[{"role": "assistant", "content": "Hi! How can I help you?"}]""")
-    # presentation = await get_presentation("64332c6a-1645-4c4f-b06a-502b6fbc2004", ["time_updated"])
-    # print(presentation)
-    
-    presentation_id = "83cb6cd4-2ba6-4bf2-91e6-e72a4b4283bd"
-    sources_to_update = [
+async def update_slide(presentation_id, slide_id, **kwargs):
+    """
+   Update a single slide in a presentation.
+
+   Args:
+       presentation_id (str): The ID of the presentation.
+       slide_id (str): The ID of the slide to update.
+       **kwargs: Keyword arguments representing the attributes to update.
+
+   Returns:
+       dict: The updated slide attributes.
+   """
+    table_name = await get_table()
+    async with get_session().create_client('dynamodb', region_name=AWS_REGION) as client:
+        update_expression = 'SET '
+        expression_attribute_values = {}
+        expression_attribute_names = {}
+
+        def set_default(obj):
+            if isinstance(obj, set):
+                return list(obj)
+            raise TypeError(
+                f'Object of type {obj.__class__.__name__} is not JSON serializable')
+
+        for key, value in kwargs.items():
+            if isinstance(value, (list, dict, set)):
+                value = json.dumps(value, default=set_default)
+
+            # Use reserved keyword handling for known attributes
+            if key in reserved_attrs:
+                attr_name_key = f'#{key}'
+                update_expression += f'{attr_name_key} = :{key}, '
+                expression_attribute_names[attr_name_key] = key
+            else:
+                update_expression += f'{key} = :{key}, '
+
+            # Set the value type based on Python type
+            if type(value) == str:
+                expression_attribute_values[f':{key}'] = {'S': value}
+            elif type(value) == int:
+                expression_attribute_values[f':{key}'] = {'N': str(value)}
+            elif type(value) == bool:
+                expression_attribute_values[f':{key}'] = {'BOOL': value}
+            else:
+                expression_attribute_values[f':{key}'] = {'S': str(value)}
+
+        # Set the time_updated attribute to the current Unix timestamp
+        current_timestamp = int(time.time())
+        update_expression += '#time_updated = :time_updated, '
+        expression_attribute_names['#time_updated'] = 'time_updated'
+        expression_attribute_values[':time_updated'] = {
+            'N': str(current_timestamp)}
+
+        # Remove the trailing comma and space from the update expression
+        update_expression = update_expression.rstrip(', ')
+
+        update_params = {
+            "TableName": table_name,
+            "Key": {
+                'PK': {'S': f'PRESENTATION#{presentation_id}'},
+                'SK': {'S': f'SLIDE#{slide_id}'}
+            },
+            "UpdateExpression": update_expression,
+            "ExpressionAttributeValues": expression_attribute_values,
+            "ExpressionAttributeNames": expression_attribute_names,
+            "ReturnValues": 'ALL_NEW'
+        }
+
+        response = await client.update_item(**update_params)
+        return response['Attributes']
+
+
+async def batch_update_slides(presentation_id: str, slides: List[Dict[str, Any]]) -> bool:
+    """
+    Update multiple slides in a presentation in a batch operation.
+
+    Args:
+        presentation_id (str): The ID of the presentation.
+        slides (List[Dict[str, Any]]): A list of dictionaries representing the slides to update.
+
+    Returns:
+        bool: True if the batch update was successful, False otherwise.
+    """
+    table_name = await get_table()
+    async with get_session().create_client('dynamodb', region_name=AWS_REGION) as client:
+        update_requests = []
+        current_timestamp = int(time.time())
+
+        for slide in slides:
+            slide_copy = slide.copy()  # Create a copy of the slide dictionary
+            slide_id = slide_copy.pop('id')
+
+            update_expression = 'SET '
+            expression_attribute_values = {}
+            expression_attribute_names = {}
+
+            for key, value in slide_copy.items():
+                if isinstance(value, (list, dict)):
+                    value = json.dumps(value)
+
+                # Use reserved keyword handling for known attributes
+                if key in reserved_attrs:
+                    attr_name_key = f'#{key}'
+                    update_expression += f'{attr_name_key} = :{key}, '
+                    expression_attribute_names[attr_name_key] = key
+                else:
+                    update_expression += f'{key} = :{key}, '
+
+                value_type = type(value)
+                if value_type == str:
+                    expression_attribute_values[f':{key}'] = {'S': value}
+                elif value_type == int:
+                    expression_attribute_values[f':{key}'] = {'N': str(value)}
+                elif value_type == bool:
+                    expression_attribute_values[f':{key}'] = {'BOOL': value}
+
+            # Remove the trailing comma and space from the update expression
+            update_expression = update_expression.rstrip(', ')
+
+            # Set the time_updated attribute to the current Unix timestamp
+            update_expression += ', #time_updated = :time_updated'
+            expression_attribute_names['#time_updated'] = 'time_updated'
+            expression_attribute_values[':time_updated'] = {'N': str(current_timestamp)}
+
+            update_request = {
+                "Update": {
+                    "TableName": table_name,
+                    "Key": {
+                        'PK': {'S': f'PRESENTATION#{presentation_id}'},
+                        'SK': {'S': f'SLIDE#{slide_id}'}
+                    },
+                    "UpdateExpression": update_expression,
+                    "ExpressionAttributeValues": expression_attribute_values,
+                    "ExpressionAttributeNames": expression_attribute_names
+                }
+            }
+
+            update_requests.append(update_request)
+
+        response = await client.transact_write_items(TransactItems=update_requests)
+
+        if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+            return True
+        else:
+            return False
+        
+async def get_slides(presentation_id, attributes=None):
+    """
+    Retrieve all slides in a presentation.
+
+    Args:
+        presentation_id (str): The ID of the presentation.
+        attributes (Optional[List[str]]): A list of attributes to retrieve for each slide.
+
+    Returns:
+        List[dict]: A list of dictionaries representing the slides.
+    """
+    table_name = await get_table()
+    async with get_session().create_client('dynamodb', region_name=AWS_REGION) as client:
+        key_condition_expression = 'PK = :pk AND begins_with(SK, :sk)'
+        expression_attribute_values = {
+            ':pk': {'S': f'PRESENTATION#{presentation_id}'},
+            ':sk': {'S': 'SLIDE#'}
+        }
+
+        if attributes:
+            expression_attribute_names = {}
+            for attr in attributes:
+                if attr in reserved_attrs:
+                    expression_attribute_names[f'#{attr}'] = attr
+            projection_expression = ', '.join(f'#{attr}' if attr in reserved_attrs else attr for attr in attributes)
+            response = await client.query(
+                TableName=table_name,
+                KeyConditionExpression=key_condition_expression,
+                ExpressionAttributeValues=expression_attribute_values,
+                ProjectionExpression=projection_expression,
+                ExpressionAttributeNames=expression_attribute_names
+            )
+        else:
+            response = await client.query(
+                TableName=table_name,
+                KeyConditionExpression=key_condition_expression,
+                ExpressionAttributeValues=expression_attribute_values
+            )
+
+        slides = []
+        for item in response['Items']:
+            simplified_item = {}
+            for k, v in item.items():
+                if k == 'SK':
+                    simplified_item['id'] = v['S'].split('#')[1]
+                elif k == 'PK':
+                    simplified_item['presentation_id'] = v['S'].split('#')[1]
+                elif 'S' in v:
+                    try:
+                        simplified_item[k] = json.loads(v['S'])
+                    except json.JSONDecodeError:
+                        simplified_item[k] = v['S']
+                elif 'N' in v:
+                    simplified_item[k] = int(v['N'])
+                elif 'BOOL' in v:
+                    simplified_item[k] = v['BOOL']
+            slides.append(simplified_item)
+
+        return slides
+
+async def get_slide(presentation_id, slide_id, attributes=None):
+    """
+    Retrieve a single slide from a presentation.
+
+    Args:
+        presentation_id (str): The ID of the presentation.
+        slide_id (str): The ID of the slide to retrieve.
+        attributes (Optional[List[str]]): A list of attributes to retrieve for the slide.
+
+    Returns:
+        dict: A dictionary representing the slide, or None if the slide is not found.
+    """
+    table_name = await get_table()
+    async with get_session().create_client('dynamodb', region_name=AWS_REGION) as client:
+        key = {
+            'PK': {'S': f'PRESENTATION#{presentation_id}'},
+            'SK': {'S': f'SLIDE#{slide_id}'}
+        }
+
+        if attributes:
+            expression_attribute_names = {}
+            for attr in attributes:
+                if attr in reserved_attrs:
+                    expression_attribute_names[f'#{attr}'] = attr
+            projection_expression = ', '.join(f'#{attr}' if attr in reserved_attrs else attr for attr in attributes)
+            response = await client.get_item(
+                TableName=table_name,
+                Key=key,
+                ProjectionExpression=projection_expression,
+                ExpressionAttributeNames=expression_attribute_names
+            )
+        else:
+            response = await client.get_item(
+                TableName=table_name,
+                Key=key
+            )
+
+        if 'Item' in response:
+            item = response['Item']
+            simplified_item = {}
+            for k, v in item.items():
+                if k == 'SK':
+                    simplified_item['id'] = v['S'].split('#')[1]
+                elif k == 'PK':
+                    simplified_item['presentation_id'] = v['S'].split('#')[1]
+                elif 'S' in v:
+                    try:
+                        simplified_item[k] = json.loads(v['S'])
+                    except json.JSONDecodeError:
+                        simplified_item[k] = v['S']
+                elif 'N' in v:
+                    simplified_item[k] = int(v['N'])
+                elif 'BOOL' in v:
+                    simplified_item[k] = v['BOOL']
+            return simplified_item
+        else:
+            return None
+        
+        
+async def delete_slide(presentation_id: str, slide_id: str) -> bool:
+    """
+    Delete a single slide from a presentation.
+
+    Args:
+        presentation_id (str): The ID of the presentation.
+        slide_id (str): The ID of the slide to delete.
+
+    Returns:
+        bool: True if the slide was deleted successfully, False otherwise.
+    """
+    table_name = await get_table()
+    async with get_session().create_client('dynamodb', region_name=AWS_REGION) as client:
+        key = {
+            'PK': {'S': f'PRESENTATION#{presentation_id}'},
+            'SK': {'S': f'SLIDE#{slide_id}'}
+        }
+
+        try:
+            await client.delete_item(
+                TableName=table_name,
+                Key=key
+            )
+            return True
+        except Exception as e:
+            print(f"Error deleting slide: {str(e)}")
+            return False
+
+async def delete_all_slides(presentation_id: str) -> bool:
+    """
+    Delete all slides for a presentation.
+
+    Args:
+        presentation_id (str): The ID of the presentation.
+
+    Returns:
+        bool: True if all slides were deleted successfully, False otherwise.
+    """
+    table_name = await get_table()
+    async with get_session().create_client('dynamodb', region_name=AWS_REGION) as client:
+        key_condition_expression = 'PK = :pk AND begins_with(SK, :sk)'
+        expression_attribute_values = {
+            ':pk': {'S': f'PRESENTATION#{presentation_id}'},
+            ':sk': {'S': 'SLIDE#'}
+        }
+
+        response = await client.query(
+            TableName=table_name,
+            KeyConditionExpression=key_condition_expression,
+            ExpressionAttributeValues=expression_attribute_values
+        )
+
+        slide_keys = [{'PK': item['PK'], 'SK': item['SK']} for item in response['Items']]
+
+        try:
+            for key in slide_keys:
+                await client.delete_item(
+                    TableName=table_name,
+                    Key=key
+                )
+            return True
+        except Exception as e:
+            print(f"Error deleting slides: {str(e)}")
+            return False
+
+        
+async def main():
+    # Test data
+    presentation_id = uuid7str()
+    slide_data = [
         {
-            'id': '17c3f42a-5f51-4bf8-8d04-fe12d538b5ca',
-            'presentation_id': '83cb6cd4-2ba6-4bf2-91e6-e72a4b4283bd',
-            'name': 'WorldPopulation2023.csv',
-            's3_filepath': 'WorldPopulation2023.csv',
-            'type': 'csv'
+            'title': 'Slide 1',
+            'content': 'This is the content of slide 1.',
+            'is_enabled': True,
+            'complex_data': {'key1': 'value1', 'key2': [1, 2, 3]}
+        },
+        {
+            'title': 'Slide 2',
+            'content': 'This is the content of slide 2.',
+            'is_enabled': False,
+            'complex_data': {'key3': 'value3', 'key4': {'nested_key': 'nested_value', 'nested_bool': True}}
         }
     ]
 
-    response = await batch_update_sources(presentation_id, sources_to_update)
-    print(response)
+    # Create slides
+    created_slides = []
+    for slide in slide_data:
+        slide_id = uuid7str()
+        await update_slide(presentation_id, slide_id, **slide)
+        created_slides.append({'id': slide_id, **slide})
 
+    print("Created slides:")
+    print(created_slides)
 
-# if __name__ == "__main__":
-#     import asyncio
-#     asyncio.run(main())
-    
+    # Get all slides
+    slides = await get_slides(presentation_id)
+    print("\nAll slides:")
+    print(slides)
+
+    # Get specific slide
+    slide_id = created_slides[0]['id']
+    slide = await get_slide(presentation_id, slide_id)
+    print("\nSpecific slide:")
+    print(slide)
+
+    # Get slides with specific attributes
+    attributes = ['title', 'order']
+    slides_with_attributes = await get_slides(presentation_id, attributes)
+    print("\nSlides with specific attributes:")
+    print(slides_with_attributes)
+
+    # Update a slide
+    slide_id = created_slides[0]['id']
+    updated_slide_data = {
+        'title': 'Updated Slide 1',
+        'content': 'This is the updated content of slide 1.',
+        'complex_data': {'key1': 'updated_value1', 'key2': [4, 5, 6]}
+    }
+    updated_slide = await update_slide(presentation_id, slide_id, **updated_slide_data)
+    print("\nUpdated slide:")
+    print(updated_slide)
+
+    # # Batch update slides
+    # batch_update_data = [
+    #     {
+    #         'id': uuid7str(),
+    #         'title': 'Batch Updated Slide 1',
+    #         'is_enabled': False
+    #     },
+    #     {
+    #         'id': uuid7str(),
+    #         'title': 'Batch Updated Slide 2',
+    #         'is_enabled': True,
+    #         'complex': {
+    #             'key1': 'value1',
+    #             'key2': True
+    #         }
+    #     }
+    # ]
+    # success = await batch_update_slides(presentation_id, batch_update_data)
+    # print("\nBatch update result:")
+    # print(success)
+
+    # Get all slides after batch update
+    slides_after_batch_update = await get_slides(presentation_id)
+    print("\nAll slides after batch update:")
+    print(slides_after_batch_update)
+
+if __name__ == '__main__':
+    asyncio.run(main())

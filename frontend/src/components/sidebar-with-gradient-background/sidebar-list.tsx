@@ -31,7 +31,10 @@ export default async function NavbarList() {
       href = `/home/create/${presentation.id}/research`;
     } else if (presentation.status === "outline") {
       href = `/home/create/${presentation.id}/outline`;
+    } else if (presentation.status === "slides") {
+      href = `/home/create/${presentation.id}/slides`;
     }
+
     return {
       ...presentation,
       href
