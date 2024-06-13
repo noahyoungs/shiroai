@@ -184,6 +184,9 @@ def format_topic(documents, paragraph_delimiter="\n\n"):
 def format_topic_xml(documents, show_sources=True, show_excerpt_ids=True):
     output = ""
     sources = {}
+    
+    if not documents:
+        raise ValueError("No documents provided.")
 
     for document in documents:
         if type(document) is not dict:

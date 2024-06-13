@@ -479,6 +479,7 @@ I need a background image for this slide:
         s3_url = f"https://ai-presenter-slide-images.s3.amazonaws.com/interior-images/{template.get('style').lower().strip().replace(' ', '_')}_{template.get('room').lower().strip().replace(' ', '_')}_{SHAPE}.webp"
         # https://ai-presenter-slide-images.s3.us-west-2.amazonaws.com/interior-images/modern_bathroom_full.webp
         return {
+            'statusCode': 200,  # Add the statusCode here
             'body': {
                 'url': s3_url,
                 'alt': template.get("alt"),
@@ -487,6 +488,7 @@ I need a background image for this slide:
                 # "messages": json.dumps(messages)
             }
         }
+
 
     prompt = template.get("prompt")
     negative_prompt = template.get("negative_prompt", "bad, blurry, NSFW")

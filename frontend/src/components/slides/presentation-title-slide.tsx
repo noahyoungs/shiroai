@@ -30,9 +30,10 @@ type PresentationTitleSlideComponentProps = {
     slide: PresentationTitleSlide;
     presentationID: string;
     fetchSlide: (slideID: string) => void;
+    setBlockArrowKeys: (block: boolean) => void;
 };
 
-export function PresentationTitleSlideComponent({ slide, presentationID, fetchSlide }: PresentationTitleSlideComponentProps) {
+export function PresentationTitleSlideComponent({ slide, presentationID, fetchSlide, setBlockArrowKeys }: PresentationTitleSlideComponentProps) {
     const [tempTitle, setTempTitle] = useState(slide.slide_title);
     const [loading, setLoading] = useState(false)
     const { isOpen, onOpen, onOpenChange } = useDisclosure();

@@ -25,7 +25,7 @@ function PresentationListbox({ presentations }: PresentationListboxProps) {
         className="p-0 "
         itemClasses={{
           base: "data-[hover=true]:bg-background/50 px-2 mx-0 my-1",
-          title: "text-clip line-clamp-2",
+          title: "text-clip line-clamp-2 text-foreground !no-underline",
         }}
       >
         {(presentation) => (

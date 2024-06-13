@@ -1,4 +1,5 @@
-import { useState } from "react";
+//editable-title.tsx
+import { useState, useEffect } from "react";
 import { Textarea, Skeleton, Tooltip, input } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import { template } from "lodash";
@@ -8,9 +9,7 @@ type EditableTitleProps = {
   title: string;
   onSave: (newTitle: string) => void;
   loading: boolean;
-  h1ClassName?: string;
-  inputWrapperClassName?: string;
-  inputClassName?: string;
+  setBlockArrowKeys: (block: boolean) => void;
 };
 
 const minTitleLength = 1;
@@ -20,15 +19,30 @@ export function EditableTitle({
   title,
   onSave,
   loading,
-  h1ClassName,
-  inputWrapperClassName,
-  inputClassName,
+  setBlockArrowKeys,
 }: EditableTitleProps) {
+
+  // console.log(`Title: ${title}`)
+
   const [tempTitle, setTempTitle] = useState(title);
+
+  // console.log(`Temp Title: ${tempTitle}`)
   const [editingTitle, setEditingTitle] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    setBlockArrowKeys(editingTitle);
+  }, [editingTitle, setBlockArrowKeys]);
+
+  useEffect(() => {
+    setTempTitle(title);
+  }, [title]);
+
   const saveTitle = () => {
+    if (tempTitle === title) {
+      setEditingTitle(false);
+      return;
+    }
     if (
       tempTitle.length >= minTitleLength &&
       tempTitle.length <= maxTitleLength
@@ -47,21 +61,7 @@ export function EditableTitle({
         <Tooltip
           isOpen={true}
           content={
-            <div className="flex flex-row">
-              <Tooltip
-                content="Clear"
-                placement="bottom"
-                offset={15}
-                color="danger"
-              >
-                <Icon
-                  icon="tabler:circle-x"
-                  width="32"
-                  height="32"
-                  className="text-danger-500 hover:text-danger-600"
-                  onClick={() => setTempTitle("")}
-                />
-              </Tooltip>
+            <div className="flex flex-row py-1">
               <Tooltip
                 content="Revert"
                 placement="bottom"
@@ -70,9 +70,9 @@ export function EditableTitle({
               >
                 <Icon
                   icon="tabler:circle-chevrons-left"
-                  width="32"
-                  height="32"
-                  className="text-warning-500 hover:text-warning-600"
+                  width="25"
+                  height="25"
+                  className="text-warning-500 hover:text-warning-600 mx-0.5"
                   onClick={() => {
                     setTempTitle(title);
                     setEditingTitle(false);
@@ -87,9 +87,9 @@ export function EditableTitle({
               >
                 <Icon
                   icon="tabler:circle-check"
-                  width="32"
-                  height="32"
-                  className="text-success-500 hover:text-success-600"
+                  width="25"
+                  height="25"
+                  className="text-success-500 hover:text-success-600 mx-0.5"
                   onClick={saveTitle}
                 />
               </Tooltip>
@@ -98,7 +98,7 @@ export function EditableTitle({
           placement="left-end"
           offset={15}
           onMouseDown={(e) => e.preventDefault()}
-          className="translate-y-2"
+          className="border-2 border-foreground"
         >
           <Textarea
             value={tempTitle}

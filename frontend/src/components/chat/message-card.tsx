@@ -46,7 +46,7 @@ const MessageCard = React.forwardRef<HTMLDivElement, MessageCardProps>(
 
     // convert message to markdown
     if (typeof message === "string") {
-      message = <Markdown className="chat-markdown">{message}</Markdown>;
+      message = <Markdown className="prose prose-sm dark:prose-invert">{message}</Markdown>;
     }
 
     const [feedback, setFeedback] = React.useState<"like" | "dislike">();

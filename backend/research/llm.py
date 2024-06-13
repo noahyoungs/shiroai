@@ -1,7 +1,5 @@
-import os
 import asyncio
 import json
-import research.prompts as prompts
 from pydantic import BaseModel
 from instructor import OpenAISchema
 from research.brave_search import search_brave
@@ -9,14 +7,12 @@ from typing import List
 from pydantic import Field
 from research.prompts import getCurrentSourceListMessage
 from uuid_extensions import uuid7str
-from dynamodb import delete_source
-from s3 import delete_file
-from dynamodb import batch_update_sources, delete_source, get_sources
-from research.interface_update import interface_update
+from dynamodb import batch_update_sources
 from init_llm import client
 from research.read import read_and_summarize_source
 from copy import deepcopy
 import tokentrim as tt
+from research.interface_update import interface_update
 
 def pydantic_to_dict(obj):
     if isinstance(obj, BaseModel):
@@ -47,9 +43,10 @@ async def complete(presentationID, messages, interfaceData, emit, max_turns=15, 
             await emit('interface_update', interfaceData)
         return interfaceData
     
-    async def emit_delete_interface_update(id):
+    async def emit_delete_interface_update(ids):
         nonlocal interfaceData, presentationID
-        interfaceData = await interface_update(presentationID, interfaceData, {'action': 'delete', 'id': id})
+        for id in ids:
+            interfaceData = await interface_update(presentationID, interfaceData, {'action': 'delete', 'id': id})
         await emit('interface_update', interfaceData)
         return interfaceData
         
@@ -104,7 +101,7 @@ async def complete(presentationID, messages, interfaceData, emit, max_turns=15, 
         # second param is the output of the run function
         async def post_run(self, search_results):
             nonlocal memory, interfaceData, presentationID
-            post_messages = [{'role':'system', 'content': "You must now use the `AddSourcesByID` function to pick only the best web sources from the web search results. Pick sources from reputable websites. Do not pick search results from forums, social media, or SEO blog articles or SEO content writing articles from companies marketing a product."}]
+            post_messages = [{'role':'system', 'content': "You must now use the `AddSourcesByID` function to pick only the best web sources from the web search results. Pick the best sources that are most relevant to the presentation. If the user provided any guidance on what sources you should or shouldn't include, make sure to follow that guidance."}]
             # add id to each search result
             search_results = [{**result, 'id': uuid7str()} for result in search_results]
             
@@ -137,20 +134,22 @@ async def complete(presentationID, messages, interfaceData, emit, max_turns=15, 
         # errors raised here are considered the model's mistake
         async def run(self):
             nonlocal memory, interfaceData
+            full_length_ids = []
             for id in self.ids:
                 source = next((s for s in interfaceData.get('sources', None) if s.get("id", "").endswith(id)), None)
                 if source:
+                    full_length_ids.append(source.get("id"))
                     pass
                 else:
                     raise ValueError(f"Source with ID {id} is not in the source list. Please provide a valid source ID. Make sure are not confusing the source list and the web search result list.")
-            return source["id"]
+            return full_length_ids
         
         # errors raised here are not caught
         # second param is the output of the run function
-        async def post_run(self, id):
+        async def post_run(self, full_length_ids):
             nonlocal memory, interfaceData
             # await interface updata to get latest source list for next completiom 
-            await emit_delete_interface_update(id)
+            await emit_delete_interface_update(full_length_ids)
             post_messages = [getCurrentSourceListMessage(interfaceData)]
             return f"Success: Successfully removed sources with IDs {', '.join(self.ids)} from the list of sources.", post_messages
     
@@ -191,11 +190,8 @@ async def complete(presentationID, messages, interfaceData, emit, max_turns=15, 
             # print(web_sources)
 
             added_source_ids = [source['id'][-8:] for source in web_sources if 'id' in source]
-
+            
             for web_source in web_sources:
-                # print("DEBUG: current web_source:")
-                # print(web_source)
-
                 source_id = web_source.get('id', None)
                 if source_id is None:
                     print("DEBUG: 'id' key not found in web_source")
@@ -208,11 +204,21 @@ async def complete(presentationID, messages, interfaceData, emit, max_turns=15, 
                     "web_source": {key: value for key, value in web_source.items() if key != 'id'},
                     "name": f"{web_source['profile']['name']} | {web_source['title']}",
                 })
-            # append to sources
-            
+
+            # HERE
+            # Remove duplicate sources based on the 'id' field
+            seen_ids = set()
+            unique_additional_sources = []
+            for source in additional_sources:
+                if source['id'] not in seen_ids:
+                    seen_ids.add(source['id'])
+                    unique_additional_sources.append(source)
+
+            # Update additional_sources with the unique sources
+            additional_sources = unique_additional_sources
+
             # for some reason this call is popping ids off of additional sources so im making a copy because im too lazy to fix issue
             additional_sources_copy = deepcopy(additional_sources)
-            # print(f"DEBUG: additional_sources_copy: {additional_sources_copy}")
             await batch_update_sources(presentationID, additional_sources_copy)
             
             # await interface updata to get latest source list for next completiom 
@@ -241,7 +247,7 @@ async def complete(presentationID, messages, interfaceData, emit, max_turns=15, 
                 char_count += source.get('char_count', 0)
             percentage = round((char_count/50000)*100)
             
-            char_count_status_message = {"role": "system", "content": f"You have gathered {percentage}% of the required amount of research. Keep going."}
+            char_count_status_message = {"role": "system", "content": f"You have gathered {percentage}% of the required amount of research. Keep doing more research."}
             # message about proceeding to the next step if we have 5 or more sources
             proceed_message = {"role": "system", "content": "You have met the minimum amout of research needed. If you haven't already, ask the user if they are satisfied with the current list of sources. If they are, proceed to the next step. If not, do as the user says. DO NOT call the `ProceedToNextStep` function tool until the user has confirmed they are satisfied with the sources."}
             user_files_only_proceed_message = {"role": "system", "content": "The user has uploaded file(s) with enough text that you can base the entire presentation around the file(s) that the user uploaded. Ask the user if they want you to find additional sources on the web (Say 'Would you like me to search for additional sources on the web?`). If they do, use the `WebSearch` function tool to find additional sources. If they don't, proceed to the next step. DO NOT call the `ProceedToNextStep` function tool until the user has confirmed they are satisfied with the sources."}
@@ -442,7 +448,7 @@ def format_search_results(results):
         source = item['profile']['name']
         
         # Append the information to the human-readable string
-        human_readable += f"{index+1:<2}. ID: {id}\n"
+        human_readable += f"   ID: {id}\n"
         human_readable += f"   Title: {title}\n"
         human_readable += f"   URL: {url}\n"
         human_readable += f"   Description: {description}\n"

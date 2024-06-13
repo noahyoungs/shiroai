@@ -60,7 +60,16 @@ async def read_source(source, presentationID):
                         print(f"Error downloading PDF file from URL: {url}")
                         return None, 0
         else:
-            document = await parse_url(url, source['id'], 2000)
+            try:
+                document = await asyncio.wait_for(parse_url(url, source['id'], 2000), timeout=15)
+            except asyncio.TimeoutError:
+                print(f"Timeout occurred while parsing URL: {url}")
+                document = None
+            except Exception as e:
+                print(f"Error occurred while parsing URL: {url}")
+                print(f"Error details: {str(e)}")
+                document = None
+    
             if document:
                 object_key = f"{presentationID}/{source['id']}_whole_document.json"
                 await upload_model_to_s3(document, object_key)

@@ -1,18 +1,22 @@
 // page.tsx
-"use client"
+"use client";
 
-import { Chat } from '@/components/chat/chat';
-import Interface from './interface';
+import { Chat } from "@/components/chat/chat";
+import Interface from "./interface";
 import { Tabs, Tab, Card, CardBody } from "@nextui-org/react";
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from "react";
 import { io } from "socket.io-client";
-import { useRouter } from 'next/navigation';
-import ChatConfigureLayout from '@/components/chat-configure-layout';
-import { debounce, set } from 'lodash';
-import { getSlides, getSources, getSlide } from '@/actions/slides-actions';
-import { Slide } from '@/utils/slide-types';
+import { useRouter } from "next/navigation";
+import ChatConfigureLayout from "@/components/chat-configure-layout";
+import { debounce, set } from "lodash";
+import { getSlides, getSources, getSlide } from "@/actions/slides-actions";
+import { Slide } from "@/utils/slide-types";
 
-export default function Page({ params }: { params: { presentationID: string } }) {
+export default function Page({
+  params,
+}: {
+  params: { presentationID: string };
+}) {
   const redirectPath = `/home/create/${params.presentationID}/export`;
 
   const interface_name = "slides";
@@ -48,7 +52,10 @@ export default function Page({ params }: { params: { presentationID: string } })
       if (Array.isArray(socketMessage)) {
         setMessages(socketMessage);
       } else {
-        console.error("Received invalid init messages from socket: ", socketMessage);
+        console.error(
+          "Received invalid init messages from socket: ",
+          socketMessage
+        );
       }
     });
 
@@ -68,9 +75,9 @@ export default function Page({ params }: { params: { presentationID: string } })
       }
     });
 
-    newSocket.on('disconnect_request', (socketMessage: any) => {
-      console.log('Disconnect reason:', socketMessage.reason);
-      setMessages([{ role: 'error', content: socketMessage.reason }]);
+    newSocket.on("disconnect_request", (socketMessage: any) => {
+      console.log("Disconnect reason:", socketMessage.reason);
+      setMessages([{ role: "error", content: socketMessage.reason }]);
       newSocket.disconnect();
       setBlockChat(true);
     });
@@ -79,28 +86,27 @@ export default function Page({ params }: { params: { presentationID: string } })
       console.log("Disconnected from websocket");
     });
 
-    newSocket.on('interface_update', (socketMessage: any) => {
-      console.log('Received interface update:', socketMessage);
+    newSocket.on("interface_update", (socketMessage: any) => {
+      console.log("Received interface update:", socketMessage);
       if (socketMessage.push == "all_slides") {
         const fetchAllSlides = async () => {
           const slides = await getSlides(params.presentationID);
           slides && setSlides(slides);
           slides.length && setCurrentSlideID(slides[0].id);
-        }
-    
-        fetchAllSlides()
+        };
+
+        fetchAllSlides();
       }
       setBlockInterface(false);
     });
 
-    newSocket.on('proceed', (socketMessage: any) => {
-      console.log('Proceeding to next step:', socketMessage);
+    newSocket.on("proceed", (socketMessage: any) => {
+      console.log("Proceeding to next step:", socketMessage);
       newSocket.disconnect();
       setBlockChat(true);
       setBlockInterface(true);
       router.push(redirectPath);
-    }
-    );
+    });
 
     return () => {
       newSocket.disconnect();
@@ -132,56 +138,91 @@ export default function Page({ params }: { params: { presentationID: string } })
   }
 
   const initialize = async () => {
-    const slides = await getSlides(params.presentationID);
+    let slides = await getSlides(params.presentationID);
     const sources = await getSources(params.presentationID);
+    if (slides) {
+      // remove slides where .hidden is true
+      slides = slides.filter((slide) => !slide.hidden);
+    }
+    slides && sortSlides(slides);
     slides && setSlides(slides);
     sources && setAllSources(sources);
     slides.length && setCurrentSlideID(slides[0].id);
-  }
-
+  };
   const fetchSlide = async (slideID: string) => {
-    const newSlide = await getSlide(params.presentationID, slideID);
-    
-    if (newSlide) {
+    const newSlides = await getSlide(params.presentationID, slideID);
+  
+    if (newSlides && newSlides.length > 0) {
       setSlides((prevSlides) => {
-        return prevSlides.map((slide) => {
-          if (slide.id === newSlide.id) {
-            return newSlide;
-          }
-          return slide;
+        // Filter out hidden new slides from the newSlides array
+        const visibleNewSlides = newSlides.filter(slide => !slide.hidden);
+  
+        // Remove slides from the previous state if their id matches any hidden slides from newSlides
+        const updatedPrevSlides = prevSlides.filter(prevSlide => {
+          const hiddenSlide = newSlides.find(newSlide => newSlide.id === prevSlide.id && newSlide.hidden);
+          return !hiddenSlide;
         });
+  
+        if (visibleNewSlides.length === 1) {
+          return updatedPrevSlides.map((slide) => {
+            if (slide.id === visibleNewSlides[0].id) {
+              return visibleNewSlides[0];
+            }
+            return slide;
+          });
+        } else if (visibleNewSlides.length > 1) {
+          const updatedSlides = [...updatedPrevSlides];
+          const index = updatedSlides.findIndex((slide) => slide.id === slideID);
+  
+          if (index !== -1) {
+            updatedSlides.splice(index, 1, ...visibleNewSlides);
+          } else {
+            console.warn("Slide not found in the existing slides array");
+          }
+  
+          return updatedSlides;
+        } else {
+          return updatedPrevSlides;
+        }
       });
     } else {
       console.error("Failed to fetch slide with ID", slideID);
     }
   };
-
   // get all slides in the begining
   useEffect(() => {
-    initialize()
-  }, [])
+    initialize();
+  }, []);
 
-  const chat = <Chat
-    presentationID={params.presentationID}
-    messages={messages}
-    socket={socket}
-    block={blockChat}
-    setBlock={setBlockChat}
-    typing={typing}
-  />;
+  const chat = (
+    <Chat
+      presentationID={params.presentationID}
+      messages={messages}
+      socket={socket}
+      block={blockChat}
+      setBlock={setBlockChat}
+      typing={typing}
+    />
+  );
 
-  const interfaceComponent = <Interface
-    slides={slides}
-    currentSlideID={currentSlideID}
-    setCurrentSlideID={setCurrentSlideID}
-    allSources={allSources}
-    block={blockInterface || blockChat}
-    presentationID={params.presentationID}
-    redirectPath={redirectPath}
-    fetchSlide={fetchSlide}
-  />;
+  const interfaceComponent = (
+    <Interface
+      slides={slides}
+      currentSlideID={currentSlideID}
+      setCurrentSlideID={setCurrentSlideID}
+      allSources={allSources}
+      block={blockInterface || blockChat}
+      presentationID={params.presentationID}
+      redirectPath={redirectPath}
+      fetchSlide={fetchSlide}
+    />
+  );
 
   return (
-    <ChatConfigureLayout chat={chat} interfaceComponent={interfaceComponent} thirds />
+    <ChatConfigureLayout
+      chat={chat}
+      interfaceComponent={interfaceComponent}
+      thirds
+    />
   );
 }

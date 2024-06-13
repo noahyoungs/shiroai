@@ -9,7 +9,10 @@ client = AsyncOpenAI(
     default_headers=createHeaders(
         provider="openai",
         api_key=os.environ.get("PORTKEY_API_KEY"),
-        config={"cache": {"mode": "simple"}},
+        config={
+            "cache": {"mode": "simple"},
+            "retry": {"attempts": 3}
+                },
     )
 )
 
@@ -20,6 +23,10 @@ groq_client = AsyncOpenAI(
 
 perplexity_client = AsyncPortkey(
     virtual_key="perplexity-de187f",
-    api_key=os.getenv("PORTKEY_API_KEY")
+    api_key=os.getenv("PORTKEY_API_KEY"),
+    config={
+            "cache": {"mode": "simple"},
+            "retry": {"attempts": 3}
+            }
 )
    

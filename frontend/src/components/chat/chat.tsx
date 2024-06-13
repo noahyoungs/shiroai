@@ -63,8 +63,10 @@ export function Chat({ presentationID, messages, socket, block, setBlock, typing
         <ScrollShadow
           className="flex flex-col flex-auto grow"
           ref={scrollShadowRef}
-          hideScrollBar
+          // hideScrollBar
           size={80}
+          visibility="auto"
+          offset={10}
         >
           <Conversation
             messages={messages}

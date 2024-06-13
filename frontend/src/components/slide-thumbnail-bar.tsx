@@ -9,9 +9,10 @@ interface SlideThumbnailBarProps {
   slides: Slide[];
   currentSlideID: string | null;
   setCurrentSlideID: (slideID: string) => void;
+  blockSlideSwitching: boolean;
 }
 
-export function SlideThumbnailBar({ slides, currentSlideID, setCurrentSlideID }: SlideThumbnailBarProps) {
+export function SlideThumbnailBar({ slides, currentSlideID, setCurrentSlideID, blockSlideSwitching }: SlideThumbnailBarProps) {
   const thumbnailRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
@@ -37,7 +38,7 @@ export function SlideThumbnailBar({ slides, currentSlideID, setCurrentSlideID }:
             selected={slide.id === currentSlideID}
             onClick={() => setCurrentSlideID(slide.id)}
           /> */}
-          <div className={cn("w-[128px] aspect-video rounded-lg overflow-hidden", slide.id === currentSlideID && 'border-2 border-primary-500' )} onClick={() => setCurrentSlideID(slide.id)} >{slide.slide_title}</div>
+          <div className={cn("w-[128px] aspect-video rounded-lg overflow-hidden", slide.id === currentSlideID && 'border-2 border-primary-500' )} onClick={!blockSlideSwitching ? () => setCurrentSlideID(slide.id) : undefined} >{slide.slide_title}</div>
         </div>
       ))}
     </div>

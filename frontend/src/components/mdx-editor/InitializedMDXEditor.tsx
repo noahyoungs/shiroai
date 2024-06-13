@@ -9,21 +9,41 @@ import {
   markdownShortcutPlugin,
   MDXEditor,
   toolbarPlugin,
-  UndoRedo,
-  BoldItalicUnderlineToggles,
-  ButtonWithTooltip,
+  jsxPlugin,
   type MDXEditorMethods,
-  type MDXEditorProps
+  type MDXEditorProps,
+  JsxComponentDescriptor,
+  GenericJsxEditor,
+  tablePlugin
 } from '@mdxeditor/editor'
 import { Button } from '@nextui-org/react'
 import { Icon } from '@iconify/react'
 
-// Only import this to the next file
+// Define the additional props that InitializedMDXEditor accepts
+interface InitializedMDXEditorProps extends MDXEditorProps {
+  editorRef: ForwardedRef<MDXEditorMethods> | null;
+  toolbarContents: React.ReactNode;
+}
+
+const jsxComponentDescriptors: JsxComponentDescriptor[] = [
+  {
+    name: 'Footnote',
+    kind: 'text',
+    props: [
+      { name: 'foo', type: 'string' } // Textual property type
+    ],
+    hasChildren: true,
+    Editor: GenericJsxEditor
+  }
+]
+
+
+// Update the type definition of InitializedMDXEditor to include the additional props
 export default function InitializedMDXEditor({
   editorRef,
-  saveSlideMarkdown,
+  toolbarContents,
   ...props
-}: { editorRef: ForwardedRef<MDXEditorMethods> | null } & MDXEditorProps) {
+}: InitializedMDXEditorProps) {
   return (
     <MDXEditor
       plugins={[
@@ -33,21 +53,11 @@ export default function InitializedMDXEditor({
         quotePlugin(),
         thematicBreakPlugin(),
         markdownShortcutPlugin(),
+        tablePlugin(),
         toolbarPlugin({
-          toolbarContents: () => (
-            <>
-              {' '}
-              <UndoRedo />
-              <BoldItalicUnderlineToggles />
-              <ButtonWithTooltip
-                onClick={saveSlideMarkdown}
-                title="Save"
-                >
-                  <Icon icon="tabler:circle-check" width="23" height="23" />
-                </ButtonWithTooltip>
-            </>
-          )
-        })
+          toolbarContents: () => toolbarContents
+        }),
+        jsxPlugin({ jsxComponentDescriptors }),
       ]}
       {...props}
       ref={editorRef}

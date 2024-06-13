@@ -21,8 +21,8 @@ from copy import deepcopy
 from dotenv import load_dotenv
 import json
 import concurrent.futures
-import copy
 from uuid_extensions import uuid7str
+from outline.remove_leading_numbers import remove_leading_numbers
 
 
 load_dotenv()
@@ -62,7 +62,7 @@ def split_markdown_document(document):
         split_metadata = {}
         # move everything in split_doc.metadata to split_metadata['headers']
         # and remove the numbering from the headers (e.g. '1. Introduction' -> 'Introduction' and '2\. Background' -> 'Background')
-        split_metadata['headers'] = {key: re.sub(r'\d+\\\?\.\\s*', '', value) for key, value in split_doc.metadata.items()}
+        split_metadata['headers'] = {key: remove_leading_numbers(value) for key, value in split_doc.metadata.items()}
         # create a shallow copy of the original metadata and update it with the split metadata
         split_metadata.update(metadata.copy())
         # assign the updated metadata to the split document

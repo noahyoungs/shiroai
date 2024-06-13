@@ -5,15 +5,15 @@
 /* custom-styles.css */
 
 h1 {
-    @apply text-4xl font-bold mb-4;
+  @apply text-4xl font-bold mb-4;
 }
 
 h2 {
-    @apply text-3xl font-semibold mb-3;
+  @apply text-3xl font-semibold mb-3;
 }
 
 h3 {
-    @apply text-2xl font-medium mb-3;
+  @apply text-2xl font-medium mb-3;
 }
 
 /* p {
@@ -21,184 +21,197 @@ h3 {
 } */
 
 .chat-markdown {
-    @apply text-gray-800 dark:text-gray-200 leading-normal;
+  @apply text-gray-800 dark:text-gray-200 leading-normal;
 }
 
 .chat-markdown p {
-    @apply my-4;
+  @apply my-4;
 }
 
 .chat-markdown ul {
-    @apply list-disc list-inside my-4;
+  @apply list-disc list-inside my-4;
 }
 
 .chat-markdown ol {
-    @apply list-decimal list-inside my-4;
+  @apply list-decimal list-inside my-4;
 }
 
 .chat-markdown li {
-    @apply my-2;
+  @apply my-2;
 }
 
 .chat-markdown ul li p,
 .chat-markdown ol li p {
-    @apply inline;
+  @apply inline;
 }
 
 .chat-markdown ul li,
 .chat-markdown ol li {
-    @apply pl-2;
+  @apply pl-2;
 }
 
 .chat-markdown ul,
 .chat-markdown ol {
-    @apply list-outside ml-4;
+  @apply list-outside ml-4;
 }
 
 .source-markdown,
 .chat-markdown blockquote {
-    @apply border-l-4 border-gray-300 pl-4 italic my-4;
+  @apply border-l-4 border-gray-300 pl-4 italic my-4;
 }
 
 .chat-markdown code {
-    @apply bg-gray-200 dark:bg-gray-800 rounded px-2 py-1 font-mono;
+  @apply bg-gray-200 dark:bg-gray-800 rounded px-2 py-1 font-mono;
 }
 
 .chat-markdown pre {
-    @apply bg-gray-200 dark:bg-gray-800 rounded p-4 my-4 overflow-auto;
+  @apply bg-gray-200 dark:bg-gray-800 rounded p-4 my-4 overflow-auto;
 }
 
 .chat-markdown pre code {
-    @apply bg-transparent p-0;
+  @apply bg-transparent p-0;
 }
 
 .chat-markdown a {
-    @apply text-blue-500 underline;
+  @apply text-blue-500 underline;
 }
 
 .chat-markdown strong {
-    @apply font-bold;
+  @apply font-bold;
 }
 
 .chat-markdown em {
-    @apply italic;
+  @apply italic;
 }
 
 .chat-markdown h1 {
-    @apply text-4xl font-bold my-6;
+  @apply text-4xl font-bold my-6;
 }
 
 .chat-markdown h2 {
-    @apply text-3xl font-bold my-5;
+  @apply text-3xl font-bold my-5;
 }
 
 .chat-markdown h3 {
-    @apply text-2xl font-bold my-4;
+  @apply text-2xl font-bold my-4;
 }
 
 .chat-markdown h4 {
-    @apply text-xl font-bold my-3;
+  @apply text-xl font-bold my-3;
 }
 
 .chat-markdown h5 {
-    @apply text-lg font-bold my-2;
+  @apply text-lg font-bold my-2;
 }
 
 .chat-markdown h6 {
-    @apply text-base font-bold my-1;
+  @apply text-base font-bold my-1;
 }
 
-.chat-markdown> :first-child {
-    margin-top: 0;
+.chat-markdown > :first-child {
+  margin-top: 0;
 }
 
-.chat-markdown> :last-child {
-    margin-bottom: 0;
+.chat-markdown > :last-child {
+  margin-bottom: 0;
 }
-
 
 .slide-markdown p {
-    @apply my-4;
+  @apply my-4;
 }
 
 .slide-markdown ul {
-    @apply list-disc list-inside;
+  @apply list-disc list-inside;
 }
 
 .slide-markdown ol {
-    @apply list-decimal list-inside;
+  @apply list-decimal list-inside;
 }
-
 
 .slide-markdown ul li p,
 .slide-markdown ol li p {
-    @apply inline;
+  @apply inline;
 }
 
 .slide-markdown ul li,
 .slide-markdown ol li {
-    @apply pl-2;
+  @apply pl-2;
 }
 
 .slide-markdown ul,
 .slide-markdown ol {
-    @apply list-outside ml-4;
-}
-
-table {
-    @apply w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400;
-}
-
-thead {
-    @apply text-sm text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400;
-}
-
-th {
-    @apply px-6 py-3;
-}
-
-td {
-    @apply px-6 py-3;
-}
-
-tbody tr:nth-child(odd) {
-    @apply bg-white dark:bg-gray-900;
-}
-
-tbody tr:nth-child(even) {
-    @apply bg-gray-50 dark:bg-gray-800;
-}
-
-tbody tr {
-    @apply border-b dark:border-gray-700;
-}
-
-th[scope="row"] {
-    @apply px-6 font-medium text-gray-900 whitespace-nowrap dark:text-white;
-}
-
-td {
-    @apply px-6;
+  @apply list-outside ml-4;
 }
 
 a {
-    @apply font-medium text-blue-600 dark:text-blue-500 hover:underline;
+  @apply font-medium text-blue-600 dark:text-blue-500 hover:underline;
 }
 
 .relative {
-    position: relative;
+  position: relative;
 }
 
 .overflow-x-auto {
-    overflow-x: auto;
+  overflow-x: auto;
 }
 
 .shadow-md {
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .sm\:rounded-lg {
-    @media (min-width: 640px) {
-        border-radius: 0.5rem;
-    }
+  @media (min-width: 640px) {
+    border-radius: 0.5rem;
+  }
+}
+
+.prose-xs {
+  @apply prose-sm;
+}
+
+.prose-xs #prose-container h1 {
+  margin-top: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.prose-xs #prose-container h2 {
+  margin-top: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.prose-xs #prose-container h3,
+.prose-xs #prose-container h4,
+.prose-xs #prose-container h5 {
+  margin-top: 0.5rem;
+  margin-bottom: 0.25rem;
+  font-size: 1em;
+}
+
+.prose-xs #prose-container li {
+  line-height: 1.2;
+  margin-top: 0.5em;
+  /* margin-top: 0.25em; */
+}
+
+.prose-xs #prose-container td {
+  padding-top: 0.25em;
+  padding-bottom: 0.25em;
+}
+
+#prose-container > *:first-child {
+  margin-top: 0;
+}
+
+#prose-container li h1,
+#prose-container li h2,
+#prose-container li h3,
+#prose-container li h4,
+#prose-container li h5,
+#prose-container li h6 {
+  margin-left: -1.4em;
+}
+
+#prose-container table {
+  justify-self: center;
 }

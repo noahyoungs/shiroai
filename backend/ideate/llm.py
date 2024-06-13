@@ -15,7 +15,8 @@ import os
 async def ask_perplexity(question):
     response = await perplexity_client.chat.completions.create(
                             messages= [{ "role": 'user', "content": f"{question} Keep your answer short. No longer than a short paragraph."}],
-                            model= 'sonar-small-online'
+                            model= 'sonar-small-online',
+                            
                         )
     # print(f"Perplexity Response: {response.choices[0].message.content}")
     answer = response.choices[0].message.content

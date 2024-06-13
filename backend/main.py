@@ -1,3 +1,4 @@
+#main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from urllib.parse import parse_qs
@@ -46,7 +47,6 @@ async def handleDisconnect(sid, reason="Unauthorized"):
 async def updateInterface(sid, data):
     connected_users[sid]["interfaceData"] = data
     await sio.emit('interface_update', data, room=sid)
-    
     
 @sio.event
 async def connect(sid, environ):
@@ -106,7 +106,7 @@ async def connect(sid, environ):
     elif connected_users[sid]["interface"] == "outline":
         connected_users[sid]["messages"], connected_users[sid]["interfaceData"], connected_users[sid]["memory"] = await outline_initialize(presentationID)
     elif connected_users[sid]["interface"] == "slides":
-        connected_users[sid]["messages"], connected_users[sid]["interfaceData"], connected_users[sid]["memory"] = await slides_initialize(presentationID)
+        connected_users[sid]["messages"], connected_users[sid]["interfaceData"], connected_users[sid]["memory"], connected_users[sid]["all_docs"] = await slides_initialize(presentationID)
         
     else:
         raise ValueError(f"Interface not found: `{connected_users[sid]['interface']}`")
@@ -127,7 +127,7 @@ async def connect(sid, environ):
     # for slides we have to do extra work before first user message
     if connected_users[sid]["interface"] == "slides" and not connected_users[sid]["interfaceData"]['slides_created']:
         # load topics, send emitter as a partial function to emit to the room when done
-        asyncio.create_task(slides_load_slides(presentationID, connected_users[sid]["messages"], connected_users[sid]["interfaceData"], connected_users[sid]["memory"], emitter=functools.partial(sio.emit, room=sid)))
+        asyncio.create_task(slides_load_slides(presentationID=presentationID, messages=connected_users[sid]["messages"], interfaceData=connected_users[sid]["interfaceData"], memory=connected_users[sid]["memory"], emitter=functools.partial(sio.emit), all_docs=connected_users[sid].get("all_docs")))
         
 
 @sio.event
@@ -272,7 +272,3 @@ async def disconnect(sid):
     
     connected_users.pop(sid, None)
     print(f"Client {sid} removed from connected users")
-
-@app.get("/")
-async def root():
-    return {"message": "Hello, FastAPI with Socket.IO!"}

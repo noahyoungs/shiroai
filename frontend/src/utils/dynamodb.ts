@@ -1,4 +1,3 @@
-//dynamodb.ts
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import {
   GetItemCommand,
@@ -16,10 +15,12 @@ import { Slide } from "@/utils/slide-types";
 const client = new DynamoDBClient({});
 
 const tableName = "AiPresenter2"; 
+const slideOrderGSIName = "slide-order-index";
 
-export async function getPresentationsByUserID(userID: string, attributes: string[]) {
-  attributes.push("PK")
-  const params = {
+export async function getPresentationsByUserID(userID: string, attributes: string[], limit: number, lastEvaluatedKey?: any) {
+  attributes.push("PK");
+
+  const params: any = {
     TableName: tableName,
     IndexName: "user-index",
     KeyConditionExpression: "#userAttr = :user",
@@ -32,7 +33,13 @@ export async function getPresentationsByUserID(userID: string, attributes: strin
       ":prefix": { S: "PRESENTATION#" },
     },
     ProjectionExpression: attributes.map((attr) => `#${attr}`).join(", "),
+    Limit: limit,
+    ScanIndexForward: false // To get items in descending order
   };
+
+  if (lastEvaluatedKey) {
+    params.ExclusiveStartKey = lastEvaluatedKey;
+  }
 
   // Add the attribute names to ExpressionAttributeNames
   attributes.forEach((attr) => {
@@ -61,8 +68,12 @@ export async function getPresentationsByUserID(userID: string, attributes: strin
     return presentation;
   });
 
-  return presentations;
+  return {
+    presentations,
+    lastEvaluatedKey: response.LastEvaluatedKey,
+  };
 }
+
 
 
 export async function getPresentationByID(presentationID: string, attributes: string[]) {
@@ -219,29 +230,52 @@ export async function getSources(presentationID: string, attributes?: string[]) 
 
   return sources;
 }
+
 /**
  * Batch updates multiple slides in a presentation.
  * @param {string} presentationID - The ID of the presentation.
- * @param {Slide[]} slides - An array of slide objects to update.
+ * @param {Partial<Slide>[]} slides - An array of partial slide objects to update.
  * @returns {Promise<boolean>} - A promise that resolves to true if the update is successful, false otherwise.
+ * 
+ * Note: If a slide object in the `slides` array has only a subset of the attributes compared to the existing slide in DynamoDB,
+ * only the attributes present in the slide object will be updated. Attributes that exist in DynamoDB but are not present
+ * in the slide object will remain unchanged. This allows for partial updates of slide attributes without affecting the
+ * attributes that are not included in the update request.
  */
 export async function batchUpdateSlides(
   presentationID: string,
-  slides: Slide[]
+  slides: Partial<Slide>[]
 ): Promise<boolean> {
+  if (slides.length === 0) {
+    throw new Error("Slides array cannot be empty.");
+  }
+
   const updateRequests: any[] = [];
   const currentTimestamp = Math.floor(Date.now() / 1000);
 
   for (const slide of slides) {
     const { id, ...slideFields } = slide;
 
+    if (id === undefined) {
+      console.log(`Slide ID is undefined for slide:`, slide);
+      continue;
+    }
+
+    if (Object.keys(slideFields).length === 0) {
+      throw new Error(`Slide with ID ${id} contains only the ID property.`);
+    }
+
     const updateExpression: string[] = [];
     const expressionAttributeValues: { [key: string]: any } = {};
     const expressionAttributeNames: { [key: string]: string } = {};
 
     for (const [key, value] of Object.entries(slideFields)) {
-      let attributeValue: any;
+      if (value === undefined) {
+        console.log(`Skipping undefined value for key: ${key}`);
+        continue;
+      }
 
+      let attributeValue: any;
       if (Array.isArray(value) || typeof value === "object") {
         attributeValue = { S: JSON.stringify(value) };
       } else if (typeof value === "string") {
@@ -250,6 +284,9 @@ export async function batchUpdateSlides(
         attributeValue = { N: value.toString() };
       } else if (typeof value === "boolean") {
         attributeValue = { BOOL: value };
+      } else {
+        console.log(`Unsupported attribute type for key: ${key}`);
+        continue;
       }
 
       const attributeName = `#${key}`;
@@ -277,7 +314,13 @@ export async function batchUpdateSlides(
       },
     };
 
+    // console.log(`Prepared update request for slide ID ${id}:`, JSON.stringify(updateRequest));
+
     updateRequests.push(updateRequest);
+  }
+
+  if (updateRequests.length === 0) {
+    throw new Error("No valid slides to update.");
   }
 
   const command = new TransactWriteItemsCommand({
@@ -285,7 +328,9 @@ export async function batchUpdateSlides(
   });
 
   try {
+    console.log("Sending batch update request to DynamoDB...");
     const response = await client.send(command);
+    console.log("Batch update response:", response);
     return response.$metadata.httpStatusCode === 200;
   } catch (error) {
     console.error("Error during batch update:", error);
@@ -334,6 +379,21 @@ export async function getSlides(
       }
     }
 
+    // Assign random layout if not present and slide type is 'short_bullets_slide'
+    if (slideFields.slide_type === 'short_bullets_slide' && !slideFields.layout) {
+      slideFields.layout = Math.random() < 0.5 ? 'list' : 'grid';
+    }
+
+    // Randomly assign left or right to image_position if not present and slide type is 'section_header_slide'
+    if (slideFields.slide_type === 'section_header_slide' && !slideFields.image_position) {
+      slideFields.image_position = Math.random() < 0.5 ? 'left' : 'right';
+    }
+
+    // Set hidden to false if not present
+    if (slideFields.hidden === undefined) {
+      slideFields.hidden = false;
+    }
+
     // Parse the slide content only
     const slide: Slide = {
       id: SK.split("#")[1],
@@ -344,6 +404,9 @@ export async function getSlides(
       slide_order: slideFields.slide_order,
       sequential: slideFields.sequential,
       image: slideFields.image,
+      layout: slideFields.layout,
+      hidden: slideFields.hidden,
+      image_position: slideFields.image_position
     };
 
     return slide;
@@ -394,6 +457,21 @@ export async function getSlide(
       }
     }
 
+    // Assign random layout if not present and slide type is 'short_bullets_slide'
+    if (slideFields.slide_type === 'short_bullets_slide' && !slideFields.layout) {
+      slideFields.layout = Math.random() < 0.5 ? 'list' : 'grid';
+    }
+
+    // Randomly assign left or right to image_position if not present and slide type is 'section_header_slide'
+    if (slideFields.slide_type === 'section_header_slide' && !slideFields.image_position) {
+      slideFields.image_position = Math.random() < 0.5 ? 'left' : 'right';
+    }
+
+    // Set hidden to false if not present
+    if (slideFields.hidden === undefined) {
+      slideFields.hidden = false;
+    }
+
     const slide: Slide = {
       id: SK.split("#")[1],
       slide_type: slideFields.slide_type,
@@ -403,6 +481,9 @@ export async function getSlide(
       slide_order: slideFields.slide_order,
       sequential: slideFields.sequential,
       image: slideFields.image,
+      layout: slideFields.layout,
+      hidden: slideFields.hidden,
+      image_position: slideFields.image_position
     };
 
     return slide;
@@ -411,12 +492,19 @@ export async function getSlide(
   return null;
 }
 
+
+
 /**
  * Updates a single slide in a presentation.
  * @param {string} presentationID - The ID of the presentation.
  * @param {string} slideID - The ID of the slide to update.
  * @param {Partial<Slide>} slideData - An object containing the fields to update on the slide.
  * @returns {Promise<void>} - A promise that resolves when the update is complete.
+ * 
+ * Note: The `slideData` parameter is of type `Partial<Slide>`, meaning it can contain a subset of the attributes
+ * defined in the `Slide` type. Only the attributes present in `slideData` will be updated in DynamoDB. Attributes
+ * that exist in DynamoDB but are not present in `slideData` will remain unchanged. This allows for partial updates
+ * of slide attributes without affecting the attributes that are not included in the update request.
  */
 export async function updateSlide(
   presentationID: string,
@@ -428,6 +516,11 @@ export async function updateSlide(
   const expressionAttributeNames: { [key: string]: string } = {};
 
   for (const [key, value] of Object.entries(slideData)) {
+    if (value === undefined) {
+      // console.log(`Value is undefined for key: ${key}`)
+      continue;
+    }
+
     let attributeValue: any;
 
     if (Array.isArray(value) || typeof value === "object") {
@@ -438,6 +531,9 @@ export async function updateSlide(
       attributeValue = { N: value.toString() };
     } else if (typeof value === "boolean") {
       attributeValue = { BOOL: value };
+    } else {
+      console.log(`Unsupported attribute type for key: ${key}`);
+      continue;
     }
 
     const attributeName = `#${key}`;
@@ -490,3 +586,80 @@ export async function deleteSlide(
   await client.send(command);
 }
 
+/**
+ * Retrieves the order of the next slide in a presentation.
+ *
+ * @param {string} presentationId - The ID of the presentation.
+ * @param {number} currentSlideOrder - The order of the current slide.
+ * @returns {Promise<number | null>} A promise that resolves to the order of the next slide, or null if no next slide is found.
+ * @throws {Error} If an error occurs during the retrieval process.
+ */
+export const getNextSlideOrder = async (presentationId: string, currentSlideOrder: number): Promise<number | null> => {
+  const params = {
+    TableName: tableName,
+    IndexName: slideOrderGSIName,
+    KeyConditionExpression: 'PK = :pk AND #slide_order > :currentOrder',
+    ProjectionExpression: '#slide_order, SK',
+    ExpressionAttributeNames: {
+      '#slide_order': 'slide_order',
+    },
+    ExpressionAttributeValues: {
+      ':pk': { S: `PRESENTATION#${presentationId}` },
+      ':currentOrder': { N: currentSlideOrder.toString() },
+    },
+    Limit: 1,
+  };
+
+  try {
+    const result = await client.send(new QueryCommand(params));
+    if (result.Items && result.Items.length > 0) {
+      const nextSlide = unmarshall(result.Items[0]);
+      if (nextSlide.SK && nextSlide.SK.startsWith('SLIDE#')) {
+        return nextSlide.slide_order;
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error('Error getting next slide order:', error);
+    throw error;
+  }
+};
+
+
+/**
+ * Adds a new slide in front of the slide with the specified order in a presentation.
+ *
+ * @param {string} presentationId - The ID of the presentation.
+ * @param {number} targetSlideOrder - The order of the target slide.
+ * @param {Partial<Slide>} slideData - An object containing the data for the new slide.
+ * @returns {Promise<void>} - A promise that resolves when the slide is added.
+ * @throws {Error} If an error occurs during the slide addition process.
+ */
+export const addSlideAfterOrder = async (
+  presentationId: string,
+  targetSlideOrder: number,
+  slideData: Partial<Slide>
+): Promise<void> => {
+  try {
+    const newSlideId = uuidv7();
+
+    const nextSlideOrder = await getNextSlideOrder(presentationId, targetSlideOrder);
+    let newSlideOrder: number;
+
+    if (nextSlideOrder !== null) {
+      newSlideOrder = Math.round((targetSlideOrder + nextSlideOrder) / 2);
+    } else {
+      newSlideOrder = targetSlideOrder + 1000;
+    }
+
+    const updatedSlideData: Partial<Slide> = {
+      ...slideData,
+      slide_order: newSlideOrder,
+    };
+
+    await updateSlide(presentationId, newSlideId, updatedSlideData);
+  } catch (error) {
+    console.error('Error adding slide:', error);
+    throw error;
+  }
+};
