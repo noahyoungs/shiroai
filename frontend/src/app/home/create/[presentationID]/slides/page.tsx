@@ -149,6 +149,7 @@ export default function Page({
     sources && setAllSources(sources);
     slides.length && setCurrentSlideID(slides[0].id);
   };
+  
   const fetchSlide = async (slideID: string) => {
     const newSlides = await getSlide(params.presentationID, slideID);
   

@@ -48,7 +48,7 @@ export interface SimpleMermaidSlide extends BaseSlide {
   slide_type: 'simple_mermaid_slide';
   slide_content: {
     mermaid_code: string;
-    excerpt_ids: string[];
+    excerpts: Excerpt[];
     light_svg: string;
     dark_svg: string;
   };

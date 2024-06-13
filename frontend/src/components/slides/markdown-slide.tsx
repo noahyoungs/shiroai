@@ -9,6 +9,7 @@ import "@/components/mdx-editor/styles.css";
 import { useState, useRef, useEffect } from "react";
 import { EditableTitle } from "./editable-title";
 import { updateSlide } from "@/actions/slides-actions";
+import { cleanMarkdown } from "@/actions/clean-editor-md";
 import {
   UndoRedo,
   BoldItalicUnderlineToggles,
@@ -17,11 +18,11 @@ import {
   type MDXEditorMethods,
   InsertTable,
 } from "@mdxeditor/editor";
+import { BLUR_COMMAND } from "lexical";
 import { cn } from "@/utils/cn";
 import { Footnote } from "@/components/footnote";
 import React from "react";
 import { MarkdownSlide } from "@/utils/slide-types";
-
 
 type MarkdownSlideComponentProps = {
   slide: MarkdownSlide;
@@ -61,7 +62,7 @@ export function MarkdownSlideComponent({
   // for markdown
   const saveSlideMarkdown = async () => {
     if (!editorRef.current) return;
-    if (editorRef.current?.getMarkdown().trim() === '') {
+    if (editorRef.current?.getMarkdown().trim() === "") {
       alert("Slide content cannot be empty");
       return;
     }
@@ -76,7 +77,7 @@ export function MarkdownSlideComponent({
       id: slide.id,
       slide_content: {
         ...slide.slide_content,
-        content: editorRef.current?.getMarkdown(),
+        content: cleanMarkdown(editorRef.current?.getMarkdown()),
       },
     });
     await fetchSlide(slide.id);
@@ -123,7 +124,10 @@ export function MarkdownSlideComponent({
                 <ListsToggle />
                 <InsertTable />
                 {/* Revert Button */}
-                <ButtonWithTooltip onClick={() => setEditingMarkdown(false)} title="Revert">
+                <ButtonWithTooltip
+                  onClick={() => setEditingMarkdown(false)}
+                  title="Revert"
+                >
                   <Icon
                     icon="tabler:circle-chevrons-left"
                     width="25"
@@ -143,6 +147,7 @@ export function MarkdownSlideComponent({
               </div>
             }
             onBlur={() => saveSlideMarkdown()}
+            autoFocus
           />
         </div>
       ) : (
@@ -175,7 +180,11 @@ export function MarkdownSlideComponent({
                     }
                     return next();
                   },
-                  wrapper: ({ children }) => <div id="prose-container" className="px-1">{children}</div>,
+                  wrapper: ({ children }) => (
+                    <div id="prose-container" className="px-1">
+                      {children}
+                    </div>
+                  ),
                   forceWrapper: true,
                 }}
               >

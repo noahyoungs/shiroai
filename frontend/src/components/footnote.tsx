@@ -10,6 +10,7 @@ type FootnoteProps = {
   allSources?: any[];
 };
 
+// IMPORTANT: Sources and Excerpts are different. Each excerpt has a source id. The source needs to be matched to get the source name and icon, etc.
 export function Footnote({ footnoteKeys, slide, allSources }: FootnoteProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
 

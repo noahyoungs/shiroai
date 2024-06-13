@@ -1,6 +1,5 @@
 // short-bullets-slide-boxes.tsx
 import { ShortBulletsSlide } from "@/utils/slide-types";
-import { Tooltip, Textarea, Spinner, Button, Input } from "@nextui-org/react";
 import { ExcerptCard } from "@/components/excerpt-card";
 import { Icon } from "@iconify/react";
 import React, { useState, useEffect, useRef } from "react";
@@ -16,6 +15,11 @@ import {
   ModalBody,
   ModalFooter,
   useDisclosure,
+  Tooltip,
+  Textarea,
+  Spinner,
+  Button,
+  Input,
 } from "@nextui-org/react";
 
 type BulletItemProps = {

@@ -6,7 +6,11 @@ import aiohttp
 from slides.mermaid.tall_shapes_lines_inference import predict_ideal_lines
 
 def break_string_into_lines(input_string, n):
-    if "<br/>" in input_string or "<br>" in input_string:
+    # replace \n and <br> with <br/>
+    input_string = input_string.replace("\n", "<br/>")
+    input_string = input_string.replace("<br>", "<br/>")
+    
+    if "<br/>" in input_string:
         return input_string
 
     # Find the ideal split points by dividing the length of the input string by N
@@ -154,7 +158,8 @@ async def adjust_ar_with_direction(diagram, target_ratio=2.4):
 
 def round_rectangles(diagram):
     # Pattern to match ["..."] but avoid [["..."]]
-    pattern = re.compile(r'(?<=[\s\w])\["(.*?)"\](?=[\s\w])')
+    # it requires that on the outer edges of [""] there is a whitespace or a word character or the end of the string
+    pattern = re.compile(r'(?<=[\s\w])\["(.*?)"\](?=[\s\w]|$)')
     
     # Replace the matched pattern with ("...") using a lambda to retain the content
     diagram = pattern.sub(lambda match: f'("{match.group(1)}")', diagram)
@@ -163,9 +168,9 @@ def round_rectangles(diagram):
 
 
 async def process_diagram_to_svgs(diagram):
-    diagram = round_rectangles(diagram)
     diagram = process_tall_shapes(diagram)
     diagram, _ = await adjust_ar_with_direction(diagram)
+    diagram = round_rectangles(diagram)
     light_svg = await generate_svg(diagram, dark=False)
     dark_svg = await generate_svg(diagram, dark=True)
     return light_svg, dark_svg
