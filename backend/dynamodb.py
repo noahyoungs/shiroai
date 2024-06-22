@@ -3,9 +3,11 @@ import time
 from dotenv import load_dotenv
 from aiobotocore.session import get_session
 import json
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Union
 import asyncio
 from uuid_extensions import uuid7str
+from slides.slide_models import *
+
 load_dotenv()
 
 AWS_REGION = os.getenv('AWS_REGION')
@@ -574,113 +576,49 @@ async def batch_update_sources(presentation_id: str, sources: List[Dict[str, Any
             return False
 
 
-async def update_slide(presentation_id, slide_id, **kwargs):
+async def update_slides(presentation_id: str, slides: Union[Slide, Dict, List[Union[Slide, Dict]]]) -> bool:
     """
-   Update a single slide in a presentation.
-
-   Args:
-       presentation_id (str): The ID of the presentation.
-       slide_id (str): The ID of the slide to update.
-       **kwargs: Keyword arguments representing the attributes to update.
-
-   Returns:
-       dict: The updated slide attributes.
-   """
-    table_name = await get_table()
-    async with get_session().create_client('dynamodb', region_name=AWS_REGION) as client:
-        update_expression = 'SET '
-        expression_attribute_values = {}
-        expression_attribute_names = {}
-
-        def set_default(obj):
-            if isinstance(obj, set):
-                return list(obj)
-            raise TypeError(
-                f'Object of type {obj.__class__.__name__} is not JSON serializable')
-
-        for key, value in kwargs.items():
-            if isinstance(value, (list, dict, set)):
-                value = json.dumps(value, default=set_default)
-
-            # Use reserved keyword handling for known attributes
-            if key in reserved_attrs:
-                attr_name_key = f'#{key}'
-                update_expression += f'{attr_name_key} = :{key}, '
-                expression_attribute_names[attr_name_key] = key
-            else:
-                update_expression += f'{key} = :{key}, '
-
-            # Set the value type based on Python type
-            if type(value) == str:
-                expression_attribute_values[f':{key}'] = {'S': value}
-            elif type(value) == int:
-                expression_attribute_values[f':{key}'] = {'N': str(value)}
-            elif type(value) == bool:
-                expression_attribute_values[f':{key}'] = {'BOOL': value}
-            else:
-                expression_attribute_values[f':{key}'] = {'S': str(value)}
-
-        # Set the time_updated attribute to the current Unix timestamp
-        current_timestamp = int(time.time())
-        update_expression += '#time_updated = :time_updated, '
-        expression_attribute_names['#time_updated'] = 'time_updated'
-        expression_attribute_values[':time_updated'] = {
-            'N': str(current_timestamp)}
-
-        # Remove the trailing comma and space from the update expression
-        update_expression = update_expression.rstrip(', ')
-
-        update_params = {
-            "TableName": table_name,
-            "Key": {
-                'PK': {'S': f'PRESENTATION#{presentation_id}'},
-                'SK': {'S': f'SLIDE#{slide_id}'}
-            },
-            "UpdateExpression": update_expression,
-            "ExpressionAttributeValues": expression_attribute_values,
-            "ExpressionAttributeNames": expression_attribute_names,
-            "ReturnValues": 'ALL_NEW'
-        }
-
-        response = await client.update_item(**update_params)
-        return response['Attributes']
-
-
-async def batch_update_slides(presentation_id: str, slides: List[Dict[str, Any]]) -> bool:
-    """
-    Update multiple slides in a presentation in a batch operation.
+    Update one or multiple slides in a presentation.
 
     Args:
         presentation_id (str): The ID of the presentation.
-        slides (List[Dict[str, Any]]): A list of dictionaries representing the slides to update.
+        slides (Union[Slide, Dict, List[Union[Slide, Dict]]]): A single Slide model, a partial slide dictionary, or a list of these to update.
 
     Returns:
-        bool: True if the batch update was successful, False otherwise.
+        bool: True if the update was successful, False otherwise.
     """
     table_name = await get_table()
     async with get_session().create_client('dynamodb', region_name=AWS_REGION) as client:
-        update_requests = []
         current_timestamp = int(time.time())
+        update_requests = []
+
+        if isinstance(slides, (Slide, dict)):
+            slides = [slides]
 
         for slide in slides:
-            slide_copy = slide.copy()  # Create a copy of the slide dictionary
-            slide_id = slide_copy.pop('id')
+            if isinstance(slide, Slide):
+                slide_dict = slide.dict(exclude_unset=True)
+            elif isinstance(slide, dict):
+                slide_dict = slide
+
+            slide_id = slide_dict.pop('id', None)
+            if not slide_id:
+                continue  # Skip if no id is provided
 
             update_expression = 'SET '
             expression_attribute_values = {}
             expression_attribute_names = {}
 
-            for key, value in slide_copy.items():
+            for key, value in slide_dict.items():
+                if value is None or value == '':  # Skip null or empty values
+                    continue
+
                 if isinstance(value, (list, dict)):
                     value = json.dumps(value)
 
-                # Use reserved keyword handling for known attributes
-                if key in reserved_attrs:
-                    attr_name_key = f'#{key}'
-                    update_expression += f'{attr_name_key} = :{key}, '
-                    expression_attribute_names[attr_name_key] = key
-                else:
-                    update_expression += f'{key} = :{key}, '
+                attr_name_key = f'#{key}'
+                update_expression += f'{attr_name_key} = :{key}, '
+                expression_attribute_names[attr_name_key] = key
 
                 value_type = type(value)
                 if value_type == str:
@@ -713,14 +651,16 @@ async def batch_update_slides(presentation_id: str, slides: List[Dict[str, Any]]
 
             update_requests.append(update_request)
 
-        response = await client.transact_write_items(TransactItems=update_requests)
-
-        if response['ResponseMetadata']['HTTPStatusCode'] == 200:
-            return True
+        if len(update_requests) == 1:
+            response = await client.update_item(**update_requests[0]["Update"])
+            return response['ResponseMetadata']['HTTPStatusCode'] == 200
         else:
-            return False
-        
-async def get_slides(presentation_id, attributes=None):
+            response = await client.transact_write_items(TransactItems=update_requests)
+            return response['ResponseMetadata']['HTTPStatusCode'] == 200
+
+
+
+async def get_all_slides(presentation_id, attributes=None) -> List[Slide]:
     """
     Retrieve all slides in a presentation.
 
@@ -729,7 +669,7 @@ async def get_slides(presentation_id, attributes=None):
         attributes (Optional[List[str]]): A list of attributes to retrieve for each slide.
 
     Returns:
-        List[dict]: A list of dictionaries representing the slides.
+        List[Slide]: A list of Slide models.
     """
     table_name = await get_table()
     async with get_session().create_client('dynamodb', region_name=AWS_REGION) as client:
@@ -776,96 +716,140 @@ async def get_slides(presentation_id, attributes=None):
                     simplified_item[k] = int(v['N'])
                 elif 'BOOL' in v:
                     simplified_item[k] = v['BOOL']
-            slides.append(simplified_item)
+
+            slide_type = simplified_item.get('slide_type')
+            if slide_type == 'short_bullets_slide':
+                slides.append(ShortBulletsSlide(**simplified_item))
+            elif slide_type == 'markdown_slide':
+                slides.append(MarkdownSlide(**simplified_item))
+            elif slide_type == 'simple_mermaid_slide':
+                slides.append(SimpleMermaidSlide(**simplified_item))
+            elif slide_type == 'section_header_slide':
+                slides.append(SectionHeaderSlide(**simplified_item))
+            elif slide_type == 'presentation_title_slide':
+                slides.append(PresentationTitleSlide(**simplified_item))
+            else:
+                raise ValueError(f"Unknown slide type: {slide_type}")
 
         return slides
 
-async def get_slide(presentation_id, slide_id, attributes=None):
+
+
+async def get_slides(presentation_id, slide_ids: Union[str, List[str]], attributes=None) -> Union[Slide, List[Slide]]:
     """
-    Retrieve a single slide from a presentation.
+    Retrieve one or multiple slides from a presentation.
 
     Args:
         presentation_id (str): The ID of the presentation.
-        slide_id (str): The ID of the slide to retrieve.
-        attributes (Optional[List[str]]): A list of attributes to retrieve for the slide.
+        slide_ids (Union[str, List[str]]): A single slide ID or a list of slide IDs to retrieve.
+        attributes (Optional[List[str]]): A list of attributes to retrieve for the slide(s).
 
     Returns:
-        dict: A dictionary representing the slide, or None if the slide is not found.
+        Union[Slide, List[Slide]]: A Slide model or a list of Slide models.
     """
     table_name = await get_table()
     async with get_session().create_client('dynamodb', region_name=AWS_REGION) as client:
-        key = {
-            'PK': {'S': f'PRESENTATION#{presentation_id}'},
-            'SK': {'S': f'SLIDE#{slide_id}'}
-        }
+        if isinstance(slide_ids, str):
+            key = {
+                'PK': {'S': f'PRESENTATION#{presentation_id}'},
+                'SK': {'S': f'SLIDE#{slide_ids}'}
+            }
 
-        if attributes:
-            expression_attribute_names = {}
-            for attr in attributes:
-                if attr in reserved_attrs:
-                    expression_attribute_names[f'#{attr}'] = attr
-            projection_expression = ', '.join(f'#{attr}' if attr in reserved_attrs else attr for attr in attributes)
-            response = await client.get_item(
-                TableName=table_name,
-                Key=key,
-                ProjectionExpression=projection_expression,
-                ExpressionAttributeNames=expression_attribute_names
-            )
+            if attributes:
+                expression_attribute_names = {}
+                for attr in attributes:
+                    if attr in reserved_attrs:
+                        expression_attribute_names[f'#{attr}'] = attr
+                projection_expression = ', '.join(f'#{attr}' if attr in reserved_attrs else attr for attr in attributes)
+                response = await client.get_item(
+                    TableName=table_name,
+                    Key=key,
+                    ProjectionExpression=projection_expression,
+                    ExpressionAttributeNames=expression_attribute_names
+                )
+            else:
+                response = await client.get_item(
+                    TableName=table_name,
+                    Key=key
+                )
+
+            if 'Item' in response:
+                item = response['Item']
+                simplified_item = {}
+                for k, v in item.items():
+                    if k == 'SK':
+                        simplified_item['id'] = v['S'].split('#')[1]
+                    elif k == 'PK':
+                        simplified_item['presentation_id'] = v['S'].split('#')[1]
+                    elif 'S' in v:
+                        try:
+                            simplified_item[k] = json.loads(v['S'])
+                        except json.JSONDecodeError:
+                            simplified_item[k] = v['S']
+                    elif 'N' in v:
+                        simplified_item[k] = int(v['N'])
+                    elif 'BOOL' in v:
+                        simplified_item[k] = v['BOOL']
+
+                slide_type = simplified_item.get('slide_type')
+                if slide_type == 'short_bullets_slide':
+                    return ShortBulletsSlide(**simplified_item)
+                elif slide_type == 'markdown_slide':
+                    return MarkdownSlide(**simplified_item)
+                elif slide_type == 'simple_mermaid_slide':
+                    return SimpleMermaidSlide(**simplified_item)
+                elif slide_type == 'section_header_slide':
+                    return SectionHeaderSlide(**simplified_item)
+                elif slide_type == 'presentation_title_slide':
+                    return PresentationTitleSlide(**simplified_item)
+                else:
+                    raise ValueError(f"Unknown slide type: {slide_type}")
+
         else:
-            response = await client.get_item(
-                TableName=table_name,
-                Key=key
-            )
+            keys = [{'PK': {'S': f'PRESENTATION#{presentation_id}'}, 'SK': {'S': f'SLIDE#{slide_id}'}} for slide_id in slide_ids]
 
-        if 'Item' in response:
-            item = response['Item']
-            simplified_item = {}
-            for k, v in item.items():
-                if k == 'SK':
-                    simplified_item['id'] = v['S'].split('#')[1]
-                elif k == 'PK':
-                    simplified_item['presentation_id'] = v['S'].split('#')[1]
-                elif 'S' in v:
-                    try:
-                        simplified_item[k] = json.loads(v['S'])
-                    except json.JSONDecodeError:
-                        simplified_item[k] = v['S']
-                elif 'N' in v:
-                    simplified_item[k] = int(v['N'])
-                elif 'BOOL' in v:
-                    simplified_item[k] = v['BOOL']
-            return simplified_item
-        else:
-            return None
-        
-        
-async def delete_slide(presentation_id: str, slide_id: str) -> bool:
-    """
-    Delete a single slide from a presentation.
+            request_items = {
+                table_name: {
+                    'Keys': keys
+                }
+            }
 
-    Args:
-        presentation_id (str): The ID of the presentation.
-        slide_id (str): The ID of the slide to delete.
+            response = await client.batch_get_item(RequestItems=request_items)
 
-    Returns:
-        bool: True if the slide was deleted successfully, False otherwise.
-    """
-    table_name = await get_table()
-    async with get_session().create_client('dynamodb', region_name=AWS_REGION) as client:
-        key = {
-            'PK': {'S': f'PRESENTATION#{presentation_id}'},
-            'SK': {'S': f'SLIDE#{slide_id}'}
-        }
+            slides = []
+            for item in response.get('Responses', {}).get(table_name, []):
+                simplified_item = {}
+                for k, v in item.items():
+                    if k == 'SK':
+                        simplified_item['id'] = v['S'].split('#')[1]
+                    elif k == 'PK':
+                        simplified_item['presentation_id'] = v['S'].split('#')[1]
+                    elif 'S' in v:
+                        try:
+                            simplified_item[k] = json.loads(v['S'])
+                        except json.JSONDecodeError:
+                            simplified_item[k] = v['S']
+                    elif 'N' in v:
+                        simplified_item[k] = int(v['N'])
+                    elif 'BOOL' in v:
+                        simplified_item[k] = v['BOOL']
 
-        try:
-            await client.delete_item(
-                TableName=table_name,
-                Key=key
-            )
-            return True
-        except Exception as e:
-            print(f"Error deleting slide: {str(e)}")
-            return False
+                slide_type = simplified_item.get('slide_type')
+                if slide_type == 'short_bullets_slide':
+                    slides.append(ShortBulletsSlide(**simplified_item))
+                elif slide_type == 'markdown_slide':
+                    slides.append(MarkdownSlide(**simplified_item))
+                elif slide_type == 'simple_mermaid_slide':
+                    slides.append(SimpleMermaidSlide(**simplified_item))
+                elif slide_type == 'section_header_slide':
+                    slides.append(SectionHeaderSlide(**simplified_item))
+                elif slide_type == 'presentation_title_slide':
+                    slides.append(PresentationTitleSlide(**simplified_item))
+                else:
+                    raise ValueError(f"Unknown slide type: {slide_type}")
+
+            return slides
+
 
 async def delete_all_slides(presentation_id: str) -> bool:
     """
@@ -904,88 +888,151 @@ async def delete_all_slides(presentation_id: str) -> bool:
             print(f"Error deleting slides: {str(e)}")
             return False
 
-        
+from typing import List, Dict, Any, Union
+from slides.slide_models import *
+
+
 async def main():
-    # Test data
+    # Replace with your own data for testing
     presentation_id = uuid7str()
-    slide_data = [
-        {
-            'title': 'Slide 1',
-            'content': 'This is the content of slide 1.',
-            'is_enabled': True,
-            'complex_data': {'key1': 'value1', 'key2': [1, 2, 3]}
-        },
-        {
-            'title': 'Slide 2',
-            'content': 'This is the content of slide 2.',
-            'is_enabled': False,
-            'complex_data': {'key3': 'value3', 'key4': {'nested_key': 'nested_value', 'nested_bool': True}}
-        }
+
+    slides = [
+        ShortBulletsSlide(
+            id=uuid7str(),
+            slide_type='short_bullets_slide',
+            slide_title='Slide 1',
+            topic_id='Topic 1',
+            hidden=False,
+            slide_content=[
+                ShortBulletContent(
+                    content='Bullet point 1',
+                    source_excerpt_id=uuid7str(),
+                    excerpt=Excerpt(
+                        source_id='Source 1',
+                        excerpt_id=uuid7str(),
+                        text='Excerpt text 1',
+                    ),
+                    icon=IconData(
+                        name='icon-name',
+                        source='icon-source',
+                        detailed_name='icon-detailed-name'
+                    ),
+                    id=uuid7str(),
+                )
+            ],
+            sequential=True,
+            layout='list',
+            generation_messages=[
+                GenerationMessage(role='user', content='Initial content for slide 1')
+            ],
+            generation_excerpt_ids=[uuid7str()]
+        ),
+        MarkdownSlide(
+            id=uuid7str(),
+            slide_type='markdown_slide',
+            slide_title='Slide 2',
+            topic_id='Topic 2',
+            hidden=False,
+            slide_content={
+                'content': 'Markdown content',
+                'footnotes': {
+                    'footnote1': Excerpt(
+                        source_id='Source 2',
+                        excerpt_id=uuid7str(),
+                        text='Footnote text'
+                    )
+                }
+            },
+            generation_messages=[
+                GenerationMessage(role='assistant', content='Initial content for slide 2')
+            ],
+            generation_excerpt_ids=[uuid7str()]
+        ),
+        SimpleMermaidSlide(
+            id=uuid7str(),
+            slide_type='simple_mermaid_slide',
+            slide_title='Slide 3',
+            topic_id='Topic 3',
+            hidden=False,
+            slide_content={
+                'mermaid_code': 'graph TD; A-->B;',
+                'excerpts': [
+                    Excerpt(
+                        source_id='Source 3',
+                        excerpt_id=uuid7str(),
+                        text='Mermaid excerpt'
+                    )
+                ],
+                'light_svg': '<svg>Light</svg>',
+                'dark_svg': '<svg>Dark</svg>'
+            },
+            generation_messages=[
+                GenerationMessage(role='system', content='Initial content for slide 3')
+            ],
+            generation_excerpt_ids=[uuid7str()]
+        ),
+        SectionHeaderSlide(
+            id=uuid7str(),
+            slide_type='section_header_slide',
+            slide_title='Slide 4',
+            topic_id='Topic 4',
+            hidden=False,
+            image=Image(
+                s3_key='image-key',
+                url='https://example.com/image.jpg',
+                alt='An example image',
+                type='cover',
+                shape='rectangle'
+            ),
+            image_position='left',
+            generation_messages=[
+                GenerationMessage(role='user', content='Initial content for slide 4')
+            ],
+            generation_excerpt_ids=[uuid7str()]
+        ),
+        PresentationTitleSlide(
+            id=uuid7str(),
+            slide_type='presentation_title_slide',
+            slide_title='Slide 5',
+            topic_id='Topic 5',
+            hidden=False,
+            image=Image(
+                s3_key='title-image-key',
+                url='https://example.com/title-image.jpg',
+                alt='Title slide image',
+                type='cover',
+                shape='rectangle'
+            ),
+            generation_messages=[
+                GenerationMessage(role='assistant', content='Initial content for slide 5')
+            ],
+            generation_excerpt_ids=[uuid7str()]
+        ),
     ]
 
-    # Create slides
-    created_slides = []
-    for slide in slide_data:
-        slide_id = uuid7str()
-        await update_slide(presentation_id, slide_id, **slide)
-        created_slides.append({'id': slide_id, **slide})
+    print("Updating multiple slides...")
+    update_result = await update_slides(presentation_id, slides)
+    print("Update result:", update_result)
 
-    print("Created slides:")
-    print(created_slides)
+    print("Retrieving all slides...")
+    all_slides = await get_all_slides(presentation_id)
+    print("All slides:", all_slides)
 
-    # Get all slides
-    slides = await get_slides(presentation_id)
-    print("\nAll slides:")
-    print(slides)
+    if all_slides:
+        print("Updating a single slide...")
+        single_slide_update = all_slides[0]
+        single_slide_update.slide_title = "Updated Slide Title"
+        single_update_result = await update_slides(presentation_id, single_slide_update)
+        print("Single update result:", single_update_result)
 
-    # Get specific slide
-    slide_id = created_slides[0]['id']
-    slide = await get_slide(presentation_id, slide_id)
-    print("\nSpecific slide:")
-    print(slide)
+        print("Retrieving single slide...")
+        single_slide = await get_slides(presentation_id, all_slides[0].id)
+        print("Single slide:", single_slide)
 
-    # Get slides with specific attributes
-    attributes = ['title', 'order']
-    slides_with_attributes = await get_slides(presentation_id, attributes)
-    print("\nSlides with specific attributes:")
-    print(slides_with_attributes)
-
-    # Update a slide
-    slide_id = created_slides[0]['id']
-    updated_slide_data = {
-        'title': 'Updated Slide 1',
-        'content': 'This is the updated content of slide 1.',
-        'complex_data': {'key1': 'updated_value1', 'key2': [4, 5, 6]}
-    }
-    updated_slide = await update_slide(presentation_id, slide_id, **updated_slide_data)
-    print("\nUpdated slide:")
-    print(updated_slide)
-
-    # # Batch update slides
-    # batch_update_data = [
-    #     {
-    #         'id': uuid7str(),
-    #         'title': 'Batch Updated Slide 1',
-    #         'is_enabled': False
-    #     },
-    #     {
-    #         'id': uuid7str(),
-    #         'title': 'Batch Updated Slide 2',
-    #         'is_enabled': True,
-    #         'complex': {
-    #             'key1': 'value1',
-    #             'key2': True
-    #         }
-    #     }
-    # ]
-    # success = await batch_update_slides(presentation_id, batch_update_data)
-    # print("\nBatch update result:")
-    # print(success)
-
-    # Get all slides after batch update
-    slides_after_batch_update = await get_slides(presentation_id)
-    print("\nAll slides after batch update:")
-    print(slides_after_batch_update)
+        print("Retrieving multiple slides...")
+        slide_ids = [slide.id for slide in all_slides]
+        multiple_slides = await get_slides(presentation_id, slide_ids)
+        print("Multiple slides:", multiple_slides)
 
 if __name__ == '__main__':
     asyncio.run(main())

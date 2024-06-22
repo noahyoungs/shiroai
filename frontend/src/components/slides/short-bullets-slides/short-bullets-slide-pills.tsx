@@ -1,12 +1,10 @@
 // short-bullets-slide-pills.tsx
-import { ShortBulletsSlide } from "@/utils/slide-types";
+import { ShortBulletsSlide, IconData, Slide } from "@/utils/slide-types";
 import { ExcerptCard } from "@/components/excerpt-card";
 import { Icon } from "@iconify/react";
 import React, { useState, useRef, useEffect } from "react";
 import { cn } from "@/utils/cn";
-import { updateSlide } from "@/actions/slides-actions";
 import { EditableTitle } from "../editable-title";
-import { IconData } from "@/utils/slide-types";
 import axios from "axios";
 import {
   Tooltip,
@@ -25,7 +23,7 @@ import {
 type ShortBulletsSlideComponentProps = {
   presentationID: string;
   slide: ShortBulletsSlide;
-  fetchSlide: (slideID: string) => void;
+  setSlide: (slide: Partial<Slide>) => void;
   allSources?: any[];
   setBlockArrowKeys: (block: boolean) => void;
 };
@@ -83,7 +81,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
   const fetchIcons = async (bulletContent: string) => {
     try {
       const simpleResponse = await axios.post(
-        `${process.env.NEXT_PUBLIC_ICONS_URL}/simple_bp_search`,
+        `${process.env.NEXT_PUBLIC_REST_API_URL}/icon/simple_bp_search`,
         {
           bullet_point: bulletContent,
           n: 10,
@@ -96,7 +94,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
       setSimpleIconOptions(simpleResponse.data);
 
       const uniqueResponse = await axios.post(
-        `${process.env.NEXT_PUBLIC_ICONS_URL}/unique_bp_search`,
+        `${process.env.NEXT_PUBLIC_REST_API_URL}/icon/unique_bp_search`,
         {
           bullet_point: bulletContent,
           bullet_point_list: slide.slide_content.map(
@@ -123,7 +121,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
     setSearching(true);
     try {
       const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_ICONS_URL}/query_search`,
+        `${process.env.NEXT_PUBLIC_REST_API_URL}/icon/query_search`,
         {
           query: searchQuery,
           n: 15,
@@ -175,7 +173,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
       ) {
         try {
           const response = await axios.post(
-            `${process.env.NEXT_PUBLIC_ICONS_URL}/simple_bp_search`,
+            `${process.env.NEXT_PUBLIC_REST_API_URL}/simple_bp_search`,
             {
               bullet_point: bulletContent,
               n: 1,
@@ -578,7 +576,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
 export function PillShortBulletsSlideComponent({
   presentationID,
   slide,
-  fetchSlide,
+  setSlide,
   allSources,
   setBlockArrowKeys,
 }: ShortBulletsSlideComponentProps) {
@@ -587,11 +585,9 @@ export function PillShortBulletsSlideComponent({
   // for title
   const saveSlideTitle = async (newTitle: string) => {
     setTitleLoading(true);
-    await updateSlide(presentationID, {
-      ...slide,
+    setSlide( {
       slide_title: newTitle,
     });
-    await fetchSlide(slide.id);
     setTitleLoading(false);
   };
 
@@ -611,12 +607,9 @@ export function PillShortBulletsSlideComponent({
           }
         : bullet
     );
-    await updateSlide(presentationID, {
-      id: slide.id,
+    setSlide({
       slide_content: newSlideContent,
-      layout: slide.layout,
     });
-    await fetchSlide(slide.id);
   };
 
   const deleteBulletItem = async (index: number) => {
@@ -629,15 +622,12 @@ export function PillShortBulletsSlideComponent({
     const newSlideContent = slide.slide_content.filter(
       (bullet: any, i: number) => i !== index
     );
-    console.log("Before update", slide.slide_content);
-    console.log("After update", newSlideContent);
-    await updateSlide(presentationID, {
-      id: slide.id,
-      layout: slide.layout,
+    // console.log("Before update", slide.slide_content);
+    // console.log("After update", newSlideContent);
+    setSlide({
       slide_content: newSlideContent,
     });
-    await fetchSlide(slide.id);
-    console.log("After fetchslide", slide.slide_content);
+    // console.log("After fetchslide", slide.slide_content);
   };
 
 
@@ -646,7 +636,7 @@ export function PillShortBulletsSlideComponent({
   );
 
   return (
-    <div className="px-12 flex flex-col relative overflow-hidden height-auto bg-foreground/5 dark:bg-foreground/10 text-foreground box-border bg-content1 outline-none shadow-medium rounded-large w-full aspect-video flex-none">
+    <div className="px-12 flex flex-col relative overflow-hidden height-auto bg-foreground/5 dark:bg-foreground/10 text-foreground box-border bg-content1 outline-none shadow-medium rounded-[15px] w-full aspect-video flex-none">
       {allBulletsShort ? (
         <div className="flex flex-row w-full h-full">
           <div className="w-1/3 flex items-center justify-center">

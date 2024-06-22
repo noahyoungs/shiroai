@@ -4,8 +4,9 @@ export interface BaseSlide {
   slide_title: string;
   topic_id: string;
   id: string;
-  slide_order: number;
-  hidden: boolean;
+  hidden?: boolean;
+  previous?: string;
+  next?: string;
   [key: string]: any;
 }
 
@@ -18,9 +19,14 @@ export interface Excerpt {
 export interface Image {
   s3_key?: string;
   url?: string;
-  alt: string;
-  type: string;
+  prompt: string;
+  negative_prompt?: string;
+  style?: string;
+  model: string;
+  width: number;
+  height: number;
   shape: string;
+  type: string;
 }
 
 export interface IconData {

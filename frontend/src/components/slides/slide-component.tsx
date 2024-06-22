@@ -10,18 +10,18 @@ import { BoxesShortBulletsSlideComponent } from "@/components/slides/short-bulle
 
 interface SlideComponentProps {
   slide: Slide;
+  setSlide: (slide: Partial<Slide>) => void;
   presentationID: string;
   allSources?: any[];
-  fetchSlide: (slideID: string) => void;
   setBlockArrowKeys: (block: boolean) => void;
 }
 
 
 export const SlideComponent: React.FC<SlideComponentProps> = ({
   slide,
+  setSlide,
   allSources,
   presentationID,
-  fetchSlide,
   setBlockArrowKeys,
 }) => {
   // console.log(`Slide ID: ${slide.id}`);
@@ -32,7 +32,7 @@ export const SlideComponent: React.FC<SlideComponentProps> = ({
         <PillShortBulletsSlideComponent
           presentationID={presentationID}
           slide={slide}
-          fetchSlide={fetchSlide}
+          setSlide={setSlide}
           allSources={allSources}
           setBlockArrowKeys={setBlockArrowKeys}
         />
@@ -40,7 +40,7 @@ export const SlideComponent: React.FC<SlideComponentProps> = ({
         <BoxesShortBulletsSlideComponent
           presentationID={presentationID}
           slide={slide}
-          fetchSlide={fetchSlide}
+          setSlide={setSlide}
           allSources={allSources}
           setBlockArrowKeys={setBlockArrowKeys}
         />
@@ -51,7 +51,7 @@ export const SlideComponent: React.FC<SlideComponentProps> = ({
         <MarkdownSlideComponent
           presentationID={presentationID}
           slide={slide}
-          fetchSlide={fetchSlide}
+          setSlide={setSlide}
           allSources={allSources}
           setBlockArrowKeys={setBlockArrowKeys}
         />
@@ -62,7 +62,7 @@ export const SlideComponent: React.FC<SlideComponentProps> = ({
         <SimpleMermaidSlideComponent
           presentationID={presentationID}
           slide={slide}
-          fetchSlide={fetchSlide}
+          setSlide={setSlide}
           allSources={allSources}
           setBlockArrowKeys={setBlockArrowKeys}
         />
@@ -73,7 +73,7 @@ export const SlideComponent: React.FC<SlideComponentProps> = ({
         <SectionHeaderSlideComponent
           presentationID={presentationID}
           slide={slide}
-          fetchSlide={fetchSlide}
+          setSlide={setSlide}
           setBlockArrowKeys={setBlockArrowKeys}
         />
       );
@@ -83,7 +83,7 @@ export const SlideComponent: React.FC<SlideComponentProps> = ({
         <PresentationTitleSlideComponent
           presentationID={presentationID}
           slide={slide}
-          fetchSlide={fetchSlide}
+          setSlide={setSlide}
           setBlockArrowKeys={setBlockArrowKeys}
         />
       );

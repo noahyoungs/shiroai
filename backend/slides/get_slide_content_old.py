@@ -10,7 +10,7 @@ from uuid_extensions import uuid7str
 from slides.format import format_topic_xml
 from slides.reduce_topic_research import reduce_docs
 from dotenv import load_dotenv
-from slides.generate_image import generate_image
+from backend.slides.images.generate_image_old import generate_image
 from backend.slides.icons.icon_similarity_search import hybrid_icon_assignment
 
 load_dotenv()

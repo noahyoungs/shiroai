@@ -1,30 +1,28 @@
+# get_slide_content.py
 from dotenv import load_dotenv
-from dynamodb import get_presentation, batch_update_slides, delete_all_slides, update_presentation
+from dynamodb import get_presentation, delete_all_slides, update_presentation
 import json
 import asyncio
-import re
 from portkey_ai import AsyncPortkey
 from uuid_extensions import uuid7str
 from slides.format import format_topic_xml
 from slides.reduce_topic_research import reduce_docs
 from dotenv import load_dotenv
-from slides.generate_image import generate_image
+from slides.images.generate_image import generate_and_upload_image
 from slides.icons.icon_similarity_search import hybrid_icon_assignment
 from typing import List, Literal
 from pydantic import BaseModel, Field
 from slides.xml_instructor import generate_variable_input_xml, get_basemodel_instance_from_llm, create_dynamic_enum_validator
 from slides.mermaid.validate_mermaid import validate_mermaid_diagram
-from pydantic_async_validation import async_field_validator, AsyncValidationModelMixin
 from slides.clean_markdown import clean_markdown
-from slides.xml_instructor import generate_variable_input_xml, get_basemodel_instance_from_llm, create_dynamic_enum_validator
-from pydantic import BaseModel, Field
 from pydantic_async_validation import async_field_validator, AsyncValidationModelMixin
 from typing import List
 from slides.mermaid.validate_mermaid import validate_mermaid_diagram
-from slides.mermaid.big_shapes import process_tall_shapes
 import xml.etree.ElementTree as ET
 from slides.mermaid.mermaid_to_svg import process_diagram_to_svgs
 from slides.mermaid.mermaid_prompt import get_messages
+from slides.slide_models import *
+from slides.persistent_slide_list import PersistentSlideList
 
 load_dotenv()
 
@@ -92,14 +90,14 @@ def get_research_xml(reduced_docs):
 async def get_slide_ideas(presentation_xml, subtopic_xml, research_xml):
 
     # Define the response schema
-    class Slide(BaseModel):
+    class CompletionSlide(BaseModel):
         slide_type: Literal["short_bullets_slide", "long_bullets_slide",
                             "markdown_table_slide", "simple_mermaid_slide"]
         slide_title: str = Field(..., min_length=5, max_length=75)
         slide_content_idea: str = Field(..., min_length=20, max_length=600)
 
-    class SlideList(BaseModel):
-        slides: List[Slide] = Field(..., min_items=1, max_items=4)
+    class CompletionSlideList(BaseModel):
+        slides: List[CompletionSlide] = Field(..., min_items=1, max_items=4)
 
         class Config:
             json_schema_extra = {
@@ -138,7 +136,7 @@ In each <slide></slide> tag include a  <slide_type></slide_type>, <slide_title><
 Do not create an Introduction or Conclusion slide.
 
 You must respond in the following format:
-{generate_variable_input_xml(SlideList)}
+{generate_variable_input_xml(CompletionSlideList)}
 
 Make sure you consider not just the <subtopic></subtopic>, but also the <topic></topic>, the <audience></audience> and the <goal></goal> of the <presentation></presentation> we mentioned earlier when creating the slides.
 Remember, the <slide_content_idea></slide_content_idea> is not the actual content of the slide, but a description of what the slide could contain. It should be written in plain English and be less than 100 words long."""
@@ -147,7 +145,7 @@ Remember, the <slide_content_idea></slide_content_idea> is not the actual conten
 
     slide_list, messages = await get_basemodel_instance_from_llm(
         client=bedrock_client,
-        pydantic_model_class=SlideList,
+        pydantic_model_class=CompletionSlideList,
         max_iterations=5,
         model=claude_haiku,
         max_tokens=2000,
@@ -162,15 +160,16 @@ async def get_short_bullets_slide(presentation_xml, subtopic_xml, reduced_docs, 
     id_suffixes = [id[-8:] for id in excerpt_ids]
     research_xml = get_research_xml(reduced_docs)
 
-    class BulletPoint(BaseModel):
+    class CompletionBulletPoint(BaseModel):
         content: str = Field(..., min_length=1, max_length=80)
         excerpt_id: str = Field(..., min_length=8, max_length=8)
 
         validate_excerpt_id = create_dynamic_enum_validator(
             'valid_ids', 'excerpt_id')
 
-    class ShortBulletsSlide(BaseModel):
-        bullet_points: List[BulletPoint] = Field(..., min_items=2, max_items=5)
+    class CompletionShortBulletsSlide(BaseModel):
+        bullet_points: List[CompletionBulletPoint] = Field(
+            ..., min_items=2, max_items=5)
         sequential_order: Literal["yes", "no"]
 
     prompt = prompt = f"""\
@@ -197,7 +196,7 @@ You must include the <excerpt_id></excerpt_id> of the <excerpt></excerpt> from t
 Then, after the <bullet_points></bullet_points> tag, include a <sequential></sequential> tag with either "yes" or "no" to indicate whether the bullet points should have a sequential order. Some examples of sequential bullet points are steps in a process, chronologies or timelines, and hierarchies. If the bullet points are not sequential, they are likely a list of related items or ideas.
 
 Please respond in the following XML format:
-{generate_variable_input_xml(ShortBulletsSlide)}
+{generate_variable_input_xml(CompletionShortBulletsSlide)}
 
 Make sure you consider not just the <slide_title></slide_title>, but also the <subtopic></subtopic>, and the <topic></topic>, <audience></audience> and <goal></goal> of the <presentation></presentation> we mentioned earlier when creating the bullet points.
 Remember you must cite an <excerpt_id></excerpt_id> as a source for every bullet point, so you can only use information found in our research."""
@@ -206,7 +205,7 @@ Remember you must cite an <excerpt_id></excerpt_id> as a source for every bullet
 
     short_bullets_slide, messages = await get_basemodel_instance_from_llm(
         client=bedrock_client,
-        pydantic_model_class=ShortBulletsSlide,
+        pydantic_model_class=CompletionShortBulletsSlide,
         max_iterations=5,
         dynamic_val_params={"valid_ids": id_suffixes},
         model=claude_haiku,
@@ -243,30 +242,33 @@ Remember you must cite an <excerpt_id></excerpt_id> as a source for every bullet
         dict['icon'] = {'name': icon_data[dict['content']][0],
                         'source': icon_data[dict['content']][1]}
 
-    return {
-        'slide_title': slide_idea['slide_title'],
-        'slide_type': 'short_bullets_slide',
-        'slide_content': bullet_points_list,
-        'sequential': short_bullets_slide.sequential_order == 'yes',
-        'generation_messages': messages,
-        'excerpt_ids': excerpt_ids,
-    }
+    # Inside get_short_bullets_slide
+    return ShortBulletsSlide(
+        slide_title=slide_idea['slide_title'],
+        id=uuid7str(),
+        generation_messages=messages,
+        generation_excerpt_ids=excerpt_ids,
+        slide_type='short_bullets_slide',
+        slide_content=bullet_points_list,
+        sequential=short_bullets_slide.sequential_order == 'yes',
+    )
+
 
 
 async def get_long_bullets_slide(presentation_xml, subtopic_xml, reduced_docs, slide_idea, excerpt_ids):
     id_suffixes = [id[-8:] for id in excerpt_ids]
     research_xml = get_research_xml(reduced_docs)
 
-    class Footnote(BaseModel):
+    class CompletionFootnote(BaseModel):
         marker: int = Field(..., ge=1)
         excerpt_id: str = Field(..., min_length=8, max_length=8)
 
         validate_excerpt_id = create_dynamic_enum_validator(
             'valid_ids', 'excerpt_id')
 
-    class LongBulletsSlide(BaseModel):
+    class CompletionLongBulletsSlide(BaseModel):
         markdown_content: str = Field(..., min_length=1, max_length=2000)
-        footnotes: List[Footnote]
+        footnotes: List[CompletionFootnote]
 
     prompt = prompt = f"""
 We're creating the presentation described below:
@@ -294,7 +296,7 @@ Then, in a <footnotes></footnotes> tag, include a list of <footnote></footnote> 
 Do not include a list of footnotes at the end of the <markdown_content></markdown_content>, just give us the <footnotes></footnotes> tag with all the <footnote></footnote> tags inside it.
 
 Please respond in the following XML format:
-{generate_variable_input_xml(LongBulletsSlide)}
+{generate_variable_input_xml(CompletionLongBulletsSlide)}
 
 Make sure you consider not just the <slide_title></slide_title>, but also the <subtopic></subtopic>, and the <topic></topic>, <audience></audience> and <goal></goal> of the <presentation></presentation> we mentioned earlier when creating the bullet points.
 Remember you must cite an excerpt id as a source for every bullet point, so you can only use information found in our research."""
@@ -303,7 +305,7 @@ Remember you must cite an excerpt id as a source for every bullet point, so you 
 
     long_bullets_slide, messages = await get_basemodel_instance_from_llm(
         client=bedrock_client,
-        pydantic_model_class=LongBulletsSlide,
+        pydantic_model_class=CompletionLongBulletsSlide,
         max_iterations=5,
         dynamic_val_params={"valid_ids": id_suffixes},
         model=claude_haiku,
@@ -332,29 +334,31 @@ Remember you must cite an excerpt id as a source for every bullet point, so you 
         'footnotes': new_footnotes
     }
 
-    return {
-        'slide_title': slide_idea['slide_title'],
-        'slide_type': 'markdown_slide',
-        'slide_content': slide_content,
-        'generation_messages': messages,
-        'excerpt_ids': excerpt_ids,
-    }
+    return MarkdownSlide(
+        slide_title=slide_idea['slide_title'],
+        id=uuid7str(),
+        generation_messages=messages,
+        generation_excerpt_ids=excerpt_ids,
+        slide_type='markdown_slide',
+        slide_content=slide_content
+    )
+
 
 
 async def get_markdown_table_slide(presentation_xml, subtopic_xml, reduced_docs, slide_idea, excerpt_ids):
     id_suffixes = [id[-8:] for id in excerpt_ids]
     research_xml = get_research_xml(reduced_docs)
 
-    class Footnote(BaseModel):
+    class CompletionFootnote(BaseModel):
         marker: int = Field(..., ge=1)
         excerpt_id: str = Field(..., min_length=8, max_length=8)
 
         validate_excerpt_id = create_dynamic_enum_validator(
             'valid_ids', 'excerpt_id')
 
-    class MarkdownTableSlide(BaseModel):
+    class CompletionMarkdownTableSlide(BaseModel):
         markdown_table: str = Field(..., min_length=1, max_length=3000)
-        footnotes: List[Footnote]
+        footnotes: List[CompletionFootnote]
 
     prompt = f"""
 We're creating the presentation described below:
@@ -383,7 +387,7 @@ Then, in a <footnotes></footnotes> tag, include a list of <footnote></footnote> 
 Do not include a list of footnotes in the <markdown_table></markdown_table>, just give us the <footnotes></footnotes> tag with all the <footnote></footnote> tags inside it.
 
 Please respond in the following XML format:
-{generate_variable_input_xml(MarkdownTableSlide)}
+{generate_variable_input_xml(CompletionMarkdownTableSlide)}
 
 Make sure you consider not just the <slide_title></slide_title>, but also the <subtopic></subtopic>, and the <topic></topic>, <audience></audience> and <goal></goal> of the <presentation></presentation> we mentioned earlier when creating the table.
 Remember you must cite an <excerpt_id></excerpt_id> as a source for every fact in the table, so you can only use information found in our research."""
@@ -392,7 +396,7 @@ Remember you must cite an <excerpt_id></excerpt_id> as a source for every fact i
 
     markdown_table_slide, messages = await get_basemodel_instance_from_llm(
         client=bedrock_client,
-        pydantic_model_class=MarkdownTableSlide,
+        pydantic_model_class=CompletionMarkdownTableSlide,
         max_iterations=5,
         dynamic_val_params={"valid_ids": id_suffixes},
         model=claude_haiku,
@@ -421,28 +425,30 @@ Remember you must cite an <excerpt_id></excerpt_id> as a source for every fact i
         'footnotes': new_footnotes
     }
 
-    return {
-        'slide_title': slide_idea['slide_title'],
-        'slide_type': 'markdown_slide',
-        'slide_content': slide_content,
-        'generation_messages': messages,
-        'excerpt_ids': excerpt_ids,
-    }
+    return MarkdownSlide(
+        slide_title=slide_idea['slide_title'],
+        id=uuid7str(),
+        generation_messages=messages,
+        generation_excerpt_ids=excerpt_ids,
+        slide_type='markdown_slide',
+        slide_content=slide_content
+    )
+
 
 
 async def get_simple_mermaid_slide(presentation_xml, subtopic_xml, reduced_docs, slide_idea, excerpt_ids):
     id_suffixes = [id[-8:] for id in excerpt_ids]
     research_xml = get_research_xml(reduced_docs)
 
-    class ExcerptId(BaseModel):
+    class CompletionExcerptID(BaseModel):
         excerpt_id: str = Field(..., min_length=8, max_length=8)
         validate_excerpt_id = create_dynamic_enum_validator(
             'valid_ids', 'excerpt_id')
 
-    class Response(AsyncValidationModelMixin, BaseModel):
+    class CompletionMermaidSlide(AsyncValidationModelMixin, BaseModel):
         reasoning: str
         mermaid_diagram: str
-        excerpt_ids: List[ExcerptId]
+        excerpt_ids: List[CompletionExcerptID]
 
         @async_field_validator('mermaid_diagram')
         async def validate_mermaid(self, value: str):
@@ -457,7 +463,7 @@ async def get_simple_mermaid_slide(presentation_xml, subtopic_xml, reduced_docs,
 
     simple_mermaid_slide, messages = await get_basemodel_instance_from_llm(
         client=bedrock_client,
-        pydantic_model_class=Response,
+        pydantic_model_class=CompletionMermaidSlide,
         max_iterations=5,
         model=claude_haiku,
         max_tokens=2000,
@@ -485,18 +491,21 @@ async def get_simple_mermaid_slide(presentation_xml, subtopic_xml, reduced_docs,
 
     light_svg, dark_svg = await process_diagram_to_svgs(simple_mermaid_slide.mermaid_diagram)
 
-    return {
-        'slide_title': slide_idea['slide_title'],
-        'slide_type': 'simple_mermaid_slide',
-        'slide_content': {
+    # Inside get_simple_mermaid_slide
+    return SimpleMermaidSlide(
+        slide_title=slide_idea['slide_title'],
+        id=uuid7str(),
+        generation_messages=messages[-2:],
+        generation_excerpt_ids=excerpt_ids,
+        slide_type='simple_mermaid_slide',
+        slide_content={
             'mermaid_code': simple_mermaid_slide.mermaid_diagram,
             'excerpts': diagram_excerpts,
             'light_svg': light_svg,
             'dark_svg': dark_svg
-        },
-        'generation_messages': messages[-2:],
-        'excerpt_ids': excerpt_ids
-    }
+        }
+    )
+
 
 
 async def get_slide_content(presentation_xml, subtopic_xml, all_docs, slide_idea, excerpt_ids):
@@ -582,33 +591,30 @@ async def get_topic_slides(presentation_id, presentation_topic, presentation_aud
 
 
 async def get_section_header_slide(presentation_id, presentation_topic, presentation_audience, presentation_goal, subtopic_name):
-    response = await generate_image(presentation_id, presentation_topic, presentation_audience, presentation_goal, slide_type="section_header_slide", subtopic=subtopic_name)
+    image_data = await generate_and_upload_image(presentation_id, presentation_audience, presentation_goal, presentation_topic, section_topic=subtopic_name, shape="square", model_type="sdxl")
 
-    if response.get('statusCode') != 200:
-        raise ValueError(f"Error generating image: {response['body']}")
-    else:
-        image_data = response['body']
+    return SectionHeaderSlide(
+        slide_title=subtopic_name,
+        id=uuid7str(),
+        generation_messages=[],
+        slide_type='section_header_slide',
+        image=image_data,
+    )
 
-    return {
-        'slide_title': subtopic_name,
-        'slide_type': 'section_header_slide',
-        'image': image_data
-    }
 
 
 async def get_presentation_title_slide(presentation_id, presentation_topic, presentation_audience, presentation_goal):
-    response = await generate_image(presentation_id, presentation_topic, presentation_audience, presentation_goal, slide_type="presentation_title_slide")
+    image_data = await generate_and_upload_image(presentation_id, presentation_topic, presentation_audience, presentation_goal, section_topic=None, shape="full", model_type="core")
+    
+    # Inside get_presentation_title_slide
+    return [PresentationTitleSlide(
+        slide_title=presentation_topic,
+        id=uuid7str(),
+        generation_messages=[],
+        slide_type='presentation_title_slide',
+        image=image_data
+    )]
 
-    if response['statusCode'] != 200:
-        raise ValueError(f"Error generating image: {response['body']}")
-    else:
-        image_data = response['body']
-
-    return [{
-        'slide_title': presentation_topic,
-        'slide_type': 'presentation_title_slide',
-        'image': image_data
-    }]
 
 
 async def make_presentation_slides(presentation_id, all_docs=None):
@@ -662,31 +668,29 @@ async def make_presentation_slides(presentation_id, all_docs=None):
     for topic, topic_slides in zip(final_topics, slides_list[1:]):
         topic_id = topic['id']
         for slide in topic_slides:
-            slide['topic_id'] = topic_id
+            slide.topic_id = topic_id
 
     # flatten
     flat_slides = [
-        slide for topic_slides in slides_list for slide in topic_slides]
+        slide for topic_slides in slides_list for slide in topic_slides
+    ]
 
-    # add slide ids
-    for i, slide in enumerate(flat_slides):
-        if not slide.get('id'):
-            slide['id'] = uuid7str()
-        slide['slide_order'] = (i + 1) * 1000
-        if slide['slide_type'] not in ['section_header_slide', 'presentation_title_slide']:
-            assert 'generation_messages' in slide, f"Slide {slide['id']} is missing generation_messages"
+    # for i, slide in enumerate(flat_slides):
+    #     # Set topic_id if not already set
+    #     # for presentation title and section header slides
+    #     if not slide.topic_id:
+    #         slide.topic_id = [topic['id'] for topic in final_topics if topic['name'] in slide.slide_title][0]
 
     # delete all existing slides from dynamodb
     await delete_all_slides(presentation_id)
     # upload slides to dynamodb
+    
+    # create persistent slide list
+    slide_list = PersistentSlideList(presentation_id, slides=flat_slides)
 
-    await asyncio.gather(
-        batch_update_slides(presentation_id, flat_slides),
-        update_presentation(
-            presentation_id, slide_generation_status="complete")
-    )
+    await update_presentation(presentation_id, slide_generation_status="complete", head_slide_id=flat_slides[0].id)
 
-    return flat_slides
+    return slide_list
 
 
 async def test():

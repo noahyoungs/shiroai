@@ -2,13 +2,9 @@
 import {
   getSources as dynamodbGetSources,
   getPresentationByID,
-  getSlide as dynamodbGetSlide,
+  updateSlides as dynamodbUpdateSlides,
   getSlides as dynamodbGetSlides,
-  batchUpdateSlides,
-  updateSlide as dynamodbUpdateSlide,
-  deleteSlide as dynamodbDeleteSlide,
-  addSlideAfterOrder as dynamodbAddSlideAfterOrder,
-  getNextSlideOrder as dynamodbGetNextSlideOrder,
+  getAllSlides as dynamodbGetAllSlides,
 } from "@/utils/dynamodb";
 import { getServerSession } from "next-auth";
 import { hashEmail } from "@/utils/hash-email";
@@ -19,6 +15,14 @@ import { splitMarkdown } from "@/actions/split-markdown";
 import { uuidv7 } from "uuidv7";
 
 
+/**
+ * Adds prose classes and splits overheight slides.
+ * 
+ * @param slide - The slide to process.
+ * @param checkProseClass - Optional. Specifies whether to skip processing if slide.slide_content.prose_class is true. Default is true.
+ * @param recursionLimit - Optional. Specifies the recursion limit. Default is 5. (Maximum number of splits for one original slide)
+ * @returns A promise that resolves to an array of slides. If the slide is not a markdown slide or already has a prose class, the original slide is returned as a single-element array.
+ */
 async function _addProseClassesAndSplitOverheight(slide: Slide, checkProseClass: boolean = true, recursionLimit: number = 5): Promise<Slide[]> {
   if (slide.slide_type === "markdown_slide" && (!slide.slide_content?.prose_class || !checkProseClass)) {
     // console.log("Processing markdown slide:", slide.id);
@@ -101,17 +105,17 @@ async function authenticateUser(presentationID: string) {
   return true;
 }
 
-async function sortSlides(slides: Slide[]) {
-  return slides.sort((a, b) => a.slide_order - b.slide_order);
-}
-
 /**
  * Retrieves the sources for a presentation.
  * @param presentationID - The ID of the presentation.
  * @returns A promise that resolves to an array of sources, or throws an error if the sources cannot be retrieved.
  */
 export async function getSources(presentationID: string) {
-  await authenticateUser(presentationID);
+    let auth = await authenticateUser(presentationID);
+
+  if (!auth) {
+    throw new Error("Unauthorized.");
+  }
 
   try {
     const sources = await dynamodbGetSources(presentationID);
@@ -130,40 +134,156 @@ export async function getSources(presentationID: string) {
  * @returns A sorted array of slides.
  * @throws Error if there is a failure in retrieving the slides.
  */
-export async function getSlides(presentationID: string) {
-  await authenticateUser(presentationID);
+export async function getAllSlides(presentationID: string) {
+  let auth = await authenticateUser(presentationID);
+
+  if (!auth) {
+    throw new Error("Unauthorized.");
+  }
 
   let slides: Slide[];
 
   try {
-    slides = await dynamodbGetSlides(presentationID);
+    slides = await dynamodbGetAllSlides(presentationID);
   } catch (error) {
     console.error("Error retrieving slides:", error);
     throw new Error("Failed to retrieve slides");
   }
 
-  slides = await sortSlides(slides);
-
   if (slides.length === 0) {
     return slides;
   }
 
-  let updatedSlides = (await Promise.all(
-    slides.flatMap((slide) => _addProseClassesAndSplitOverheight(slide, true))
-  )).flat();
+  let previousUpdates: { [key: string]: string } = {}; // Track updates for previous pointers
 
-  // reset slide order
-  updatedSlides = updatedSlides.map((slide, index) => ({
-    ...slide,
-    slide_order: (index + 1) * 1000,
-  }));
+  let updatedSlides: Slide[] = (
+    await Promise.all(
+      slides.map(async (slide, index) => {
+        let processedSlides = await _addProseClassesAndSplitOverheight(slide, true);
+
+        if (processedSlides.length > 1) {
+          for (let i = 0; i < processedSlides.length; i++) {
+            const currentSlide = processedSlides[i];
+            const prevSlide = processedSlides[i - 1];
+            const nextSlide = processedSlides[i + 1];
+
+            currentSlide.previous = prevSlide?.id || slide.previous;
+            currentSlide.next = nextSlide?.id || slide.next;
+          }
+
+          if (slides[index + 1]) {
+            previousUpdates[slides[index + 1].id] = processedSlides[processedSlides.length - 1].id;
+          }
+        }
+
+        return processedSlides;
+      })
+    )
+  ).flat();
+
 
   // Optimize updatedSlides by only including fields that are different
-  const optimizedUpdatedSlides = updatedSlides.map((updatedSlide, index): Partial<Slide> => {
+  const optimizedUpdatedSlides = updatedSlides.map((updatedSlide): Partial<Slide> => {
     const matchingSlide = slides.find((slide) => slide.id === updatedSlide.id);
     const updatedFields: Partial<Slide> = {
       id: updatedSlide.id,
-      slide_order: updatedSlide.slide_order,
+    };
+
+    if (matchingSlide) {
+      for (const key in updatedSlide) {
+        if (updatedSlide[key] !== matchingSlide[key]) {
+          updatedFields[key] = updatedSlide[key];
+        }
+      }
+    } else {
+      for (const key in updatedSlide) {
+        updatedFields[key] = updatedSlide[key];
+      }
+    }
+
+    return updatedFields;
+  });
+
+  // filter out any slides that only have id
+  const filteredUpdatedSlides = optimizedUpdatedSlides.filter((slide) => Object.keys(slide).length > 1);
+
+  if (filteredUpdatedSlides.length > 0) {
+    // Fire and forget
+    dynamodbUpdateSlides(presentationID, filteredUpdatedSlides);
+  }
+  return updatedSlides;
+}
+
+
+/**
+ * Retrieves a specific slide from a presentation.
+ * @param presentationID - The ID of the presentation.
+ * @param slideIDs - Either a single slide ID or an array of slide IDs.
+ * @returns A promise that resolves to the requested slide, or throws an error if the slide cannot be retrieved.
+ */
+export async function getSlides(presentationID: string, slideIDs: string | string[]): Promise<Slide | Slide[]> {
+  let auth = await authenticateUser(presentationID);
+
+  if (!auth) {
+    throw new Error("Unauthorized.");
+  }
+
+  let slides: Slide | Slide[] | null;
+
+  try {
+    // slides = await dynamodbGetSlides(presentationID, slideIDs);
+    // Looks redundant but this is to fix the type error
+    if (typeof slideIDs === 'string') {
+      // Single slideID case
+      slides = await dynamodbGetSlides(presentationID, slideIDs);
+    } else if (Array.isArray(slideIDs)) {
+      // Multiple slideIDs case
+      slides = await dynamodbGetSlides(presentationID, slideIDs);
+    } else {
+      throw new Error("Invalid slideIDs type.");
+    }
+  } catch (error) {
+    console.error("Error retrieving slide:", error);
+    throw new Error("Failed to retrieve slide");
+  }
+
+  if (!slides || slides.length === 0) {
+    throw new Error("Slide not found");
+  }
+
+  // Make sure slides is an array
+  if (!Array.isArray(slides)) {
+    slides = [slides];
+  }
+
+  let updatedSlides: Slide[] = (
+    await Promise.all(
+      slides.map(async (slide) => {
+        let processedSlides = await _addProseClassesAndSplitOverheight(slide, true);
+        // will result in Slide[], containing one or more slides
+        
+        if (processedSlides.length > 1) {
+          // Update the prev and next of the slides
+          for (let i = 0; i < processedSlides.length; i++) {
+            const currentSlide = processedSlides[i];
+            const prevSlide = processedSlides[i - 1];
+            const nextSlide = processedSlides[i + 1];
+  
+            currentSlide.previous = prevSlide?.id || slide.previous; // if prevSlide is undefined, use original previous
+            currentSlide.next = nextSlide?.id || slide.next; // if nextSlide is undefined, use original next
+          }
+        }
+  
+        return processedSlides; // This returns Slide[], so the map function returns Slide[][]
+      }) 
+    )
+  ).flat(); // Flatten Slide[][] to Slide[]
+
+  // Optimize updatedSlides by only including fields that are different
+  const optimizedUpdatedSlides = updatedSlides.map((updatedSlide, index): Partial<Slide> => {
+    const matchingSlide = slides!.find((slide: Slide) => slide.id === updatedSlide.id);
+    const updatedFields: Partial<Slide> = {
+      id: updatedSlide.id,
     };
   
     if (matchingSlide) {
@@ -180,147 +300,40 @@ export async function getSlides(presentationID: string) {
 
     return updatedFields;
   });
-  // console.log("Optimized Updated Slides:", optimizedUpdatedSlides);
 
-  batchUpdateSlides(presentationID, optimizedUpdatedSlides);
-  return sortSlides(updatedSlides);
+  // fire and forget
+  await dynamodbUpdateSlides(presentationID, optimizedUpdatedSlides);
+  return updatedSlides
 }
-
-/**
- * Retrieves a specific slide from a presentation.
- * @param presentationID - The ID of the presentation.
- * @param slideID - The ID of the slide.
- * @returns A promise that resolves to the requested slide, or throws an error if the slide cannot be retrieved.
- */
-export async function getSlide(presentationID: string, slideID: string) {
-  await authenticateUser(presentationID);
-
-  let slide;
-
-  try {
-    slide = await dynamodbGetSlide(presentationID, slideID);
-  } catch (error) {
-    console.error("Error retrieving slide:", error);
-    throw new Error("Failed to retrieve slide");
-  }
-
-  if (!slide) {
-    throw new Error("Slide not found");
-  }
-
-  const originalOrder = slide.slide_order;
-  console.log("Original Order:", originalOrder);
-  let processedSlides = await _addProseClassesAndSplitOverheight(slide, false);
-  console.log(`Got ${processedSlides.length} processed slides`);
-
-  if (processedSlides.length === 1) {
-    // Update the single slide with the prose_class
-    const { id, slide_content } = processedSlides[0];
-    await dynamodbUpdateSlide(presentationID, id, { slide_content });
-  } else if (processedSlides.length > 1) {
-    // Get the next slide's order
-    const nextSlideOrder = await dynamodbGetNextSlideOrder(presentationID, originalOrder);
-    console.log("Next Slide Order:", nextSlideOrder);
-    if (!nextSlideOrder) {
-      throw new Error("Failed to get next slide order");
-    }
-
-    // Assign new slide_order to every slide in processedSlides
-    processedSlides = processedSlides.map((slide, index) => {
-      const newOrder = Math.round(originalOrder + ((nextSlideOrder - originalOrder) * index) / (processedSlides.length));
-      return {
-        ...slide,
-        slide_order: newOrder,
-      };
-    });
-
-    // Update the slides with the new orders
-    await batchUpdateSlides(presentationID, processedSlides);
-  }
-
-  return processedSlides;
-}
-
 
 /**
  * Updates the slides in a presentation.
  * @param presentationID - The ID of the presentation.
- * @param slides - An array of partial slides to update, each must contain an ID. Only the fields that need to be updated should be included.
+ * @param slides - Either a single slide or an array of slides to update.
  * @returns A promise that resolves when the slides are successfully updated, or throws an error if the slides cannot be updated.
  */
 export async function updateSlides(
   presentationID: string,
-  slides: Partial<Slide>[]
+  slides: Partial<Slide> | Partial<Slide>[]
 ) {
-  await authenticateUser(presentationID);
+  let auth = await authenticateUser(presentationID);
 
-  try {
-    await batchUpdateSlides(presentationID, slides);
-  } catch (error) {
-    console.error("Error updating slides:", error);
-    throw new Error("Failed to update slides");
-  }
-}
-
-async function _updateSlide(
-  presentationID: string,
-  slide: Partial<Slide>
-) {
-  try {
-    const { id, ...slideWithoutId } = slide;
-    if (!id) {
-      throw new Error("Slide ID is required");
-    }
-    await dynamodbUpdateSlide(presentationID, id, slideWithoutId);
-  } catch (error) {
-    console.error("Error updating slide:", error);
-    throw new Error("Failed to update slide");
-  }
-}
-
-/**
- * Updates a specific slide in a presentation.
- * @param presentationID - The ID of the presentation.
- * @param slide - The partial slide to update, must contain an id. Only the fields that need to be updated should be included.
- * @returns A promise that resolves when the slide is successfully updated, or throws an error if the slide cannot be updated.
- */
-export async function updateSlide(
-  presentationID: string,
-  slide: Partial<Slide>
-) {
-  await authenticateUser(presentationID);
-  // if the type is markdown_slide clean the markdown
-  if (slide.slide_type === "markdown_slide" && slide.slide_content?.content) {
-    slide.slide_content.content = cleanMarkdown(
-      slide.slide_content.content
-    );
+  if (!auth) {
+    throw new Error("Unauthorized.");
   }
 
-  await _updateSlide(presentationID, slide);
+  let success = await dynamodbUpdateSlides(presentationID, slides);
+
+  return success;
 }
 
-async function _addSlideAfter(presentationID: string, slide: Slide) {
-  // get order from the slide
-  const { slide_order, ...slideWithoutOrder } = slide;
-  try {
-    await dynamodbAddSlideAfterOrder(
-      presentationID,
-      slide_order,
-      slideWithoutOrder
-    );
-  } catch (error) {
-    console.error("Error adding slide:", error);
-    throw new Error("Failed to add slide");
+export async function getHeadSlideID(presentationID: string) {
+  let auth = await authenticateUser(presentationID);
+
+  if (!auth) {
+    throw new Error("Unauthorized.");
   }
-}
 
-/**
- * Adds a new slide to a presentation after a specified slide.
- * @param presentationID - The ID of the presentation.
- * @param slide - The slide to add. The slide must have an order.
- * @returns A promise that resolves when the slide is successfully added, or throws an error if the slide cannot be added.
- */
-export async function addSlideAfter(presentationID: string, slide: Slide) {
-  await authenticateUser(presentationID);
-  await _addSlideAfter(presentationID, slide);
+  const { head_slide_id } = await getPresentationByID(presentationID, ["head_slide_id"]);
+  return head_slide_id;
 }

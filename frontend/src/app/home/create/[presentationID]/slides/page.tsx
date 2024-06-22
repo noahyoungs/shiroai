@@ -9,8 +9,9 @@ import { io } from "socket.io-client";
 import { useRouter } from "next/navigation";
 import ChatConfigureLayout from "@/components/chat-configure-layout";
 import { debounce, set } from "lodash";
-import { getSlides, getSources, getSlide } from "@/actions/slides-actions";
 import { Slide } from "@/utils/slide-types";
+import { PersistentSlideList } from "@/utils/persistent-slides-list";
+import { getSources } from "@/actions/slides-actions";
 
 export default function Page({
   params,
@@ -29,7 +30,7 @@ export default function Page({
   const [typing, setTyping] = useState<boolean>(false);
 
   // Interface states
-  const [slides, setSlides] = useState<Slide[]>([]);
+  const [slideList, _ ] = useState(new PersistentSlideList(params.presentationID));
   const [currentSlideID, setCurrentSlideID] = useState<string | null>(null);
   const [allSources, setAllSources] = useState<any[]>([]);
 
@@ -86,16 +87,10 @@ export default function Page({
       console.log("Disconnected from websocket");
     });
 
-    newSocket.on("interface_update", (socketMessage: any) => {
+    newSocket.on("interface_update", async (socketMessage: any) => {
       console.log("Received interface update:", socketMessage);
       if (socketMessage.push == "all_slides") {
-        const fetchAllSlides = async () => {
-          const slides = await getSlides(params.presentationID);
-          slides && setSlides(slides);
-          slides.length && setCurrentSlideID(slides[0].id);
-        };
-
-        fetchAllSlides();
+        await fetchAllSlides();
       }
       setBlockInterface(false);
     });
@@ -133,63 +128,22 @@ export default function Page({
   //   emitInterfaceUpdate({ outline: outline});
   // }, [includedTopics, excludedTopics, emitInterfaceUpdate]);
 
-  async function sortSlides(slides: Slide[]) {
-    return slides.sort((a, b) => a.slide_order - b.slide_order);
+  const fetchAllSlides = async () => {
+    await slideList.fetchAllSlides();
+    slideList.length && setCurrentSlideID(slideList.getHeadSlideID());
   }
 
   const initialize = async () => {
-    let slides = await getSlides(params.presentationID);
     const sources = await getSources(params.presentationID);
-    if (slides) {
-      // remove slides where .hidden is true
-      slides = slides.filter((slide) => !slide.hidden);
-    }
-    slides && sortSlides(slides);
-    slides && setSlides(slides);
     sources && setAllSources(sources);
-    slides.length && setCurrentSlideID(slides[0].id);
+    await fetchAllSlides();
   };
-  
+
   const fetchSlide = async (slideID: string) => {
-    const newSlides = await getSlide(params.presentationID, slideID);
-  
-    if (newSlides && newSlides.length > 0) {
-      setSlides((prevSlides) => {
-        // Filter out hidden new slides from the newSlides array
-        const visibleNewSlides = newSlides.filter(slide => !slide.hidden);
-  
-        // Remove slides from the previous state if their id matches any hidden slides from newSlides
-        const updatedPrevSlides = prevSlides.filter(prevSlide => {
-          const hiddenSlide = newSlides.find(newSlide => newSlide.id === prevSlide.id && newSlide.hidden);
-          return !hiddenSlide;
-        });
-  
-        if (visibleNewSlides.length === 1) {
-          return updatedPrevSlides.map((slide) => {
-            if (slide.id === visibleNewSlides[0].id) {
-              return visibleNewSlides[0];
-            }
-            return slide;
-          });
-        } else if (visibleNewSlides.length > 1) {
-          const updatedSlides = [...updatedPrevSlides];
-          const index = updatedSlides.findIndex((slide) => slide.id === slideID);
-  
-          if (index !== -1) {
-            updatedSlides.splice(index, 1, ...visibleNewSlides);
-          } else {
-            console.warn("Slide not found in the existing slides array");
-          }
-  
-          return updatedSlides;
-        } else {
-          return updatedPrevSlides;
-        }
-      });
-    } else {
-      console.error("Failed to fetch slide with ID", slideID);
-    }
+    // slideList.fetchSlide(slideID);
+    slideList.getSlide(slideID);
   };
+
   // get all slides in the begining
   useEffect(() => {
     initialize();
@@ -208,14 +162,13 @@ export default function Page({
 
   const interfaceComponent = (
     <Interface
-      slides={slides}
+      slideList={slideList}
       currentSlideID={currentSlideID}
       setCurrentSlideID={setCurrentSlideID}
       allSources={allSources}
       block={blockInterface || blockChat}
       presentationID={params.presentationID}
       redirectPath={redirectPath}
-      fetchSlide={fetchSlide}
     />
   );
 

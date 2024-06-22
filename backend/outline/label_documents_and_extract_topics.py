@@ -23,7 +23,7 @@ import json
 import concurrent.futures
 from uuid_extensions import uuid7str
 from outline.remove_leading_numbers import remove_leading_numbers
-
+import traceback
 
 load_dotenv()
 
@@ -202,56 +202,79 @@ async def _label_documents_and_extract_topics(presentationID):
         config={"cache": {"mode": "simple"}},
     )
 
-    # Mistral 7B names the topics
     async def name_topic(keywords, documents):
-        response = await async_portkey_bedrock.completions.create(
-            model = "mistral.mistral-7b-instruct-v0:2",
-            prompt = get_prompt(documents, keywords, presentation['topic']),
-            temperature=0,
-            max_tokens=30,
-            stop=["\n"]
-        )
-        label = response.choices[0].text.strip()
-        no_numbering = re.sub(r'\d+\.\s*', '', label).strip()
-        no_quotes = re.sub(r'^[\'"]|[\'"]$', '', no_numbering).strip()
-        no_periods = no_quotes.rstrip('.')
-        return no_periods
+        try:
+            response = await async_portkey_bedrock.completions.create(
+                model = "mistral.mistral-7b-instruct-v0:2",
+                prompt = get_prompt(documents, keywords, presentation['topic']),
+                temperature=0,
+                max_tokens=30,
+                stop=["\n"]
+            )
+            label = response.choices[0].text.strip()
+            no_numbering = re.sub(r'\d+\.\s*', '', label).strip()
+            no_quotes = re.sub(r'^[\'"]|[\'"]$', '', no_numbering).strip()
+            no_periods = no_quotes.rstrip('.')
+            return no_periods
+        except Exception as e:
+            print(f"Error in name_topic: {e}\n{traceback.format_exc()}")
+            return "Untitled Subtopic"
 
-    # Claude 3 Haiku rates the topics for relevance
     async def rate_topic_relevance(keywords, documents, label):
-        
-        response = await async_portkey_bedrock.chat.completions.create(
-            model="anthropic.claude-3-haiku-20240307-v1:0",
-            messages=get_rate_relevance_messages(presentation_topic=presentation['topic'], audience=presentation['audience'], goal=presentation['goal'], subtopic_label=label, documents=documents, keywords=keywords),
-            temperature=0,
-            stop=["</score>"],
-            max_tokens=1000,
-        )
-        
-        response_text = "<reasoning>" + response.choices[0].message.content.strip() + "</score>"
-        rating = extract_xml_tag_contents("score", response_text)
-        reasoning = extract_xml_tag_contents("reasoning", response_text)
-        # replace '<reasoning> with '' and '</reasoning>' with ''
-        reasoning = re.sub(r'<reasoning>|</reasoning>', '', reasoning)
-        return rating, reasoning.strip()
-    
-    # Claude 3 Haiku rates the topics for value
+        try:
+            response = await async_portkey_bedrock.chat.completions.create(
+                model="anthropic.claude-3-haiku-20240307-v1:0",
+                messages=get_rate_relevance_messages(presentation_topic=presentation['topic'], audience=presentation['audience'], goal=presentation['goal'], subtopic_label=label, documents=documents, keywords=keywords),
+                temperature=0,
+                stop=["</score>"],
+                max_tokens=1000,
+            )
+
+            response_text = "<reasoning>" + response.choices[0].message.content.strip() + "</score>"
+            rating = extract_xml_tag_contents("score", response_text)
+            reasoning = extract_xml_tag_contents("reasoning", response_text)
+            # replace '<reasoning> with '' and '</reasoning>' with ''
+            reasoning = re.sub(r'<reasoning>|</reasoning>', '', reasoning)
+
+            if rating is None and reasoning is None:
+                raise ValueError("Score and Reasoning not found in response")
+            elif rating is None:
+                return 3, reasoning.strip() if reasoning else "Reasoning Not Found"
+            elif reasoning is None:
+                return rating, "Reasoning Not Found"
+
+            return rating, reasoning.strip()
+        except Exception as e:
+            print(f"Error in rate_topic_relevance: {e}\n{traceback.format_exc()}")
+            return 3, "Reasoning Not Found"
+
     async def rate_topic_value(documents):
-        
-        response = await async_portkey_bedrock.chat.completions.create(
-            model="anthropic.claude-3-haiku-20240307-v1:0",
-            messages=get_rate_value_messages(topic=presentation['topic'], text=documents),
-            temperature=0,
-            stop=["</score>"],
-            max_tokens=1000,
-        )
-        
-        response_text = response.choices[0].message.content.strip() + "</score>"
-        rating = extract_xml_tag_contents("score", response_text)
-        reasoning = extract_xml_tag_contents("reasoning", response_text)
-        # replace '<reasoning> with '' and '</reasoning>' with ''
-        # reasoning = re.sub(r'<reasoning>|</reasoning>', '', reasoning)
-        return rating, reasoning.strip()
+        try:
+            response = await async_portkey_bedrock.chat.completions.create(
+                model="anthropic.claude-3-haiku-20240307-v1:0",
+                messages=get_rate_value_messages(topic=presentation['topic'], text=documents),
+                temperature=0,
+                stop=["</score>"],
+                max_tokens=1000,
+            )
+
+            response_text = response.choices[0].message.content.strip() + "</score>"
+            rating = extract_xml_tag_contents("score", response_text)
+            reasoning = extract_xml_tag_contents("reasoning", response_text)
+            # replace '<reasoning> with '' and '</reasoning>' with ''
+            reasoning = re.sub(r'<reasoning>|</reasoning>', '', reasoning)
+
+            if rating is None and reasoning is None:
+                raise ValueError("Score and Reasoning not found in response")
+            elif rating is None:
+                return 3, reasoning.strip() if reasoning else "Reasoning Not Found"
+            elif reasoning is None:
+                return rating, "Reasoning Not Found"
+
+            return rating, reasoning.strip()
+        except Exception as e:
+            print(f"Error in rate_topic_value: {e}\n{traceback.format_exc()}")
+            return 3, "Reasoning Not Found"
 
 
     async def name_and_rate_topics(topic_info_df, n=10):
@@ -404,4 +427,4 @@ async def label_documents_extract_topics(presentationID):
     
     
 if __name__ == "__main__":
-    asyncio.run(label_documents_extract_topics("018f0eec-b73b-708d-964f-38b16e60d3be"))
+    asyncio.run(label_documents_extract_topics("019024b1-9788-71cd-9b81-9a3342f0ed22"))

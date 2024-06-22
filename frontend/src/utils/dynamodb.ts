@@ -1,3 +1,4 @@
+// dynamodb.ts
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import {
   GetItemCommand,
@@ -6,6 +7,7 @@ import {
   UpdateItemCommand,
   TransactWriteItemsCommand,
   DeleteItemCommand,
+  BatchGetItemCommand
 } from "@aws-sdk/client-dynamodb";
 import { marshall as Marshall } from "@aws-sdk/util-dynamodb";
 import { unmarshall } from "@aws-sdk/util-dynamodb";
@@ -15,7 +17,6 @@ import { Slide } from "@/utils/slide-types";
 const client = new DynamoDBClient({});
 
 const tableName = "AiPresenter2"; 
-const slideOrderGSIName = "slide-order-index";
 
 export async function getPresentationsByUserID(userID: string, attributes: string[], limit: number, lastEvaluatedKey?: any) {
   attributes.push("PK");
@@ -74,8 +75,6 @@ export async function getPresentationsByUserID(userID: string, attributes: strin
   };
 }
 
-
-
 export async function getPresentationByID(presentationID: string, attributes: string[]) {
   attributes.push("PK");
 
@@ -119,7 +118,6 @@ export async function getPresentationByID(presentationID: string, attributes: st
 
   return null;
 }
-
 
 export async function updatePresentationByID(
   presentationID: string,
@@ -232,37 +230,136 @@ export async function getSources(presentationID: string, attributes?: string[]) 
 }
 
 /**
- * Batch updates multiple slides in a presentation.
+ * Updates one or more slides in a DynamoDB table.
+ *
  * @param {string} presentationID - The ID of the presentation.
- * @param {Partial<Slide>[]} slides - An array of partial slide objects to update.
- * @returns {Promise<boolean>} - A promise that resolves to true if the update is successful, false otherwise.
- * 
- * Note: If a slide object in the `slides` array has only a subset of the attributes compared to the existing slide in DynamoDB,
- * only the attributes present in the slide object will be updated. Attributes that exist in DynamoDB but are not present
- * in the slide object will remain unchanged. This allows for partial updates of slide attributes without affecting the
- * attributes that are not included in the update request.
+ * @param {Partial<Slide> | Partial<Slide>[]} slides - A single slide or an array of slides with partial attributes to update. Each slide must contain an `id` property.
+ * @returns {Promise<boolean>} - A promise that resolves to a boolean indicating the success of the operation.
+ *
+ * @example
+ * const slideUpdate = { id: 'slide1', slide_title: 'Updated Title' };
+ * const success = await updateSlides('presentation123', slideUpdate);
+ *
+ * @example
+ * const slidesUpdate = [
+ *   { id: 'slide1', slide_title: 'Updated Title' },
+ *   { id: 'slide2', slide_content: 'Updated Content' }
+ * ];
+ * const success = await updateSlides('presentation123', slidesUpdate);
+ *
+ * @throws Will throw an error if DynamoDB update fails.
+ *
+ * @description
+ * This function updates the specified attributes of one or more slides in the DynamoDB table. If the `slides` parameter is an array, a batch update is performed using `TransactWriteItemsCommand`. Otherwise, a single update is performed using `UpdateItemCommand`. Only the specified attributes are updated; any unspecified attributes remain unaffected.
  */
-export async function batchUpdateSlides(
+export async function updateSlides(
   presentationID: string,
-  slides: Partial<Slide>[]
+  slides: Partial<Slide> | Partial<Slide>[]
 ): Promise<boolean> {
-  if (slides.length === 0) {
-    throw new Error("Slides array cannot be empty.");
-  }
-
-  const updateRequests: any[] = [];
   const currentTimestamp = Math.floor(Date.now() / 1000);
 
-  for (const slide of slides) {
-    const { id, ...slideFields } = slide;
+  if (Array.isArray(slides)) {
+    if (slides.length === 0) {
+      console.error("Dynamodb updateSlides: Slides array cannot be empty.");
+      return false;
+    }
+
+    const updateRequests: any[] = [];
+
+    for (const slide of slides) {
+      const { id, ...slideFields } = slide;
+
+      if (id === undefined) {
+        console.error(`Slide ID is undefined for slide:`, slide);
+        continue;
+      }
+
+      if (Object.keys(slideFields).length === 0) {
+        console.error(`Slide with ID ${id} contains only the ID property.`);
+        continue;
+      }
+
+      const updateExpression: string[] = [];
+      const expressionAttributeValues: { [key: string]: any } = {};
+      const expressionAttributeNames: { [key: string]: string } = {};
+
+      for (const [key, value] of Object.entries(slideFields)) {
+        if (value === undefined) {
+          console.error(`Skipping undefined value for key: ${key}`);
+          continue;
+        }
+
+        let attributeValue: any;
+        if (Array.isArray(value) || typeof value === "object") {
+          attributeValue = { S: JSON.stringify(value) };
+        } else if (typeof value === "string") {
+          attributeValue = { S: value };
+        } else if (typeof value === "number") {
+          attributeValue = { N: value.toString() };
+        } else if (typeof value === "boolean") {
+          attributeValue = { BOOL: value };
+        } else {
+          console.error(`Unsupported attribute type for key: ${key}`);
+          continue;
+        }
+
+        const attributeName = `#${key}`;
+        updateExpression.push(`${attributeName} = :${key}`);
+        expressionAttributeNames[attributeName] = key;
+        expressionAttributeValues[`:${key}`] = attributeValue;
+      }
+
+      updateExpression.push("#time_updated = :time_updated");
+      expressionAttributeNames["#time_updated"] = "time_updated";
+      expressionAttributeValues[":time_updated"] = {
+        N: currentTimestamp.toString(),
+      };
+
+      const updateRequest = {
+        Update: {
+          TableName: tableName,
+          Key: {
+            PK: { S: `PRESENTATION#${presentationID}` },
+            SK: { S: `SLIDE#${id}` },
+          },
+          UpdateExpression: "SET " + updateExpression.join(", "),
+          ExpressionAttributeValues: expressionAttributeValues,
+          ExpressionAttributeNames: expressionAttributeNames,
+        },
+      };
+
+      updateRequests.push(updateRequest);
+    }
+
+    if (updateRequests.length === 0) {
+      console.error("No valid slides to update.");
+      return false;
+    }
+
+    const command = new TransactWriteItemsCommand({
+      TransactItems: updateRequests,
+    });
+
+    try {
+      console.log("Sending batch update request to DynamoDB...");
+      const response = await client.send(command);
+      console.log("Batch update response:", response);
+      return response.$metadata.httpStatusCode === 200;
+    } catch (error) {
+      console.error("Error during batch update:", error);
+      return false;
+    }
+  } else {
+    const { id, ...slideFields } = slides;
 
     if (id === undefined) {
-      console.log(`Slide ID is undefined for slide:`, slide);
-      continue;
+      console.error("Slide ID is undefined.");
+      return false;
     }
 
     if (Object.keys(slideFields).length === 0) {
-      throw new Error(`Slide with ID ${id} contains only the ID property.`);
+      console.error(`Slide with ID ${id} contains only the ID property.`);
+      return false;
     }
 
     const updateExpression: string[] = [];
@@ -271,7 +368,7 @@ export async function batchUpdateSlides(
 
     for (const [key, value] of Object.entries(slideFields)) {
       if (value === undefined) {
-        console.log(`Skipping undefined value for key: ${key}`);
+        console.error(`Skipping undefined value for key: ${key}`);
         continue;
       }
 
@@ -285,7 +382,7 @@ export async function batchUpdateSlides(
       } else if (typeof value === "boolean") {
         attributeValue = { BOOL: value };
       } else {
-        console.log(`Unsupported attribute type for key: ${key}`);
+        console.error(`Unsupported attribute type for key: ${key}`);
         continue;
       }
 
@@ -301,50 +398,50 @@ export async function batchUpdateSlides(
       N: currentTimestamp.toString(),
     };
 
-    const updateRequest = {
-      Update: {
-        TableName: tableName,
-        Key: {
-          PK: { S: `PRESENTATION#${presentationID}` },
-          SK: { S: `SLIDE#${id}` },
-        },
-        UpdateExpression: "SET " + updateExpression.join(", "),
-        ExpressionAttributeValues: expressionAttributeValues,
-        ExpressionAttributeNames: expressionAttributeNames,
+    const params = {
+      TableName: tableName,
+      Key: {
+        PK: { S: `PRESENTATION#${presentationID}` },
+        SK: { S: `SLIDE#${id}` },
       },
+      UpdateExpression: "SET " + updateExpression.join(", "),
+      ExpressionAttributeValues: expressionAttributeValues,
+      ExpressionAttributeNames: expressionAttributeNames,
     };
 
-    // console.log(`Prepared update request for slide ID ${id}:`, JSON.stringify(updateRequest));
+    const command = new UpdateItemCommand(params);
 
-    updateRequests.push(updateRequest);
-  }
-
-  if (updateRequests.length === 0) {
-    throw new Error("No valid slides to update.");
-  }
-
-  const command = new TransactWriteItemsCommand({
-    TransactItems: updateRequests,
-  });
-
-  try {
-    console.log("Sending batch update request to DynamoDB...");
-    const response = await client.send(command);
-    console.log("Batch update response:", response);
-    return response.$metadata.httpStatusCode === 200;
-  } catch (error) {
-    console.error("Error during batch update:", error);
-    return false;
+    try {
+      console.log("Sending single slide update request to DynamoDB...");
+      const response = await client.send(command);
+      console.log("Single slide update response:", response);
+      return response.$metadata.httpStatusCode === 200;
+    } catch (error) {
+      console.error("Error during single slide update:", error);
+      return false;
+    }
   }
 }
 
 /**
- * Retrieves all slides for a given presentation.
+ * Retrieves all slides for a given presentation from DynamoDB.
+ *
  * @param {string} presentationID - The ID of the presentation.
- * @param {string[]} [attributes] - Optional array of attributes to retrieve for each slide.
- * @returns {Promise<Slide[]>} - A promise that resolves to an array of slide objects.
+ * @param {string[]} [attributes] - An optional array of attribute names to retrieve. If not specified, all attributes are retrieved.
+ * @returns {Promise<Slide[]>} - A promise that resolves to an array of slides.
+ *
+ * @example
+ * const slides = await getAllSlides('presentation123');
+ *
+ * @example
+ * const slides = await getAllSlides('presentation123', ['slide_title', 'slide_content']);
+ *
+ * @throws Will throw an error if DynamoDB query fails.
+ *
+ * @description
+ * This function queries the DynamoDB table to retrieve all slides associated with the specified presentation ID. If the `attributes` parameter is provided, only those attributes are retrieved. Otherwise, all attributes are retrieved. The function handles the unmarshalling of DynamoDB items and parsing of JSON strings where applicable.
  */
-export async function getSlides(
+export async function getAllSlides(
   presentationID: string,
   attributes?: string[]
 ): Promise<Slide[]> {
@@ -361,305 +458,191 @@ export async function getSlides(
     params.ProjectionExpression = attributes.join(", ");
   }
 
-  const command = new QueryCommand(params);
-  const response = await client.send(command);
+  try {
+    const command = new QueryCommand(params);
+    const response = await client.send(command);
 
-  const slides: Slide[] = response.Items?.map((item) => {
-    const unmarshalled = unmarshall(item);
-    const { SK, PK, ...slideFields } = unmarshalled;
+    const slides: Slide[] = response.Items?.map((item) => {
+      const unmarshalled = unmarshall(item);
+      const { SK, PK, ...slideFields } = unmarshalled;
 
-    // Parse JSON-encoded fields
-    for (const key in slideFields) {
-      if (typeof slideFields[key] === "string") {
-        try {
-          slideFields[key] = JSON.parse(slideFields[key]);
-        } catch (error) {
-          // Ignore parsing error and keep the field as a string
+      for (const key in slideFields) {
+        if (typeof slideFields[key] === "string") {
+          try {
+            slideFields[key] = JSON.parse(slideFields[key]);
+          } catch (error) {
+            // Ignore parsing error and keep the field as a string
+          }
         }
       }
-    }
 
-    // Assign random layout if not present and slide type is 'short_bullets_slide'
-    if (slideFields.slide_type === 'short_bullets_slide' && !slideFields.layout) {
-      slideFields.layout = Math.random() < 0.5 ? 'list' : 'grid';
-    }
+      const slide: Slide = {
+        id: SK.split("#")[1],
+        slide_type: slideFields.slide_type,
+        slide_title: slideFields.slide_title,
+        topic_id: slideFields.topic_id,
+        slide_content: slideFields.slide_content,
+        sequential: slideFields.sequential,
+        image: slideFields.image,
+        layout: slideFields.layout,
+        hidden: slideFields.hidden,
+        image_position: slideFields.image_position,
+        previous: slideFields.previous,
+        next: slideFields.next,
+      };
 
-    // Randomly assign left or right to image_position if not present and slide type is 'section_header_slide'
-    if (slideFields.slide_type === 'section_header_slide' && !slideFields.image_position) {
-      slideFields.image_position = Math.random() < 0.5 ? 'left' : 'right';
-    }
+      return slide;
+    }) || [];
 
-    // Set hidden to false if not present
-    if (slideFields.hidden === undefined) {
-      slideFields.hidden = false;
-    }
-
-    // Parse the slide content only
-    const slide: Slide = {
-      id: SK.split("#")[1],
-      slide_type: slideFields.slide_type,
-      slide_title: slideFields.slide_title,
-      topic_id: slideFields.topic_id,
-      slide_content: slideFields.slide_content,
-      slide_order: slideFields.slide_order,
-      sequential: slideFields.sequential,
-      image: slideFields.image,
-      layout: slideFields.layout,
-      hidden: slideFields.hidden,
-      image_position: slideFields.image_position
-    };
-
-    return slide;
-  }) || [];
-
-  return slides;
+    return slides;
+  } catch (error) {
+    console.error("Error retrieving slides:", error);
+    return [];
+  }
 }
 
+// Function overloads
+export async function getSlides(presentationID: string, slideIDs: string, attributes?: string[]): Promise<Slide | null>;
+export async function getSlides(presentationID: string, slideIDs: string[], attributes?: string[]): Promise<Slide[] | null>;
+
 /**
- * Retrieves a single slide from a presentation.
+ * Retrieves one or more slides by their IDs for a given presentation from DynamoDB.
+ *
  * @param {string} presentationID - The ID of the presentation.
- * @param {string} slideID - The ID of the slide to retrieve.
- * @param {string[]} [attributes] - Optional array of attributes to retrieve for the slide.
- * @returns {Promise<Slide | null>} - A promise that resolves to the slide object, or null if not found.
+ * @param {string | string[]} slideIDs - A single slide ID or an array of slide IDs to retrieve.
+ * @param {string[]} [attributes] - An optional array of attribute names to retrieve. If not specified, all attributes are retrieved.
+ * @returns {Promise<Slide | Slide[] | null>} - A promise that resolves to a single slide, an array of slides, or null if no slides are found.
+ *
+ * @example
+ * const slide = await getSlides('presentation123', 'slide1');
+ *
+ * @example
+ * const slides = await getSlides('presentation123', ['slide1', 'slide2'], ['slide_title', 'slide_content']);
+ *
+ * @throws Will throw an error if DynamoDB query fails.
+ *
+ * @description
+ * This function retrieves one or more slides by their IDs for a specified presentation from the DynamoDB table. If the `slideIDs` parameter is an array, a batch get operation is performed using `BatchGetItemCommand`. Otherwise, a single get operation is performed using `GetItemCommand`. If the `attributes` parameter is provided, only those attributes are retrieved. Otherwise, all attributes are retrieved. The function handles the unmarshalling of DynamoDB items and parsing of JSON strings where applicable.
  */
-export async function getSlide(
+export async function getSlides(
   presentationID: string,
-  slideID: string,
+  slideIDs: string | string[],
   attributes?: string[]
-): Promise<Slide | null> {
-  const params: any = {
-    TableName: tableName,
-    Key: {
+): Promise<Slide | Slide[] | null> {
+  if (Array.isArray(slideIDs)) {
+    if (slideIDs.length === 0) {
+      console.error("Slide IDs array cannot be empty.");
+      return null;
+    }
+
+    const keys = slideIDs.map(id => ({
       PK: { S: `PRESENTATION#${presentationID}` },
-      SK: { S: `SLIDE#${slideID}` },
-    },
-  };
+      SK: { S: `SLIDE#${id}` },
+    }));
 
-  if (attributes) {
-    params.ProjectionExpression = attributes.join(", ");
-  }
+    const params = {
+      RequestItems: {
+        [tableName]: {
+          Keys: keys,
+          ProjectionExpression: attributes ? attributes.join(", ") : undefined,
+        },
+      },
+    };
 
-  const command = new GetItemCommand(params);
-  const response = await client.send(command);
+    try {
+      const command = new BatchGetItemCommand(params);
+      const response = await client.send(command);
 
-  if (response.Item) {
-    const unmarshalled = unmarshall(response.Item);
-    const { SK, PK, ...slideFields } = unmarshalled;
+      const slides: Slide[] = response.Responses?.[tableName]?.map((item) => {
+        const unmarshalled = unmarshall(item);
+        const { SK, PK, ...slideFields } = unmarshalled;
 
-    // Parse JSON-encoded fields
-    for (const key in slideFields) {
-      if (typeof slideFields[key] === "string") {
-        try {
-          slideFields[key] = JSON.parse(slideFields[key]);
-        } catch (error) {
-          // Ignore parsing error and keep the field as a string
+        for (const key in slideFields) {
+          if (typeof slideFields[key] === "string") {
+            try {
+              slideFields[key] = JSON.parse(slideFields[key]);
+            } catch (error) {
+              // Ignore parsing error and keep the field as a string
+            }
+          }
         }
-      }
-    }
 
-    // Assign random layout if not present and slide type is 'short_bullets_slide'
-    if (slideFields.slide_type === 'short_bullets_slide' && !slideFields.layout) {
-      slideFields.layout = Math.random() < 0.5 ? 'list' : 'grid';
-    }
+        const slide: Slide = {
+          id: SK.split("#")[1],
+          slide_type: slideFields.slide_type,
+          slide_title: slideFields.slide_title,
+          topic_id: slideFields.topic_id,
+          slide_content: slideFields.slide_content,
+          sequential: slideFields.sequential,
+          image: slideFields.image,
+          layout: slideFields.layout,
+          hidden: slideFields.hidden,
+          image_position: slideFields.image_position,
+          previous: slideFields.previous,
+          next: slideFields.next,
+        };
 
-    // Randomly assign left or right to image_position if not present and slide type is 'section_header_slide'
-    if (slideFields.slide_type === 'section_header_slide' && !slideFields.image_position) {
-      slideFields.image_position = Math.random() < 0.5 ? 'left' : 'right';
-    }
+        return slide;
+      }) || [];
 
-    // Set hidden to false if not present
-    if (slideFields.hidden === undefined) {
-      slideFields.hidden = false;
+      return slides;
+    } catch (error) {
+      console.error("Error retrieving slides:", error);
+      return null;
     }
-
-    const slide: Slide = {
-      id: SK.split("#")[1],
-      slide_type: slideFields.slide_type,
-      slide_title: slideFields.slide_title,
-      topic_id: slideFields.topic_id,
-      slide_content: slideFields.slide_content,
-      slide_order: slideFields.slide_order,
-      sequential: slideFields.sequential,
-      image: slideFields.image,
-      layout: slideFields.layout,
-      hidden: slideFields.hidden,
-      image_position: slideFields.image_position
+  } else {
+    const params: any = {
+      TableName: tableName,
+      Key: {
+        PK: { S: `PRESENTATION#${presentationID}` },
+        SK: { S: `SLIDE#${slideIDs}` },
+      },
     };
 
-    return slide;
-  }
-
-  return null;
-}
-
-
-
-/**
- * Updates a single slide in a presentation.
- * @param {string} presentationID - The ID of the presentation.
- * @param {string} slideID - The ID of the slide to update.
- * @param {Partial<Slide>} slideData - An object containing the fields to update on the slide.
- * @returns {Promise<void>} - A promise that resolves when the update is complete.
- * 
- * Note: The `slideData` parameter is of type `Partial<Slide>`, meaning it can contain a subset of the attributes
- * defined in the `Slide` type. Only the attributes present in `slideData` will be updated in DynamoDB. Attributes
- * that exist in DynamoDB but are not present in `slideData` will remain unchanged. This allows for partial updates
- * of slide attributes without affecting the attributes that are not included in the update request.
- */
-export async function updateSlide(
-  presentationID: string,
-  slideID: string,
-  slideData: Partial<Slide>
-): Promise<void> {
-  const updateExpression: string[] = [];
-  const expressionAttributeValues: { [key: string]: any } = {};
-  const expressionAttributeNames: { [key: string]: string } = {};
-
-  for (const [key, value] of Object.entries(slideData)) {
-    if (value === undefined) {
-      // console.log(`Value is undefined for key: ${key}`)
-      continue;
+    if (attributes) {
+      params.ProjectionExpression = attributes.join(", ");
     }
 
-    let attributeValue: any;
+    try {
+      const command = new GetItemCommand(params);
+      const response = await client.send(command);
 
-    if (Array.isArray(value) || typeof value === "object") {
-      attributeValue = { S: JSON.stringify(value) };
-    } else if (typeof value === "string") {
-      attributeValue = { S: value };
-    } else if (typeof value === "number") {
-      attributeValue = { N: value.toString() };
-    } else if (typeof value === "boolean") {
-      attributeValue = { BOOL: value };
-    } else {
-      console.log(`Unsupported attribute type for key: ${key}`);
-      continue;
-    }
+      if (response.Item) {
+        const unmarshalled = unmarshall(response.Item);
+        const { SK, PK, ...slideFields } = unmarshalled;
 
-    const attributeName = `#${key}`;
-    updateExpression.push(`${attributeName} = :${key}`);
-    expressionAttributeNames[attributeName] = key;
-    expressionAttributeValues[`:${key}`] = attributeValue;
-  }
+        for (const key in slideFields) {
+          if (typeof slideFields[key] === "string") {
+            try {
+              slideFields[key] = JSON.parse(slideFields[key]);
+            } catch (error) {
+              // Ignore parsing error and keep the field as a string
+            }
+          }
+        }
 
-  const currentTimestamp = Math.floor(Date.now() / 1000);
-  updateExpression.push("#time_updated = :time_updated");
-  expressionAttributeNames["#time_updated"] = "time_updated";
-  expressionAttributeValues[":time_updated"] = {
-    N: currentTimestamp.toString(),
-  };
+        const slide: Slide = {
+          id: SK.split("#")[1],
+          slide_type: slideFields.slide_type,
+          slide_title: slideFields.slide_title,
+          topic_id: slideFields.topic_id,
+          slide_content: slideFields.slide_content,
+          sequential: slideFields.sequential,
+          image: slideFields.image,
+          layout: slideFields.layout,
+          hidden: slideFields.hidden,
+          image_position: slideFields.image_position,
+          previous: slideFields.previous,
+          next: slideFields.next,
+        };
 
-  const params = {
-    TableName: tableName,
-    Key: {
-      PK: { S: `PRESENTATION#${presentationID}` },
-      SK: { S: `SLIDE#${slideID}` },
-    },
-    UpdateExpression: "SET " + updateExpression.join(", "),
-    ExpressionAttributeValues: expressionAttributeValues,
-    ExpressionAttributeNames: expressionAttributeNames,
-  };
-
-  const command = new UpdateItemCommand(params);
-  await client.send(command);
-}
-
-/**
- * Deletes a single slide from a presentation.
- * @param {string} presentationID - The ID of the presentation.
- * @param {string} slideID - The ID of the slide to delete.
- * @returns {Promise<void>} - A promise that resolves when the deletion is complete.
- */
-export async function deleteSlide(
-  presentationID: string,
-  slideID: string
-): Promise<void> {
-  const params = {
-    TableName: tableName,
-    Key: {
-      PK: { S: `PRESENTATION#${presentationID}` },
-      SK: { S: `SLIDE#${slideID}` },
-    },
-  };
-
-  const command = new DeleteItemCommand(params);
-  await client.send(command);
-}
-
-/**
- * Retrieves the order of the next slide in a presentation.
- *
- * @param {string} presentationId - The ID of the presentation.
- * @param {number} currentSlideOrder - The order of the current slide.
- * @returns {Promise<number | null>} A promise that resolves to the order of the next slide, or null if no next slide is found.
- * @throws {Error} If an error occurs during the retrieval process.
- */
-export const getNextSlideOrder = async (presentationId: string, currentSlideOrder: number): Promise<number | null> => {
-  const params = {
-    TableName: tableName,
-    IndexName: slideOrderGSIName,
-    KeyConditionExpression: 'PK = :pk AND #slide_order > :currentOrder',
-    ProjectionExpression: '#slide_order, SK',
-    ExpressionAttributeNames: {
-      '#slide_order': 'slide_order',
-    },
-    ExpressionAttributeValues: {
-      ':pk': { S: `PRESENTATION#${presentationId}` },
-      ':currentOrder': { N: currentSlideOrder.toString() },
-    },
-    Limit: 1,
-  };
-
-  try {
-    const result = await client.send(new QueryCommand(params));
-    if (result.Items && result.Items.length > 0) {
-      const nextSlide = unmarshall(result.Items[0]);
-      if (nextSlide.SK && nextSlide.SK.startsWith('SLIDE#')) {
-        return nextSlide.slide_order;
+        return slide;
       }
+
+      return null;
+    } catch (error) {
+      console.error("Error retrieving slide:", error);
+      return null;
     }
-    return null;
-  } catch (error) {
-    console.error('Error getting next slide order:', error);
-    throw error;
   }
-};
-
-
-/**
- * Adds a new slide in front of the slide with the specified order in a presentation.
- *
- * @param {string} presentationId - The ID of the presentation.
- * @param {number} targetSlideOrder - The order of the target slide.
- * @param {Partial<Slide>} slideData - An object containing the data for the new slide.
- * @returns {Promise<void>} - A promise that resolves when the slide is added.
- * @throws {Error} If an error occurs during the slide addition process.
- */
-export const addSlideAfterOrder = async (
-  presentationId: string,
-  targetSlideOrder: number,
-  slideData: Partial<Slide>
-): Promise<void> => {
-  try {
-    const newSlideId = uuidv7();
-
-    const nextSlideOrder = await getNextSlideOrder(presentationId, targetSlideOrder);
-    let newSlideOrder: number;
-
-    if (nextSlideOrder !== null) {
-      newSlideOrder = Math.round((targetSlideOrder + nextSlideOrder) / 2);
-    } else {
-      newSlideOrder = targetSlideOrder + 1000;
-    }
-
-    const updatedSlideData: Partial<Slide> = {
-      ...slideData,
-      slide_order: newSlideOrder,
-    };
-
-    await updateSlide(presentationId, newSlideId, updatedSlideData);
-  } catch (error) {
-    console.error('Error adding slide:', error);
-    throw error;
-  }
-};
+}

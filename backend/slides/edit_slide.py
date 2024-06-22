@@ -45,9 +45,6 @@ class MermaidSlide(AsyncValidationModelMixin, BaseModel):
     mermaid_diagram: str
     excerpt_ids : List[ExcerptId]
     
-def get_excerpt_ids(reduced_docs):
-    excerpt_ids = [doc['metadata']['id'] for doc in reduced_docs]
-    return excerpt_ids
 
 def get_id_from_suffix(excerpt_ids, suffix):
     return next((id for id in excerpt_ids if id.endswith(suffix)), None)
@@ -253,7 +250,7 @@ async def edit_slide(presentation_id, slide_id, instruction):
     slide = await get_slide(presentation_id, slide_id)
     
     slide_type = slide['slide_type']
-    excerpt_ids = slide['excerpt_ids']
+    excerpt_ids = slide['generation_excerpt_ids']
     
     if slide_type == 'short_bullets_slide':
         model, messages = await edit_sbs(slide['slide_title'], slide['slide_content'], slide['sequential'], instruction, slide['generation_messages'], excerpt_ids)

@@ -8,7 +8,6 @@ import "@mdxeditor/editor/style.css";
 import "@/components/mdx-editor/styles.css";
 import { useState, useRef, useEffect } from "react";
 import { EditableTitle } from "./editable-title";
-import { updateSlide } from "@/actions/slides-actions";
 import { cleanMarkdown } from "@/actions/clean-editor-md";
 import {
   UndoRedo,
@@ -18,24 +17,23 @@ import {
   type MDXEditorMethods,
   InsertTable,
 } from "@mdxeditor/editor";
-import { BLUR_COMMAND } from "lexical";
 import { cn } from "@/utils/cn";
 import { Footnote } from "@/components/footnote";
 import React from "react";
-import { MarkdownSlide } from "@/utils/slide-types";
+import { MarkdownSlide, Slide} from "@/utils/slide-types";
 
 type MarkdownSlideComponentProps = {
   slide: MarkdownSlide;
+  setSlide: (slide: Partial<Slide>) => void;
   allSources?: any[];
-  fetchSlide: (slideID: string) => void;
   presentationID: string;
   setBlockArrowKeys: (block: boolean) => void;
 };
 
 export function MarkdownSlideComponent({
   slide,
+  setSlide,
   allSources,
-  fetchSlide,
   presentationID,
   setBlockArrowKeys,
 }: MarkdownSlideComponentProps) {
@@ -51,11 +49,9 @@ export function MarkdownSlideComponent({
   // for title
   const saveSlideTitle = async (newTitle: string) => {
     setTitleLoading(true);
-    await updateSlide(presentationID, {
-      id: slide.id,
+    setSlide({
       slide_title: newTitle,
     });
-    await fetchSlide(slide.id);
     setTitleLoading(false);
   };
 
@@ -73,14 +69,12 @@ export function MarkdownSlideComponent({
     // }
     setEditingMarkdown(false);
     setMarkdownLoading(true);
-    await updateSlide(presentationID, {
-      id: slide.id,
+    setSlide({
       slide_content: {
         ...slide.slide_content,
         content: cleanMarkdown(editorRef.current?.getMarkdown()),
       },
     });
-    await fetchSlide(slide.id);
     setMarkdownLoading(false);
   };
 
@@ -93,7 +87,7 @@ export function MarkdownSlideComponent({
   };
 
   return (
-    <div className="p-12 pb-0 flex flex-col relative text-foreground dark:bg-foreground/10 bg-foreground/5 box-border bg-content1 outline-none shadow-medium rounded-large w-full flex-none aspect-video overflow-scroll">
+    <div className="p-12 pb-0 flex flex-col relative text-foreground dark:bg-foreground/10 bg-foreground/5 box-border bg-content1 outline-none shadow-medium rounded-[15px] w-full flex-none aspect-video overflow-scroll">
       <div className="flex-none">
         <EditableTitle
           title={slide.slide_title}

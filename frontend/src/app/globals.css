@@ -215,3 +215,7 @@ a {
 #prose-container table {
   justify-self: center;
 }
+
+#presentation-title textarea {
+  @apply text-background/90;
+}

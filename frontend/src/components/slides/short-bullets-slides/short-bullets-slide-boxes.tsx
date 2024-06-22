@@ -1,12 +1,10 @@
 // short-bullets-slide-boxes.tsx
-import { ShortBulletsSlide } from "@/utils/slide-types";
+import { ShortBulletsSlide, IconData, Slide } from "@/utils/slide-types";
 import { ExcerptCard } from "@/components/excerpt-card";
 import { Icon } from "@iconify/react";
 import React, { useState, useEffect, useRef } from "react";
 import { cn } from "@/utils/cn";
-import { updateSlide } from "@/actions/slides-actions";
 import { EditableTitle } from "../editable-title";
-import { IconData } from "@/utils/slide-types";
 import axios from "axios";
 import {
   Modal,
@@ -101,7 +99,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
       ) {
         try {
           const response = await axios.post(
-            `${process.env.NEXT_PUBLIC_ICONS_URL}/simple_bp_search`,
+            `${process.env.NEXT_PUBLIC_REST_API_URL}/icon/simple_bp_search`,
             {
               bullet_point: bulletContent,
               n: 1,
@@ -167,7 +165,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
     setSearching(true);
     try {
       const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_ICONS_URL}/query_search`,
+        `${process.env.NEXT_PUBLIC_REST_API_URL}/icon/query_search`,
         {
           query: searchQuery,
           n: 15,
@@ -191,7 +189,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
   const fetchIcons = async (bulletContent: string) => {
     try {
       const simpleResponse = await axios.post(
-        `${process.env.NEXT_PUBLIC_ICONS_URL}/simple_bp_search`,
+        `${process.env.NEXT_PUBLIC_REST_API_URL}/icon/simple_bp_search`,
         {
           bullet_point: bulletContent,
           n: 10,
@@ -204,7 +202,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
       setSimpleIconOptions(simpleResponse.data);
 
       const uniqueResponse = await axios.post(
-        `${process.env.NEXT_PUBLIC_ICONS_URL}/unique_bp_search`,
+        `${process.env.NEXT_PUBLIC_REST_API_URL}/icon/unique_bp_search`,
         {
           bullet_point: bulletContent,
           bullet_point_list: slide.slide_content.map(
@@ -365,7 +363,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
                         aria-label="Search"
                         classNames={{
                           inputWrapper:
-                            "bg-content2 dark:bg-content1 h-[37px] rounded-r-none",
+                            "bg-content2 dark:bg-content1 h-full rounded-r-none",
                         }}
                         labelPlacement="outside"
                         placeholder="Search..."
@@ -375,6 +373,7 @@ const BulletItem: React.FC<BulletItemProps> = ({
                         }}
                         value={searchQuery}
                         onKeyDown={handleKeyDown}
+                        variant={"faded"}
                       />
                       <Button
                         isIconOnly
@@ -771,14 +770,14 @@ const renderSlideContent = (
 type ShortBulletsSlideComponentProps = {
   presentationID: string;
   slide: ShortBulletsSlide;
-  fetchSlide: (slideID: string) => void;
+  setSlide: (slide: Partial<Slide>) => void;
   allSources?: any[];
   setBlockArrowKeys: (block: boolean) => void;
 };
 
 export const BoxesShortBulletsSlideComponent: React.FC<
   ShortBulletsSlideComponentProps
-> = ({ presentationID, slide, fetchSlide, allSources, setBlockArrowKeys }) => {
+> = ({ presentationID, slide, setSlide, allSources, setBlockArrowKeys }) => {
   const testSlideContent = slide.slide_content.slice(0, 5);
 
   const [titleLoading, setTitleLoading] = useState(false);
@@ -786,11 +785,9 @@ export const BoxesShortBulletsSlideComponent: React.FC<
 
   const saveSlideTitle = async (newTitle: string) => {
     setTitleLoading(true);
-    await updateSlide(presentationID, {
-      id: slide.id,
+    setSlide({
       slide_title: newTitle,
     });
-    await fetchSlide(slide.id);
     setTitleLoading(false);
   };
 
@@ -820,12 +817,9 @@ export const BoxesShortBulletsSlideComponent: React.FC<
           }
         : bullet
     );
-    await updateSlide(presentationID, {
-      id: slide.id,
-      layout: slide.layout,
+    await setSlide({
       slide_content: newSlideContent,
     });
-    await fetchSlide(slide.id);
   };
 
   const deleteBulletItem = async (index: number) => {
@@ -840,19 +834,16 @@ export const BoxesShortBulletsSlideComponent: React.FC<
     );
     console.log("Before update", slide.slide_content);
     console.log("After update", newSlideContent);
-    await updateSlide(presentationID, {
-      id: slide.id,
-      layout: slide.layout,
+    setSlide({
       slide_content: newSlideContent,
     });
-    await fetchSlide(slide.id);
     console.log("After fetchslide", slide.slide_content);
   };
 
   console.log("Component mount, Slide content", slide.slide_content);
 
   return (
-    <div className="p-12 flex flex-col relative overflow-hidden height-auto bg-foreground/5 dark:bg-foreground/10 text-foreground box-border bg-content1 outline-none shadow-medium rounded-large w-full aspect-video flex-none">
+    <div className="p-12 flex flex-col relative overflow-hidden height-auto bg-foreground/5 dark:bg-foreground/10 text-foreground box-border bg-content1 outline-none shadow-medium rounded-[15px] w-full aspect-video flex-none">
       <div className="flex justify-center w-full h-full">
         {renderSlideContent(
           { ...slide, slide_content: testSlideContent },

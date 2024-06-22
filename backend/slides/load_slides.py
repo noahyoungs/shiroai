@@ -19,13 +19,15 @@ async def load_slides(presentationID, messages, interfaceData, memory, emitter, 
     else:
         # get the list of topics from the topic extraction pipeline
         await update_presentation(presentationID, slide_generation_status='invoked')
-        await make_presentation_slides(presentationID, all_docs)
+        slides_list = await make_presentation_slides(presentationID, all_docs)
     
     
     interfaceData = {
         'slides_created': True,
-        'push': 'all_slides'
+        'push': 'all_slides',
         }
+    
+    memory['slides_list'] = slides_list
     
     newMessages += [message for message in global_prompts_config.get_interface_changed_messages("slides") if message['role'] == 'assistant']
     messages += global_prompts_config.get_interface_changed_messages("slides")

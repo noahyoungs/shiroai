@@ -1,4 +1,4 @@
-import { SimpleMermaidSlide } from "@/utils/slide-types";
+import { SimpleMermaidSlide, Slide } from "@/utils/slide-types";
 import { useTheme } from "next-themes";
 import DOMPurify from "dompurify";
 import "@/components/slides/mermaid-styles.css";
@@ -114,14 +114,14 @@ export function MermaidSources({
 type SimpleMermaidSlideComponentProps = {
   presentationID: string;
   slide: SimpleMermaidSlide;
-  fetchSlide: (slideID: string) => void;
+  setSlide: (slide: Partial<Slide>) => void;
   allSources?: any[];
   setBlockArrowKeys: (block: boolean) => void;
 };
 export function SimpleMermaidSlideComponent({
   presentationID,
   slide,
-  fetchSlide,
+  setSlide,
   allSources,
   setBlockArrowKeys,
 }: SimpleMermaidSlideComponentProps) {
@@ -160,7 +160,7 @@ export function SimpleMermaidSlideComponent({
           )}
         </ModalContent>
       </Modal>
-      <div className="p-12 flex flex-col relative overflow-hidden height-auto text-foreground bg-foreground/5 dark:bg-foreground/10 box-border bg-content1 outline-none shadow-medium rounded-large w-full aspect-videow-full aspect-video flex-none">
+      <div className="p-12 flex flex-col relative overflow-hidden height-auto text-foreground bg-foreground/5 dark:bg-foreground/10 box-border bg-content1 outline-none shadow-medium rounded-[15px] w-full aspect-videow-full aspect-video flex-none">
         <h1 className="self-start mb-0">{slide.slide_title}</h1>
         {/* Vertical centering: */}
         <div className="flex flex-col h-full pt-5">

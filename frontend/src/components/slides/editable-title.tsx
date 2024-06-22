@@ -10,6 +10,7 @@ type EditableTitleProps = {
   onSave: (newTitle: string) => void;
   loading: boolean;
   setBlockArrowKeys: (block: boolean) => void;
+  classNames? : string;
 };
 
 const minTitleLength = 1;
@@ -20,6 +21,7 @@ export function EditableTitle({
   onSave,
   loading,
   setBlockArrowKeys,
+  classNames,
 }: EditableTitleProps) {
 
   // console.log(`Title: ${title}`)
@@ -105,7 +107,7 @@ export function EditableTitle({
             onChange={(e) => setTempTitle(e.target.value)}
             onBlur={saveTitle}
             classNames={{
-              input: "text-4xl font-bold",
+              input: cn("text-4xl font-bold", classNames),
               inputWrapper: "!m-0 !p-0",
               label: "hidden",
               description: "hidden",
@@ -114,7 +116,7 @@ export function EditableTitle({
             }}
             variant="underlined"
             autoFocus
-            minRows={0}
+            minRows={1}
             disableAnimation
             isInvalid={
               tempTitle.length < minTitleLength ||
@@ -125,13 +127,14 @@ export function EditableTitle({
               (tempTitle.length > maxTitleLength &&
                 `Must be 1-80 characters long. (Length: ${tempTitle.length})`)
             }
+            fullWidth
           />
         </Tooltip>
       ) : (
         <Skeleton className="rounded-lg" isLoaded={!loading}>
           <div className="border-b-medium border-transparent rounded-none">
             <div
-              className={"pb-[8px] box-border text-4xl font-bold [overflow-wrap:anywhere]"}
+              className={cn("pb-[8px] box-border text-4xl font-bold [overflow-wrap:anywhere]" , classNames)}
               onClick={() => setEditingTitle(true)}
             >
               {title}

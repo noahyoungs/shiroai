@@ -6,7 +6,7 @@ import { SlideThumbnail } from '@/components/slide-thumbnail';
 import { cn } from '@/utils/cn';
 
 interface SlideThumbnailBarProps {
-  slides: Slide[];
+  slides: readonly Slide[];
   currentSlideID: string | null;
   setCurrentSlideID: (slideID: string) => void;
   blockSlideSwitching: boolean;
