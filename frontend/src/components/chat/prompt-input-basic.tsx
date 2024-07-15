@@ -1,31 +1,49 @@
-"use client";
-
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { Button, Tooltip } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import { cn } from "@/utils/cn";
 import PromptInput from "./prompt-input";
 
-export default function Component({
-  socket,
-  block,
-  setBlockSend,
-}: {
+interface PromptInputBasicProps {
+  setMessages: React.Dispatch<React.SetStateAction<any[]>>;
   socket: any;
   block: boolean;
   setBlockSend: (block: boolean) => void;
-}) {
+  statusMessage: string;
+}
+
+export default function PromptInputBasic({
+  setMessages,
+  socket,
+  block,
+  setBlockSend,
+  statusMessage,
+}: PromptInputBasicProps) {
   const [prompt, setPrompt] = useState<string>("");
 
-  const sendMessage = async () => {
+  const sendMessage = useCallback(async () => {
+    console.log("sendMessage called");
+    console.log("setMessages:", setMessages);
+    console.log("typeof setMessages:", typeof setMessages);
     console.log("Sending message: ", prompt);
     if (prompt.trim() !== "" && socket) {
-      socket.emit("message", prompt);
+      const newMessages = [];
+      if (statusMessage) {
+        const statusMessageObj = { role: 'assistant', content: statusMessage };
+        socket.emit("message", statusMessageObj);
+        newMessages.push(statusMessageObj);
+      }
+      const userMessage = { role: 'user', content: prompt.trim() };
+      socket.emit("message", userMessage);
+      newMessages.push(userMessage);
+
+      // Add messages to messages for display
+      setMessages((prevMessages: any[]) => [...prevMessages, ...newMessages]);
       setPrompt("");
       setBlockSend(true);
     }
-  };
+  }, [prompt, socket, statusMessage, setMessages, setBlockSend]);
 
   const { getRootProps, getInputProps } = useDropzone();
 
@@ -57,6 +75,9 @@ export default function Component({
                   radius="lg"
                   size="sm"
                   variant="solid"
+                  onClick={() => {
+                    if (!block) sendMessage();
+                  }}
                 >
                   <Icon
                     className={cn(
@@ -65,9 +86,6 @@ export default function Component({
                     )}
                     icon="tabler:arrow-narrow-up"
                     width={20}
-                    onClick={() => {
-                      if (!block) sendMessage();
-                    }}
                   />
                 </Button>
               </Tooltip>

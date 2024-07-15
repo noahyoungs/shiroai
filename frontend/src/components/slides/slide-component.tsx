@@ -10,7 +10,10 @@ import { BoxesShortBulletsSlideComponent } from "@/components/slides/short-bulle
 
 interface SlideComponentProps {
   slide: Slide;
-  setSlide: (slide: Partial<Slide>) => void;
+  setSlide: (
+    slide: Partial<Slide>,
+    splitSlides?: boolean
+  ) => void;
   presentationID: string;
   allSources?: any[];
   setBlockArrowKeys: (block: boolean) => void;

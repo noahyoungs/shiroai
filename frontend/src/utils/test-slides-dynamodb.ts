@@ -1,3 +1,4 @@
+//@ts-nocheck
 import { v4 as uuidv4 } from 'uuid';
 import { batchUpdateSlides, updateSlide, deleteSlide, getSlide, getSlides } from './dynamodb';
 import { Slide } from '@/utils/slide-types';

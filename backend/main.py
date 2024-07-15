@@ -25,6 +25,8 @@ from outline.load_topics import load_topics as outline_load_topics
 
 from slides.on_connect import initialize as slides_initialize
 from slides.load_slides import load_slides as slides_load_slides
+from slides.on_disconnect import save_progress as slides_save_progress
+from slides.llm import complete as slides_get_completion
 
 
 app = FastAPI()
@@ -41,12 +43,12 @@ connected_users = {}
 sio = socketio_mount(app)  # Ensure you have implemented socketio_mount in socketio_setup module
 
 async def handleDisconnect(sid, reason="Unauthorized"):
-    await sio.emit('disconnect_request', {'reason': reason}, room=sid)
+    await sio.emit('disconnect_request', {'reason': reason}, to=sid)
     # await sio.disconnect(sid)
     
 async def updateInterface(sid, data):
     connected_users[sid]["interfaceData"] = data
-    await sio.emit('interface_update', data, room=sid)
+    await sio.emit('interface_update', data, to=sid)
     
 @sio.event
 async def connect(sid, environ):
@@ -106,7 +108,7 @@ async def connect(sid, environ):
     elif connected_users[sid]["interface"] == "outline":
         connected_users[sid]["messages"], connected_users[sid]["interfaceData"], connected_users[sid]["memory"] = await outline_initialize(presentationID)
     elif connected_users[sid]["interface"] == "slides":
-        connected_users[sid]["messages"], connected_users[sid]["interfaceData"], connected_users[sid]["memory"], connected_users[sid]["all_docs"] = await slides_initialize(presentationID)
+        connected_users[sid]["messages"], connected_users[sid]["interfaceData"], connected_users[sid]["memory"]= await slides_initialize(presentationID, emitter=functools.partial(sio.emit, to=sid))
         
     else:
         raise ValueError(f"Interface not found: `{connected_users[sid]['interface']}`")
@@ -116,27 +118,31 @@ async def connect(sid, environ):
     
     # print(f"Messages to send: {messagesToSend}")
     print(f"Emitting initial messages")
-    await sio.emit('initMessages', messagesToSend, room=sid)
-    await sio.emit('interface_update', connected_users[sid]["interfaceData"], room=sid)
+    await sio.emit('initMessages', messagesToSend, to=sid)
+    await sio.emit('interface_update', connected_users[sid]["interfaceData"], to=sid)
+    
+    # The code below cannot go in the initialzie functions because that will delay the initial connection
     
     # for outline we have to do extra work before first user message
     if connected_users[sid]["interface"] == "outline" and connected_users[sid]["interfaceData"]['all_topics'] is None:
-        # load topics, send emitter as a partial function to emit to the room when done
-        asyncio.create_task(outline_load_topics(presentationID, connected_users[sid]["messages"], connected_users[sid]["interfaceData"], connected_users[sid]["memory"], emitter=functools.partial(sio.emit, room=sid)))
+        # load topics, send emitter as a partial function to emit to the sid when done
+        asyncio.create_task(outline_load_topics(presentationID, connected_users[sid]["messages"], connected_users[sid]["interfaceData"], connected_users[sid]["memory"], emitter=functools.partial(sio.emit, to=sid)))
         
     # for slides we have to do extra work before first user message
+    # in slides interface, interfaceData is not used, client fetches data directly from dynamodb. Memory is used to store slide_list on this side. interface_update sio emit is used to send a push message to client
     if connected_users[sid]["interface"] == "slides" and not connected_users[sid]["interfaceData"]['slides_created']:
-        # load topics, send emitter as a partial function to emit to the room when done
-        asyncio.create_task(slides_load_slides(presentationID=presentationID, messages=connected_users[sid]["messages"], interfaceData=connected_users[sid]["interfaceData"], memory=connected_users[sid]["memory"], emitter=functools.partial(sio.emit), all_docs=connected_users[sid].get("all_docs")))
+        # load topics, send emitter as a partial function to emit to the sid when done
+        asyncio.create_task(slides_load_slides(presentation_id=presentationID, messages=connected_users[sid]["messages"], memory=connected_users[sid]["memory"], emitter=functools.partial(sio.emit, to=sid)))
         
 
 @sio.event
 async def message(sid, data):
     print(f"Client {sid} sent message: {data}")
-    new_message = {"role": "user", "content": data}
-    connected_users[sid]["messages"].append(new_message)
-    print(f"New message: {new_message}")
-    await sio.emit('message', new_message, room=sid)
+    connected_users[sid]["messages"].append(data)
+    print(f"New message: {data}")
+    
+    if not data.get('role') == 'user':
+        return
     
     # Route based on interface
     if connected_users[sid]["interface"] == "ideate" or connected_users[sid]["interface"] == "new":
@@ -159,7 +165,7 @@ async def message(sid, data):
             connected_users[sid]["presentationID"],
             connected_users[sid]["messages"],
             connected_users[sid]["interfaceData"],
-            functools.partial(sio.emit, room=sid),
+            functools.partial(sio.emit, to=sid),
             memory=connected_users[sid]["memory"],
         )
         
@@ -169,19 +175,30 @@ async def message(sid, data):
             connected_users[sid]["presentationID"],
             connected_users[sid]["messages"],
             connected_users[sid]["interfaceData"],
-            emitter=functools.partial(sio.emit, room=sid),
+            emitter=functools.partial(sio.emit, to=sid),
             memory=connected_users[sid]["memory"]
         )
     
     elif connected_users[sid]["interface"] == "slides":
+        connected_users[sid]["messages"], completion_messages, proceed = await slides_get_completion(
+            presentationID=connected_users[sid]["presentationID"],
+            messages=connected_users[sid]["messages"],
+            emitter=functools.partial(sio.emit, to=sid),
+            memory=connected_users[sid]["memory"],
+            interface_data=connected_users[sid]["interfaceData"],
+            max_turns=5
+        )
         pass
     
     else:
         raise ValueError("Interface not found")
+    
+    # Emit completion messages
     for completion_message in completion_messages:
-        await sio.emit('message', completion_message, room=sid)
+        await sio.emit('message', completion_message, to=sid)
+        
     if proceed:
-        await sio.emit('proceed', room=sid)
+        await sio.emit('proceed', to=sid)
 
 @sio.event
 async def interface_update(sid, data):
@@ -203,7 +220,7 @@ async def interface_update(sid, data):
                     connected_users[sid]["interfaceData"],
                     {'action': 'refresh'}
                 )
-                await sio.emit('interface_update', connected_users[sid]["interfaceData"], room=sid)
+                await sio.emit('interface_update', connected_users[sid]["interfaceData"], to=sid)
 
             # create a list to store the reading tasks
             reading_tasks = []
@@ -228,16 +245,32 @@ async def interface_update(sid, data):
 
         connected_users[sid]["loadingInterface"] = False
         print("Interface updated")
-        await sio.emit('interface_update', connected_users[sid]["interfaceData"], room=sid)
+        await sio.emit('interface_update', connected_users[sid]["interfaceData"], to=sid)
     elif connected_users[sid]["interface"] == "outline":
-        # if connected_users[sid]['interfaceData']['all_topics'] == None:
-        #     print(f"main 215 Interface Data all_topics none")
-        # else:
-        #     print(f"main 216 Interface Data all_topics length: {len(connected_users[sid]['interfaceData']['all_topics'])}")
         connected_users[sid]["interfaceData"]['outline'] = data['outline']
-        # print(f"Outline updated: {connected_users[sid]['interfaceData']['outline']}")
     elif connected_users[sid]["interface"] == "slides":
-        pass
+        # split the data into push and everything else
+        push_value = data.pop('push', None)
+        other_keys = data
+        
+        if push_value:
+            print(f"Pushing slides: {push_value}")
+            if push_value == '*':
+                print("Error: Pushing all slides not implemented yet.")
+            try:
+                if type(push_value) != str and not (type(push_value) == list and len(push_value) > 0 and all(isinstance(x, str) for x in push_value)):
+                    raise ValueError("Push value must be a string or a list of strings")
+                await connected_users[sid]["memory"]["slide_list"].fetch_slides(push_value)
+                await sio.emit('update_complete', {'status': 'success', 'slide_ids': push_value}, to=sid)
+                print(f"Pushed slides: {push_value}")
+                    
+            except Exception as e:
+                await sio.emit('update_complete', {'status': 'error', 'message': str(e)}, to=sid)
+                print(f"Error pushing slides: {str(e)}")
+                
+        # update the other interface data including current slide id
+        connected_users[sid]["interfaceData"].update(other_keys)
+            
     else:
         raise ValueError("Interface not found")
     
@@ -266,7 +299,13 @@ async def disconnect(sid):
             connected_users[sid]["interfaceData"],
             connected_users[sid]["memory"]
         )
-        pass
+    elif connected_users[sid]["interface"] == "slides":
+        await slides_save_progress(
+            connected_users[sid]["presentationID"],
+            connected_users[sid]["messages"],
+            connected_users[sid]["interfaceData"],
+            connected_users[sid]["memory"]
+        )
     else :
         raise ValueError("Interface not found")
     

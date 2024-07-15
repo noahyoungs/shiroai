@@ -418,51 +418,51 @@ async def update_source(presentation_id, source_id, **kwargs):
 
 
 async def delete_source(presentation_id, source_id):
-   """
-   Delete a source from the DynamoDB table.
+    """
+    Delete a source from the DynamoDB table.
 
-   This function deletes a source item from the DynamoDB table based on the provided
-   presentation ID and source ID. It constructs the primary key (PK) and sort key (SK)
-   using the provided IDs and attempts to delete the item from the table.
+    This function deletes a source item from the DynamoDB table based on the provided
+    presentation ID and source ID. It constructs the primary key (PK) and sort key (SK)
+    using the provided IDs and attempts to delete the item from the table.
 
-   Args:
-       presentation_id (str): The ID of the presentation associated with the source.
-       source_id (str): The ID of the source to be deleted.
+    Args:
+        presentation_id (str): The ID of the presentation associated with the source.
+        source_id (str): The ID of the source to be deleted.
 
-   Returns:
-       bool: True if the source is successfully deleted, False otherwise.
+    Returns:
+        bool: True if the source is successfully deleted, False otherwise.
 
-   Raises:
-       Exception: If an error occurs during the deletion process.
+    Raises:
+        Exception: If an error occurs during the deletion process.
 
-   Example:
-       result = await delete_source("presentation123", "source456")
-       if result:
-           print("Source deleted successfully.")
-       else:
-           print("Failed to delete the source.")
-   """
-   table_name = await get_table()
+    Example:
+        result = await delete_source("presentation123", "source456")
+        if result:
+            print("Source deleted successfully.")
+        else:
+            print("Failed to delete the source.")
+    """
+    table_name = await get_table()
 
-   async with get_session().create_client('dynamodb', region_name=AWS_REGION) as client:
-       key = {
-           'PK': {'S': f'PRESENTATION#{presentation_id}'},
-           'SK': {'S': f'SOURCE#{source_id}'}
-       }
+    async with get_session().create_client('dynamodb', region_name=AWS_REGION) as client:
+        key = {
+            'PK': {'S': f'PRESENTATION#{presentation_id}'},
+            'SK': {'S': f'SOURCE#{source_id}'}
+        }
 
-       try:
-           response = await client.delete_item(
-               TableName=table_name,
-               Key=key
-           )
+        try:
+            response = await client.delete_item(
+                TableName=table_name,
+                Key=key
+            )
 
-           if response['ResponseMetadata']['HTTPStatusCode'] == 200:
-               return True
-           else:
-               return False
-       except Exception as e:
-           print(f"Error deleting source: {e}")
-           return False
+            if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+                return True
+            else:
+                return False
+        except Exception as e:
+            print(f"Error deleting source: {e}")
+            return False
 
 
 async def batch_update_sources(presentation_id: str, sources: List[Dict[str, Any]]) -> bool:
@@ -615,6 +615,15 @@ async def update_slides(presentation_id: str, slides: Union[Slide, Dict, List[Un
 
                 if isinstance(value, (list, dict)):
                     value = json.dumps(value)
+                    # print(f"Converted {key} to JSON string: {value}")
+                elif isinstance(value, str):
+                    try:
+                        # Check if the string is already a JSON-formatted string
+                        json.loads(value)
+                        # print(f"{key} is already a JSON string: {value}")
+                    except json.JSONDecodeError:
+                        # If it's not JSON, proceed with conversion
+                        pass
 
                 attr_name_key = f'#{key}'
                 update_expression += f'{attr_name_key} = :{key}, '
@@ -627,6 +636,7 @@ async def update_slides(presentation_id: str, slides: Union[Slide, Dict, List[Un
                     expression_attribute_values[f':{key}'] = {'N': str(value)}
                 elif value_type == bool:
                     expression_attribute_values[f':{key}'] = {'BOOL': value}
+                # print(f"Prepared value for {key}: {expression_attribute_values[f':{key}']}")
 
             # Remove the trailing comma and space from the update expression
             update_expression = update_expression.rstrip(', ')
@@ -650,14 +660,16 @@ async def update_slides(presentation_id: str, slides: Union[Slide, Dict, List[Un
             }
 
             update_requests.append(update_request)
+            # print(f"Update request prepared for slide {slide_id}: {update_request}")
 
         if len(update_requests) == 1:
             response = await client.update_item(**update_requests[0]["Update"])
+            # print(f"Update response for single item: {response}")
             return response['ResponseMetadata']['HTTPStatusCode'] == 200
         else:
             response = await client.transact_write_items(TransactItems=update_requests)
+            # print(f"Transact write response: {response}")
             return response['ResponseMetadata']['HTTPStatusCode'] == 200
-
 
 
 async def get_all_slides(presentation_id, attributes=None) -> List[Slide]:
@@ -684,7 +696,8 @@ async def get_all_slides(presentation_id, attributes=None) -> List[Slide]:
             for attr in attributes:
                 if attr in reserved_attrs:
                     expression_attribute_names[f'#{attr}'] = attr
-            projection_expression = ', '.join(f'#{attr}' if attr in reserved_attrs else attr for attr in attributes)
+            projection_expression = ', '.join(
+                f'#{attr}' if attr in reserved_attrs else attr for attr in attributes)
             response = await client.query(
                 TableName=table_name,
                 KeyConditionExpression=key_condition_expression,
@@ -734,7 +747,6 @@ async def get_all_slides(presentation_id, attributes=None) -> List[Slide]:
         return slides
 
 
-
 async def get_slides(presentation_id, slide_ids: Union[str, List[str]], attributes=None) -> Union[Slide, List[Slide]]:
     """
     Retrieve one or multiple slides from a presentation.
@@ -760,7 +772,8 @@ async def get_slides(presentation_id, slide_ids: Union[str, List[str]], attribut
                 for attr in attributes:
                     if attr in reserved_attrs:
                         expression_attribute_names[f'#{attr}'] = attr
-                projection_expression = ', '.join(f'#{attr}' if attr in reserved_attrs else attr for attr in attributes)
+                projection_expression = ', '.join(
+                    f'#{attr}' if attr in reserved_attrs else attr for attr in attributes)
                 response = await client.get_item(
                     TableName=table_name,
                     Key=key,
@@ -780,7 +793,8 @@ async def get_slides(presentation_id, slide_ids: Union[str, List[str]], attribut
                     if k == 'SK':
                         simplified_item['id'] = v['S'].split('#')[1]
                     elif k == 'PK':
-                        simplified_item['presentation_id'] = v['S'].split('#')[1]
+                        simplified_item['presentation_id'] = v['S'].split('#')[
+                            1]
                     elif 'S' in v:
                         try:
                             simplified_item[k] = json.loads(v['S'])
@@ -806,7 +820,8 @@ async def get_slides(presentation_id, slide_ids: Union[str, List[str]], attribut
                     raise ValueError(f"Unknown slide type: {slide_type}")
 
         else:
-            keys = [{'PK': {'S': f'PRESENTATION#{presentation_id}'}, 'SK': {'S': f'SLIDE#{slide_id}'}} for slide_id in slide_ids]
+            keys = [{'PK': {'S': f'PRESENTATION#{presentation_id}'}, 'SK': {
+                'S': f'SLIDE#{slide_id}'}} for slide_id in slide_ids]
 
             request_items = {
                 table_name: {
@@ -823,7 +838,8 @@ async def get_slides(presentation_id, slide_ids: Union[str, List[str]], attribut
                     if k == 'SK':
                         simplified_item['id'] = v['S'].split('#')[1]
                     elif k == 'PK':
-                        simplified_item['presentation_id'] = v['S'].split('#')[1]
+                        simplified_item['presentation_id'] = v['S'].split('#')[
+                            1]
                     elif 'S' in v:
                         try:
                             simplified_item[k] = json.loads(v['S'])
@@ -875,7 +891,8 @@ async def delete_all_slides(presentation_id: str) -> bool:
             ExpressionAttributeValues=expression_attribute_values
         )
 
-        slide_keys = [{'PK': item['PK'], 'SK': item['SK']} for item in response['Items']]
+        slide_keys = [{'PK': item['PK'], 'SK': item['SK']}
+                      for item in response['Items']]
 
         try:
             for key in slide_keys:
@@ -888,8 +905,292 @@ async def delete_all_slides(presentation_id: str) -> bool:
             print(f"Error deleting slides: {str(e)}")
             return False
 
-from typing import List, Dict, Any, Union
-from slides.slide_models import *
+
+async def update_topics(presentation_id: str, topics: Union[Topic, Dict, List[Union[Topic, Dict]]]) -> bool:
+    """
+    Update one or multiple topics in a presentation.
+
+    Args:
+        presentation_id (str): The ID of the presentation.
+        topics (Union[Topic, Dict, List[Union[Topic, Dict]]]): A single Topic model, a partial topic dictionary, or a list of these to update.
+
+    Returns:
+        bool: True if the update was successful, False otherwise.
+    """
+    table_name = await get_table()
+    async with get_session().create_client('dynamodb', region_name=AWS_REGION) as client:
+        current_timestamp = int(time.time())
+        update_requests = []
+
+        if isinstance(topics, (Topic, dict)):
+            topics = [topics]
+
+        for topic in topics:
+            if isinstance(topic, Topic):
+                topic_dict = topic.dict(exclude_unset=True)
+            elif isinstance(topic, dict):
+                topic_dict = topic
+
+            topic_id = topic_dict.pop('id', None)
+            if not topic_id:
+                continue  # Skip if no id is provided
+
+            update_expression = 'SET '
+            expression_attribute_values = {}
+            expression_attribute_names = {}
+
+            for key, value in topic_dict.items():
+                if value is None or value == '':  # Skip null or empty values
+                    continue
+
+                if isinstance(value, (list, dict)):
+                    value = json.dumps(value)
+
+                attr_name_key = f'#{key}'
+                update_expression += f'{attr_name_key} = :{key}, '
+                expression_attribute_names[attr_name_key] = key
+
+                value_type = type(value)
+                if value_type == str:
+                    expression_attribute_values[f':{key}'] = {'S': value}
+                elif value_type == int:
+                    expression_attribute_values[f':{key}'] = {'N': str(value)}
+                elif value_type == bool:
+                    expression_attribute_values[f':{key}'] = {'BOOL': value}
+
+            # Remove the trailing comma and space from the update expression
+            update_expression = update_expression.rstrip(', ')
+
+            # Set the time_updated attribute to the current Unix timestamp
+            update_expression += ', #time_updated = :time_updated'
+            expression_attribute_names['#time_updated'] = 'time_updated'
+            expression_attribute_values[':time_updated'] = {
+                'N': str(current_timestamp)}
+
+            update_request = {
+                "Update": {
+                    "TableName": table_name,
+                    "Key": {
+                        'PK': {'S': f'PRESENTATION#{presentation_id}'},
+                        'SK': {'S': f'TOPIC#{topic_id}'}
+                    },
+                    "UpdateExpression": update_expression,
+                    "ExpressionAttributeValues": expression_attribute_values,
+                    "ExpressionAttributeNames": expression_attribute_names
+                }
+            }
+
+            update_requests.append(update_request)
+
+        if len(update_requests) == 1:
+            response = await client.update_item(**update_requests[0]["Update"])
+            return response['ResponseMetadata']['HTTPStatusCode'] == 200
+        else:
+            response = await client.transact_write_items(TransactItems=update_requests)
+            return response['ResponseMetadata']['HTTPStatusCode'] == 200
+
+
+async def get_all_topics(presentation_id, attributes=None) -> List[Topic]:
+    """
+    Retrieve all topics in a presentation.
+
+    Args:
+        presentation_id (str): The ID of the presentation.
+        attributes (Optional[List[str]]): A list of attributes to retrieve for each topic.
+
+    Returns:
+        List[Topic]: A list of Topic models.
+    """
+    table_name = await get_table()
+    async with get_session().create_client('dynamodb', region_name=AWS_REGION) as client:
+        key_condition_expression = 'PK = :pk AND begins_with(SK, :sk)'
+        expression_attribute_values = {
+            ':pk': {'S': f'PRESENTATION#{presentation_id}'},
+            ':sk': {'S': 'TOPIC#'}
+        }
+
+        if attributes:
+            expression_attribute_names = {}
+            for attr in attributes:
+                if attr in reserved_attrs:
+                    expression_attribute_names[f'#{attr}'] = attr
+            projection_expression = ', '.join(
+                f'#{attr}' if attr in reserved_attrs else attr for attr in attributes)
+            response = await client.query(
+                TableName=table_name,
+                KeyConditionExpression=key_condition_expression,
+                ExpressionAttributeValues=expression_attribute_values,
+                ProjectionExpression=projection_expression,
+                ExpressionAttributeNames=expression_attribute_names
+            )
+        else:
+            response = await client.query(
+                TableName=table_name,
+                KeyConditionExpression=key_condition_expression,
+                ExpressionAttributeValues=expression_attribute_values
+            )
+
+        topics = []
+        for item in response['Items']:
+            simplified_item = {}
+            for k, v in item.items():
+                if k == 'SK':
+                    simplified_item['id'] = v['S'].split('#')[1]
+                elif k == 'PK':
+                    simplified_item['presentation_id'] = v['S'].split('#')[1]
+                elif 'S' in v:
+                    try:
+                        simplified_item[k] = json.loads(v['S'])
+                    except json.JSONDecodeError:
+                        simplified_item[k] = v['S']
+                elif 'N' in v:
+                    simplified_item[k] = int(v['N'])
+                elif 'BOOL' in v:
+                    simplified_item[k] = v['BOOL']
+
+            topics.append(Topic(**simplified_item))
+
+        return topics
+
+
+async def get_topics(presentation_id, topic_ids: Union[str, List[str]], attributes=None) -> Union[Topic, List[Topic]]:
+    """
+    Retrieve one or multiple topics from a presentation.
+
+    Args:
+        presentation_id (str): The ID of the presentation.
+        topic_ids (Union[str, List[str]]): A single topic ID or a list of topic IDs to retrieve.
+        attributes (Optional[List[str]]): A list of attributes to retrieve for the topic(s).
+
+    Returns:
+        Union[Topic, List[Topic]]: A Topic model or a list of Topic models.
+    """
+    table_name = await get_table()
+    async with get_session().create_client('dynamodb', region_name=AWS_REGION) as client:
+        if isinstance(topic_ids, str):
+            key = {
+                'PK': {'S': f'PRESENTATION#{presentation_id}'},
+                'SK': {'S': f'TOPIC#{topic_ids}'}
+            }
+
+            if attributes:
+                expression_attribute_names = {}
+                for attr in attributes:
+                    if attr in reserved_attrs:
+                        expression_attribute_names[f'#{attr}'] = attr
+                projection_expression = ', '.join(
+                    f'#{attr}' if attr in reserved_attrs else attr for attr in attributes)
+
+                get_item_params = {
+                    'TableName': table_name,
+                    'Key': key,
+                    'ProjectionExpression': projection_expression
+                }
+
+                if expression_attribute_names:
+                    get_item_params['ExpressionAttributeNames'] = expression_attribute_names
+
+                response = await client.get_item(**get_item_params)
+            else:
+                response = await client.get_item(
+                    TableName=table_name,
+                    Key=key
+                )
+
+            if 'Item' in response:
+                item = response['Item']
+                simplified_item = {}
+                for k, v in item.items():
+                    if k == 'SK':
+                        simplified_item['id'] = v['S'].split('#')[1]
+                    elif k == 'PK':
+                        simplified_item['presentation_id'] = v['S'].split('#')[
+                            1]
+                    elif 'S' in v:
+                        try:
+                            simplified_item[k] = json.loads(v['S'])
+                        except json.JSONDecodeError:
+                            simplified_item[k] = v['S']
+                    elif 'N' in v:
+                        simplified_item[k] = int(v['N'])
+                    elif 'BOOL' in v:
+                        simplified_item[k] = v['BOOL']
+
+                return Topic(**simplified_item)
+
+        else:
+            keys = [{'PK': {'S': f'PRESENTATION#{presentation_id}'}, 'SK': {
+                'S': f'TOPIC#{topic_id}'}} for topic_id in topic_ids]
+
+            request_items = {
+                table_name: {
+                    'Keys': keys
+                }
+            }
+
+            response = await client.batch_get_item(RequestItems=request_items)
+
+            topics = []
+            for item in response.get('Responses', {}).get(table_name, []):
+                simplified_item = {}
+                for k, v in item.items():
+                    if k == 'SK':
+                        simplified_item['id'] = v['S'].split('#')[1]
+                    elif k == 'PK':
+                        simplified_item['presentation_id'] = v['S'].split('#')[
+                            1]
+                    elif 'S' in v:
+                        try:
+                            simplified_item[k] = json.loads(v['S'])
+                        except json.JSONDecodeError:
+                            simplified_item[k] = v['S']
+                    elif 'N' in v:
+                        simplified_item[k] = int(v['N'])
+                    elif 'BOOL' in v:
+                        simplified_item[k] = v['BOOL']
+
+                topics.append(Topic(**simplified_item))
+
+            return topics
+
+
+async def delete_all_topics(presentation_id: str) -> bool:
+    """
+    Delete all topics for a presentation.
+
+    Args:
+        presentation_id (str): The ID of the presentation.
+
+    Returns:
+        bool: True if all topics were deleted successfully, False otherwise.
+    """
+    table_name = await get_table()
+    async with get_session().create_client('dynamodb', region_name=AWS_REGION) as client:
+        key_condition_expression = 'PK = :pk AND begins_with(SK, :sk)'
+        expression_attribute_values = {
+            ':pk': {'S': f'PRESENTATION#{presentation_id}'},
+            ':sk': {'S': 'TOPIC#'}
+        }
+
+        response = await client.query(
+            TableName=table_name,
+            KeyConditionExpression=key_condition_expression,
+            ExpressionAttributeValues=expression_attribute_values
+        )
+
+        topic_keys = [{'PK': item['PK'], 'SK': item['SK']}
+                      for item in response['Items']]
+
+        try:
+            for key in topic_keys:
+                await client.delete_item(
+                    TableName=table_name,
+                    Key=key
+                )
+            return True
+        except Exception as e:
+            print(f"Error deleting topics: {str(e)}")
+            return False
 
 
 async def main():
@@ -923,9 +1224,8 @@ async def main():
             sequential=True,
             layout='list',
             generation_messages=[
-                GenerationMessage(role='user', content='Initial content for slide 1')
+                LLMMessage(role='user', content='Initial content for slide 1')
             ],
-            generation_excerpt_ids=[uuid7str()]
         ),
         MarkdownSlide(
             id=uuid7str(),
@@ -944,9 +1244,9 @@ async def main():
                 }
             },
             generation_messages=[
-                GenerationMessage(role='assistant', content='Initial content for slide 2')
+                LLMMessage(role='assistant',
+                           content='Initial content for slide 2')
             ],
-            generation_excerpt_ids=[uuid7str()]
         ),
         SimpleMermaidSlide(
             id=uuid7str(),
@@ -967,9 +1267,9 @@ async def main():
                 'dark_svg': '<svg>Dark</svg>'
             },
             generation_messages=[
-                GenerationMessage(role='system', content='Initial content for slide 3')
+                LLMMessage(role='system',
+                           content='Initial content for slide 3')
             ],
-            generation_excerpt_ids=[uuid7str()]
         ),
         SectionHeaderSlide(
             id=uuid7str(),
@@ -986,9 +1286,8 @@ async def main():
             ),
             image_position='left',
             generation_messages=[
-                GenerationMessage(role='user', content='Initial content for slide 4')
+                LLMMessage(role='user', content='Initial content for slide 4')
             ],
-            generation_excerpt_ids=[uuid7str()]
         ),
         PresentationTitleSlide(
             id=uuid7str(),
@@ -1004,9 +1303,9 @@ async def main():
                 shape='rectangle'
             ),
             generation_messages=[
-                GenerationMessage(role='assistant', content='Initial content for slide 5')
+                LLMMessage(role='assistant',
+                           content='Initial content for slide 5')
             ],
-            generation_excerpt_ids=[uuid7str()]
         ),
     ]
 
@@ -1033,6 +1332,7 @@ async def main():
         slide_ids = [slide.id for slide in all_slides]
         multiple_slides = await get_slides(presentation_id, slide_ids)
         print("Multiple slides:", multiple_slides)
+
 
 if __name__ == '__main__':
     asyncio.run(main())

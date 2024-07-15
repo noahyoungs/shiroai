@@ -212,9 +212,7 @@ a {
   margin-left: -1.4em;
 }
 
-#prose-container table {
-  justify-self: center;
-}
+
 
 #presentation-title textarea {
   @apply text-background/90;

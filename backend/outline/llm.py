@@ -9,37 +9,6 @@ from dynamodb import get_presentation
 import json
 
 
-
-# def test_getCurrentTopicListMessage():
-#     dummy_data1 = {
-#         'included_topics': [
-#             {'id': '11111111-2222-3333-4444-555555555555', 'name': 'Topic 1', 'relevance_rating': '5', 'relevance_reasoning': 'Reasoning 1', 'keywords': ['keyword1', 'keyword2']},
-#             {'id': '66666666-7777-8888-9999-000000000000', 'name': 'Topic 2', 'relevance_rating': '4', 'relevance_reasoning': 'Reasoning 2', 'keywords': ['keyword3', 'keyword4']}
-#         ],
-#         'excluded_topics': []
-#     }
-    
-#     dummy_data2 = {
-#         'included_topics': [],
-#         'excluded_topics': [
-#             {'id': 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', 'name': 'Topic 3', 'relevance_rating': '3', 'relevance_reasoning': 'Reasoning 3', 'keywords': ['keyword5', 'keyword6']}
-#         ]
-#     }
-    
-#     dummy_data3 = {
-#         'included_topics': [
-#             {'id': 'fffffff1-2222-3333-4444-555555555555', 'name': 'Topic 4', 'relevance_rating': '5', 'relevance_reasoning': 'Reasoning 4', 'keywords': ['keyword7', 'keyword8']},
-#         ],
-#         'excluded_topics': [
-#             {'id': '666666f6-7777-8888-9999-000000000000', 'name': 'Topic 5', 'relevance_rating': '2', 'relevance_reasoning': 'Reasoning 5', 'keywords': ['keyword9', 'keyword10']}
-#         ]
-#     }
-    
-#     print(getCurrentTopicListMessage(dummy_data1)['content'])
-#     print(getCurrentTopicListMessage(dummy_data2)['content'])
-#     print(getCurrentTopicListMessage(dummy_data3)['content'])
-
-
 async def getCurrentSubtopicListMessage(interfaceData, presentationID):
     if not isinstance(interfaceData['all_topics'], list):
         presentation = await get_presentation(presentationID, ['candidate_topics', 'topic_extraction_status'])

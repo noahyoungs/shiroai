@@ -72,6 +72,7 @@ export async function POST(req: NextRequest) {
       }
 
       const maxSize = shape === 'full' ? { width: 1920, height: 1080 } : { width: 1080, height: 1080 };
+      const thumbnailSize = shape === 'full' ? { width: 320, height: 180 } : { width: 180, height: 180 };
 
       try {
         console.log("Processing image with sharp...");
@@ -85,23 +86,40 @@ export async function POST(req: NextRequest) {
           .jpeg()
           .toBuffer();
 
+        const thumbnailBufferWebp = await sharp(fileBuffer)
+          .resize(thumbnailSize.width, thumbnailSize.height, { fit: 'inside' })
+          .webp()
+          .toBuffer();
+
         const metadata = await sharp(fileBuffer).metadata();
         const width = metadata.width;
         const height = metadata.height;
 
+        const s3Key = `${presentationID}/backgrounds/${uuidv7()}.webp`;
+        const thumbnailKey = s3Key.replace(".webp", "_thumbnail.webp");
+
         const uploadParams = {
           Bucket: process.env.SOURCES_BUCKET_NAME!,
-          Key: `${presentationID}/backgrounds/${uuidv7()}.webp`,
+          Key: s3Key,
           Body: resizedBufferWebp,
           ContentType: 'image/webp',
         };
 
-        console.log("Uploading image to S3 with params:", uploadParams);
+        const thumbnailUploadParams = {
+          Bucket: process.env.SOURCES_BUCKET_NAME!,
+          Key: thumbnailKey,
+          Body: thumbnailBufferWebp,
+          ContentType: 'image/webp',
+        };
+
+        console.log("Uploading image and thumbnail to S3 with params:", uploadParams, thumbnailUploadParams);
 
         const command = new PutObjectCommand(uploadParams);
-        const uploadResult = await s3.send(command);
+        const thumbnailCommand = new PutObjectCommand(thumbnailUploadParams);
 
-        console.log("S3 upload result:", uploadResult);
+        await Promise.all([s3.send(command), s3.send(thumbnailCommand)]);
+
+        console.log("S3 upload result: Image and thumbnail uploaded successfully");
 
         const detectLabelsParams = {
           Image: {
@@ -120,12 +138,12 @@ export async function POST(req: NextRequest) {
         const labelNames = labelsResult.Labels?.map(label => label.Name).join(', ') || '';
 
         resolve(NextResponse.json({
-          s3_key: uploadParams.Key,
+          s3_key: s3Key,
           width: width,
           height: height,
           prompt: labelNames
         }, { status: 200 }));
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error processing, uploading image or detecting labels:", error);
         resolve(NextResponse.json({ error: error.message }, { status: 500 }));
       }

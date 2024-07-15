@@ -1,4 +1,4 @@
-function splitMarkdownTablee(table: string): [string, string] {
+function splitMarkdownTable(table: string): [string, string] {
     // Step 1: Split the text by \n and run .trim() on every line/row
     const rows = table.split('\n').map(row => row.trim());
   

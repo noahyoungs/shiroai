@@ -128,7 +128,8 @@ def generate_xml_string(model_class: Union[Type[BaseModel], dict], data: Any,) -
                         xml_string += f"\n</{singular_name_underscore}>\n"
                 xml_string += f"</{field_name}>\n"
             else:
-                xml_string += f"<{field_name}>\n{field_value}\n</{field_name}>\n"
+                if field_value is not None:
+                    xml_string += f"<{field_name}>\n{field_value}\n</{field_name}>\n"
 
     else:
         xml_string += f"{data}\n"
@@ -177,6 +178,7 @@ def parse_xml_to_model(xml_string: str, model_class: Type[BaseModel], **kwargs) 
 
     # Get the schema of the model class
     schema = model_class.schema()
+    # print(f"Whole Schema: {schema}")
 
     # Initialize a dictionary to store the parsed data
     data = {}
@@ -184,27 +186,41 @@ def parse_xml_to_model(xml_string: str, model_class: Type[BaseModel], **kwargs) 
     # Recursively parse the XML elements based on the schema
     def parse_element(element, schema_prop):
         # print(f"Element: {element.tag}")
+        # print(f"Schema: {schema_prop}")
+        
+        if 'anyOf' in schema_prop:
+            schema_prop['type'] = schema_prop['anyOf'][0]['type']
+            if schema_prop['anyOf'][0].get('items'):
+                schema_prop['items'] = schema_prop['anyOf'][0]['items']
+            # print(f"Found anyOf, using {schema_prop['type']} as type")
+        
         if 'type' in schema_prop:
             if schema_prop['type'] == 'array':
+                # print(f"Array: {element.tag}")
                 return [parse_element(child, schema_prop['items']) for child in element]
             elif schema_prop['type'] == 'object':
+                # print(f"Object: {element.tag}")
                 if len(list(schema_prop['properties'].values())) == 1 and element.tag == list(schema_prop.get('properties', {}).keys())[0]:
                     # print(f"Match! {element.tag} == {list(schema_prop.get('properties', {}).keys())[0]}")
                     return {element.tag: parse_element(element, list(schema_prop['properties'].values())[0])}
                 else:
                     return {child.tag: parse_element(child, schema_prop['properties'][child.tag]) for child in element}
             else:
+                # print(f"Element: {element.tag}")
                 return element.text.strip()
         elif '$ref' in schema_prop:
+            # print(f"Ref: {schema_prop['$ref']}")
             ref_name = schema_prop['$ref'].split('/')[-1]
             ref_schema = schema['$defs'][ref_name]
             return parse_element(element, ref_schema)
+        
 
     # Parse the root element based on the schema
     for child in root:
         try:
             data[child.tag] = parse_element(child, schema['properties'][child.tag])
-        except KeyError:
+        except KeyError as e:
+            print(f"KeyError: {str(e)}")
             print(f"Warning: {child.tag} was found in the xml but does not belong in the pydantic model. Skipping...")
         
     # add the kwargs to any dicts in lists
@@ -348,7 +364,7 @@ async def get_basemodel_instance_from_llm(client, pydantic_model_class, dynamic_
                 messages.append({"role": "user", "content": error_string})
             elif isinstance(e, ValueError):
                 print(f"LLM Mistake: {str(e)}")
-                messages.append({"role": "user", "content": f"There was a syntax issue with the XML you provided:\n{str(e)}\n\nPlease fix your XML response."})
+                messages.append({"role": "user", "content": f"There was a syntax issue with the XML you provided:\n{str(e)}\n\nPlease fix your XML response. This error might be caused because you inadvertently used an XML tag as part of your response. In this case, please only use XML tags for the input fields, and if you must use XML tags in your response, please use them in pairs. (e.g. <tag></tag> instead of <tag>)"})
             else:
                 raise e
             

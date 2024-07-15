@@ -2,8 +2,11 @@ import re
 import xml.etree.ElementTree as ET
 import base64
 import aiohttp
+import os 
 
 from slides.mermaid.tall_shapes_lines_inference import predict_ideal_lines
+
+HEADLESS_API_PATH = os.getenv('HEADLESS_API_PATH')
 
 def break_string_into_lines(input_string, n):
     # replace \n and <br> with <br/>
@@ -63,25 +66,25 @@ def process_tall_shapes(diagram):
     
     return diagram
 
-def calculate_aspect_ratio_from_viewbox(svg_data):
-    root = ET.fromstring(svg_data)
-    viewBox = root.attrib.get('viewBox')
-    if viewBox:
-        _, _, width, height = map(float, viewBox.split())
-        return width / height
-    else:
-        raise ValueError("viewBox attribute not found in the SVG.")
-
-async def generate_svg(diagram, dark=False):
-    graphbytes = diagram.encode('utf8')
-    base64_bytes = base64.b64encode(graphbytes)
-    diagram = base64_bytes.decode('ascii')
-    
-    url = f"http://localhost:3002/svg/{diagram}?bgColor=!transparent" + ("&theme=dark" if dark else "")
-
+async def get_dimensions_from_service(diagram):
     async with aiohttp.ClientSession() as session:
-        async with session.get(url) as response:
-            return await response.text()
+        url = f"{HEADLESS_API_PATH}/mermaid-dimensions"
+        async with session.post(url, json={"code": diagram}) as response:
+            response_data = await response.json()
+            if response.status == 200:
+                return response_data['width'], response_data['height']
+            else:
+                raise ValueError(f"Failed to get dimensions: {response_data.get('message')}")
+
+async def generate_svgs_from_service(diagram):
+    async with aiohttp.ClientSession() as session:
+        url = f"{HEADLESS_API_PATH}/mermaid"
+        async with session.post(url, json={"code": diagram}) as response:
+            response_data = await response.json()
+            if response.status == 200:
+                return response_data['lightSvg'], response_data['darkSvg']
+            else:
+                raise ValueError(f"Failed to generate SVGs: {response_data.get('message')}")
 
 async def adjust_ar_with_line_breaks(diagram, target_ratio=2.4, max_iterations=10):
     iterations = 0
@@ -89,8 +92,8 @@ async def adjust_ar_with_line_breaks(diagram, target_ratio=2.4, max_iterations=1
     adjusted_diagram = diagram
     setpoint = 2  # Start with the minimum number of lines
 
-    svg_data = await generate_svg(diagram)
-    aspect_ratio = calculate_aspect_ratio_from_viewbox(svg_data)
+    width, height = await get_dimensions_from_service(diagram)
+    aspect_ratio = width / height
     print(f"Initial Aspect Ratio: {aspect_ratio}")
 
     while iterations < max_iterations:
@@ -104,8 +107,8 @@ async def adjust_ar_with_line_breaks(diagram, target_ratio=2.4, max_iterations=1
             new_text = break_string_into_lines(match, setpoint)
             new_diagram = new_diagram.replace(f'"{match}"', f'"{new_text}"')
 
-        svg_data = await generate_svg(new_diagram)
-        new_aspect_ratio = calculate_aspect_ratio_from_viewbox(svg_data)
+        width, height = await get_dimensions_from_service(new_diagram)
+        new_aspect_ratio = width / height
         print(f"Iteration {iterations + 1} (Setpoint: {setpoint}): New Aspect Ratio = {new_aspect_ratio}")
 
         if abs(new_aspect_ratio - target_ratio) <= abs(aspect_ratio - target_ratio):
@@ -130,11 +133,11 @@ async def adjust_ar_with_direction(diagram, target_ratio=2.4):
     diagram_td = diagram.replace(first_line, 'graph BT' if reverse else 'graph TD', 1)
     diagram_lr = diagram.replace(first_line, 'graph RL' if reverse else 'graph LR', 1)
 
-    svg_data_td = await generate_svg(diagram_td)
-    aspect_ratio_td = calculate_aspect_ratio_from_viewbox(svg_data_td)
+    width_td, height_td = await get_dimensions_from_service(diagram_td)
+    aspect_ratio_td = width_td / height_td
 
-    svg_data_lr = await generate_svg(diagram_lr)
-    aspect_ratio_lr = calculate_aspect_ratio_from_viewbox(svg_data_lr)
+    width_lr, height_lr = await get_dimensions_from_service(diagram_lr)
+    aspect_ratio_lr = width_lr / height_lr
 
     if abs(aspect_ratio_td - target_ratio) < 0.25 or abs(aspect_ratio_lr - target_ratio) < 0.25:
         if abs(aspect_ratio_td - target_ratio) < abs(aspect_ratio_lr - target_ratio):
@@ -166,11 +169,10 @@ def round_rectangles(diagram):
     
     return diagram
 
-
-async def process_diagram_to_svgs(diagram):
+async def process_diagram_to_svgs(diagram, adjust_ar=True):
     diagram = process_tall_shapes(diagram)
-    diagram, _ = await adjust_ar_with_direction(diagram)
+    if adjust_ar:
+        diagram, _ = await adjust_ar_with_direction(diagram)
     diagram = round_rectangles(diagram)
-    light_svg = await generate_svg(diagram, dark=False)
-    dark_svg = await generate_svg(diagram, dark=True)
+    light_svg, dark_svg = await generate_svgs_from_service(diagram)
     return light_svg, dark_svg

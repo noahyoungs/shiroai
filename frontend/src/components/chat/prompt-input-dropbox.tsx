@@ -9,8 +9,10 @@ import { getIcon } from "@/utils/get-file-icon";
 import { cn } from "@/utils/cn";
 
 import PromptInput from "./prompt-input";
+import { set } from "lodash";
 
 export default function Component({
+  setMessages,
   socket,
   block,
   setBlockSend,
@@ -19,13 +21,14 @@ export default function Component({
   refreshSources,
   onHeightChange,
 }: {
-  socket: any,
-  block: boolean,
-  setBlockSend: (block: boolean) => void,
-  sources: any,
-  presentationID: string,
-  refreshSources: () => void,
-  onHeightChange?: (height: number, meta: { rowHeight: number }) => void,
+  setMessages: (messages: any) => void;
+  socket: any;
+  block: boolean;
+  setBlockSend: (block: boolean) => void;
+  sources: any;
+  presentationID: string;
+  refreshSources: () => void;
+  onHeightChange?: (height: number, meta: { rowHeight: number }) => void;
 }) {
   // const [isRegenerating, setIsRegenerating] = useState<boolean>(false);
   const [prompt, setPrompt] = useState<string>("");
@@ -45,16 +48,30 @@ export default function Component({
       // if upload is successful, send message
       if (success) {
         // template message for when theres no message
-        let promptToSend = prompt.trim() || `I uploaded ${files.length} file${files.length > 1 ? 's' : ''}: ${files.map(file => file.name).join(', ')}`
+        let promptToSend =
+          prompt.trim() ||
+          `I uploaded ${files.length} file${
+            files.length > 1 ? "s" : ""
+          }: ${files.map((file) => file.name).join(", ")}`;
         setPrompt("");
-        socket.emit("message", promptToSend);
+        socket.emit("message", { role: "user", content: promptToSend });
+        // Add latest message to messages for display
+        setMessages((oldMessages: any) => [
+          ...oldMessages,
+          { role: "user", content: promptToSend },
+        ]);
         setBlockSend(true);
       }
     } else {
       // if no files
-      console.log("Sending message: ", prompt)
+      console.log("Sending message: ", prompt);
       if (prompt.trim() !== "" && socket) {
-        socket.emit("message", prompt);
+        socket.emit("message", { role: "user", content: prompt });
+        // Add latest message to messages for display
+        setMessages((oldMessages: any) => [
+          ...oldMessages,
+          { role: "user", content: prompt },
+        ]);
         setPrompt("");
         setBlockSend(true);
       }
@@ -64,23 +81,33 @@ export default function Component({
   const upload = async () => {
     let acceptedFiles = files;
     if (acceptedFiles.length === 0) {
-      alert('Please select files to upload.');
+      alert("Please select files to upload.");
       return false;
     }
 
     // alert and return if any file in acceptedFiles has the same name as a file in sources
-    const fileNames = acceptedFiles.map(file => file.name);
-    const sourceFileNames = sources.map((source: { s3_filepath?: string; }) => source.s3_filepath);
-    const duplicateFileNames = fileNames.filter(fileName => sourceFileNames.includes(fileName));
+    const fileNames = acceptedFiles.map((file) => file.name);
+    const sourceFileNames = sources.map(
+      (source: { s3_filepath?: string }) => source.s3_filepath
+    );
+    const duplicateFileNames = fileNames.filter((fileName) =>
+      sourceFileNames.includes(fileName)
+    );
     if (duplicateFileNames.length > 0) {
-      alert(`The following files already exist in the source list: ${duplicateFileNames.join(', ')}. Please rename before uploading.`);
+      alert(
+        `The following files already exist in the source list: ${duplicateFileNames.join(
+          ", "
+        )}. Please rename before uploading.`
+      );
       return false;
     }
 
     // alert and return if two or more files in acceptedFiles have the same name
     const uniqueFileNames = new Set(fileNames);
     if (uniqueFileNames.size !== fileNames.length) {
-      alert('One or more of the selected files have the same name. Please rename before uploading.');
+      alert(
+        "One or more of the selected files have the same name. Please rename before uploading."
+      );
       return false;
     }
 
@@ -90,13 +117,17 @@ export default function Component({
     for (const file of acceptedFiles) {
       // Upload file to S3
       const response = await fetch(
-        process.env.NEXT_PUBLIC_BASE_URL + '/api/upload',
+        process.env.NEXT_PUBLIC_BASE_URL + "/api/upload",
         {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
-          body: JSON.stringify({ filename: file.name, contentType: file.type, presentationID }),
+          body: JSON.stringify({
+            filename: file.name,
+            contentType: file.type,
+            presentationID,
+          }),
         }
       );
 
@@ -106,20 +137,20 @@ export default function Component({
         Object.entries(fields).forEach(([key, value]) => {
           formData.append(key, value as string);
         });
-        formData.append('file', file);
+        formData.append("file", file);
 
         const uploadResponse = await fetch(url, {
-          method: 'POST',
+          method: "POST",
           body: formData,
         });
 
         if (!uploadResponse.ok) {
-          console.error('S3 Upload Error:', uploadResponse);
+          console.error("S3 Upload Error:", uploadResponse);
           try {
             const errorBody = await uploadResponse.text();
-            console.error('Error Body:', errorBody);
+            console.error("Error Body:", errorBody);
           } catch (err) {
-            console.error('Failed to parse error body:', err);
+            console.error("Failed to parse error body:", err);
           }
           alert(`Upload failed for file: ${file.name}`);
           return false;
@@ -140,24 +171,27 @@ export default function Component({
 
   const onDrop = async (acceptedFiles: File[]) => {
     // append to files
-    setFiles(oldFiles => [...oldFiles, ...acceptedFiles]);
-  }
-
+    setFiles((oldFiles) => [...oldFiles, ...acceptedFiles]);
+  };
 
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop: onDrop,
     accept: {
-      'application/pdf': ['.pdf'],
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-      'application/msword': ['.doc'],
-      'text/csv': ['.csv'],
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
-      'application/vnd.ms-excel': ['.xls'],
-      'text/plain': ['.txt'],
-      'text/markdown': ['.md'],
-      'application/rtf': ['.rtf'],
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
-      'application/vnd.ms-powerpoint': ['.ppt'],
+      "application/pdf": [".pdf"],
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+        [".docx"],
+      "application/msword": [".doc"],
+      "text/csv": [".csv"],
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [
+        ".xlsx",
+      ],
+      "application/vnd.ms-excel": [".xls"],
+      "text/plain": [".txt"],
+      "text/markdown": [".md"],
+      "application/rtf": [".rtf"],
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+        [".pptx"],
+      "application/vnd.ms-powerpoint": [".ppt"],
     },
     disabled: uploading,
     noClick: true,
@@ -167,39 +201,123 @@ export default function Component({
     const newFiles = [...files];
     newFiles.splice(index, 1);
     setFiles(newFiles);
-  }
+  };
 
   return (
     <div {...getRootProps()} className="flex w-full flex-col gap-4 flex-grow">
       <form className="flex w-full flex-col items-start rounded-t-xl bg-default-100 transition-colors hover:bg-default-200/70 h-full">
-        <div className={cn("flex w-full items-center justify-start px-4 gap-4 h-full", files.length > 0 && "mt-3")}>
-          {files.length > 0 && (
+        <div
+          className={cn(
+            "flex w-full items-center justify-start px-4 gap-4 h-full",
+            files.length > 0 && "mt-3"
+          )}
+        >
+          {files.length > 0 &&
             files.map((file, index) => (
               <Badge
-                content={<Icon icon="tabler:x" width={17} className="flex-none p-0 m-0" />}
+                content={
+                  <Icon
+                    icon="tabler:x"
+                    width={17}
+                    className="flex-none p-0 m-0"
+                  />
+                }
                 color="danger"
                 shape="rectangle"
                 showOutline={false}
                 isOneChar
                 onClick={deleteFile.bind(null, index)}
               >
-                <Tooltip content={file.name} size="lg" offset={20} className="px-2 py-1" closeDelay={0} placement="top-start">
+                <Tooltip
+                  content={file.name}
+                  size="lg"
+                  offset={20}
+                  className="px-2 py-1"
+                  closeDelay={0}
+                  placement="top-start"
+                >
                   <Card key={index} className="bg-default/40">
                     <CardBody className="flex flex-row gap-2 items-center">
-                      <Icon icon={getIcon(file.name) || 'tabler:file-unknown'} width={25} className="text-default-600" />
+                      <Icon
+                        icon={getIcon(file.name) || "tabler:file-unknown"}
+                        width={25}
+                        className="text-default-600"
+                      />
                     </CardBody>
                   </Card>
                 </Tooltip>
               </Badge>
-            )))}
+            ))}
           <div className="flex-grow"></div>
-          {
-            uploading && (
-              <div className="text-default-600">
-                <svg xmlns="http://www.w3.org/2000/svg" width={48} height={48} viewBox="0 0 24 24"><g fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth={1.25}><path strokeDasharray="2 4" strokeDashoffset={6} d="M12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3"><animate attributeName="stroke-dashoffset" dur="0.6s" repeatCount="indefinite" values="6;0"></animate></path><path strokeDasharray={30} strokeDashoffset={30} d="M12 3C16.9706 3 21 7.02944 21 12C21 16.9706 16.9706 21 12 21"><animate fill="freeze" attributeName="stroke-dashoffset" begin="0.1s" dur="0.3s" values="30;0"></animate></path><path strokeDasharray={10} strokeDashoffset={10} d="M12 16v-7.5"><animate fill="freeze" attributeName="stroke-dashoffset" begin="0.5s" dur="0.2s" values="10;0"></animate></path><path strokeDasharray={6} strokeDashoffset={6} d="M12 8.5l3.5 3.5M12 8.5l-3.5 3.5"><animate fill="freeze" attributeName="stroke-dashoffset" begin="0.7s" dur="0.2s" values="6;0"></animate></path></g></svg>
-              </div>
-            )
-          }
+          {uploading && (
+            <div className="text-default-600">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width={48}
+                height={48}
+                viewBox="0 0 24 24"
+              >
+                <g
+                  fill="none"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeWidth={1.25}
+                >
+                  <path
+                    strokeDasharray="2 4"
+                    strokeDashoffset={6}
+                    d="M12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3"
+                  >
+                    <animate
+                      attributeName="stroke-dashoffset"
+                      dur="0.6s"
+                      repeatCount="indefinite"
+                      values="6;0"
+                    ></animate>
+                  </path>
+                  <path
+                    strokeDasharray={30}
+                    strokeDashoffset={30}
+                    d="M12 3C16.9706 3 21 7.02944 21 12C21 16.9706 16.9706 21 12 21"
+                  >
+                    <animate
+                      fill="freeze"
+                      attributeName="stroke-dashoffset"
+                      begin="0.1s"
+                      dur="0.3s"
+                      values="30;0"
+                    ></animate>
+                  </path>
+                  <path
+                    strokeDasharray={10}
+                    strokeDashoffset={10}
+                    d="M12 16v-7.5"
+                  >
+                    <animate
+                      fill="freeze"
+                      attributeName="stroke-dashoffset"
+                      begin="0.5s"
+                      dur="0.2s"
+                      values="10;0"
+                    ></animate>
+                  </path>
+                  <path
+                    strokeDasharray={6}
+                    strokeDashoffset={6}
+                    d="M12 8.5l3.5 3.5M12 8.5l-3.5 3.5"
+                  >
+                    <animate
+                      fill="freeze"
+                      attributeName="stroke-dashoffset"
+                      begin="0.7s"
+                      dur="0.2s"
+                      values="6;0"
+                    ></animate>
+                  </path>
+                </g>
+              </svg>
+            </div>
+          )}
         </div>
         <PromptInput
           classNames={{
@@ -222,18 +340,30 @@ export default function Component({
                   radius="lg"
                   onClick={open}
                 >
-                  <Icon className="text-default-500" icon="tabler:paperclip" width={18} />
+                  <Icon
+                    className="text-default-500"
+                    icon="tabler:paperclip"
+                    width={18}
+                  />
                 </Button>
               </Tooltip>
               <Tooltip
                 showArrow
                 placement="top-end"
                 color={block ? "warning" : "default"}
-                content={block ? 'Please wait until the assistant replies' : 'Send message'}
+                content={
+                  block
+                    ? "Please wait until the assistant replies"
+                    : "Send message"
+                }
               >
                 <Button
                   isIconOnly
-                  color={!(prompt || (files.length > 0)) || block ? "default" : "primary"}
+                  color={
+                    !(prompt || files.length > 0) || block
+                      ? "default"
+                      : "primary"
+                  }
                   radius="lg"
                   size="sm"
                   variant="solid"
@@ -241,13 +371,17 @@ export default function Component({
                   <Icon
                     className={cn(
                       "[&>path]:stroke-[2px]",
-                      !(prompt || (files.length > 0)) || block ? "text-default-600" : "text-primary-foreground",
+                      !(prompt || files.length > 0) || block
+                        ? "text-default-600"
+                        : "text-primary-foreground"
                     )}
                     icon="tabler:arrow-narrow-up"
                     // icon={uploading ? "line-md:uploading-loop" : "tabler:arrow-narrow-up"}
                     // icon="line-md:uploading-loop"
                     width={20}
-                    onClick={() => { if (!block) sendMessage() }}
+                    onClick={() => {
+                      if (!block) sendMessage();
+                    }}
                   />
                 </Button>
               </Tooltip>
@@ -257,7 +391,9 @@ export default function Component({
           value={prompt}
           variant="flat"
           onValueChange={setPrompt}
-          onSendMessage={() => { if (!block) sendMessage() }}
+          onSendMessage={() => {
+            if (!block) sendMessage();
+          }}
           placeholder={"Message Shiro or drag and drop files here..."}
           onHeightChange={onHeightChange}
         />

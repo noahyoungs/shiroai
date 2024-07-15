@@ -9,6 +9,11 @@ const nextConfig = {
           hostname: 'ai-presenter-2-sources-bucket.s3.us-west-2.amazonaws.com',
           port: '',
         },
+        {
+          protocol: 'https',
+          hostname: 'ai-presenter-2-sources-bucket.s3.amazonaws.com',
+          port: '',
+        },
       ],
     },
   };

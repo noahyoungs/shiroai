@@ -20,11 +20,14 @@ import {
 import { cn } from "@/utils/cn";
 import { Footnote } from "@/components/footnote";
 import React from "react";
-import { MarkdownSlide, Slide} from "@/utils/slide-types";
+import { MarkdownSlide, Slide } from "@/utils/slide-types";
 
 type MarkdownSlideComponentProps = {
   slide: MarkdownSlide;
-  setSlide: (slide: Partial<Slide>) => void;
+  setSlide: (
+    slide: Partial<Slide>,
+    splitSlides?: boolean
+  ) => void;
   allSources?: any[];
   presentationID: string;
   setBlockArrowKeys: (block: boolean) => void;
@@ -50,7 +53,7 @@ export function MarkdownSlideComponent({
   const saveSlideTitle = async (newTitle: string) => {
     setTitleLoading(true);
     setSlide({
-      slide_title: newTitle,
+      slide_title: newTitle
     });
     setTitleLoading(false);
   };
@@ -69,12 +72,16 @@ export function MarkdownSlideComponent({
     // }
     setEditingMarkdown(false);
     setMarkdownLoading(true);
-    setSlide({
-      slide_content: {
-        ...slide.slide_content,
-        content: cleanMarkdown(editorRef.current?.getMarkdown()),
+    setSlide(
+      {
+        ...slide,
+        slide_content: {
+          ...slide.slide_content,
+          content: cleanMarkdown(editorRef.current?.getMarkdown()),
+        },
       },
-    });
+      true
+    );
     setMarkdownLoading(false);
   };
 
@@ -149,41 +156,52 @@ export function MarkdownSlideComponent({
           <div className="flex-auto min-h-3"></div>
           <div
             className={cn(
-              "flex justify-start w-full flex-shrink max-w-none prose prose-table:w-full dark:prose-invert",
+              "flex justify-start w-full flex-shrink max-w-none prose dark:prose-invert",
               slide.slide_content.prose_class || "prose-sm"
               // "prose-xs"
             )}
             onClick={handleContentClick}
           >
             <Skeleton isLoaded={!markdownLoading} className="rounded-lg">
-              <Markdown
-                options={{
-                  renderRule(next, node, renderChildren, state) {
-                    // @ts-ignore
-                    if (node.type === RuleType.footnoteReference) {
-                      // console.log(node);
-                      const footnoteKeys = node.text.split(",^");
-                      // console.log("footnoteKeys:", footnoteKeys);
-                      return (
-                        <Footnote
-                          footnoteKeys={footnoteKeys}
-                          slide={slide}
-                          allSources={allSources}
-                        />
-                      );
-                    }
-                    return next();
-                  },
-                  wrapper: ({ children }) => (
-                    <div id="prose-container" className="px-1">
-                      {children}
-                    </div>
-                  ),
-                  forceWrapper: true,
-                }}
-              >
-                {slide.slide_content.content}
-              </Markdown>
+              {typeof slide.slide_content.content === "string" ? (
+                <Markdown
+                  options={{
+                    renderRule(next, node, renderChildren, state) {
+                      // @ts-ignore
+                      if (node.type === RuleType.footnoteReference) {
+                        // console.log(node);
+                        const footnoteKeys = node.text.split(",^");
+                        // console.log("footnoteKeys:", footnoteKeys);
+                        return (
+                          <Footnote
+                            footnoteKeys={footnoteKeys}
+                            slide={slide}
+                            allSources={allSources}
+                          />
+                        );
+                      }
+                      return next();
+                    },
+                    wrapper: ({ children }) => (
+                      <div id="prose-container" className="px-1">
+                        {children}
+                      </div>
+                    ),
+                    forceWrapper: true,
+                  }}
+                >
+                  {slide.slide_content.content}
+                </Markdown>
+              ) : (
+                <div className="flex justify-center items-center h-[300px]">
+                  <p className="text-center text-foreground dark:text-background">
+                    Error: Slide content is not a string <br />
+                    Slide content is {typeof slide.slide_content.content} <br />
+                    Slide content is{" "}
+                    {JSON.stringify(slide.slide_content.content)}
+                  </p>
+                </div>
+              )}
             </Skeleton>
           </div>
           <div className="flex-auto min-h-3"></div>

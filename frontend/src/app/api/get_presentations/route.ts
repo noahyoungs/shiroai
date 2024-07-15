@@ -20,6 +20,10 @@ export async function POST(request: NextRequest) {
       lastEvaluatedKey
     );
 
+    if (!response?.presentations) {
+      return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
+    }
+
     const presentationsWithHref = response.presentations.map((presentation) => {
       let href = null;
       switch (presentation.status) {

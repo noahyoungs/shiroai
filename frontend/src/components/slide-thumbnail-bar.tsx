@@ -2,7 +2,6 @@
 
 import React, { useEffect, useRef } from 'react';
 import { Slide } from '@/utils/slide-types';
-import { SlideThumbnail } from '@/components/slide-thumbnail';
 import { cn } from '@/utils/cn';
 
 interface SlideThumbnailBarProps {
@@ -27,7 +26,7 @@ export function SlideThumbnailBar({ slides, currentSlideID, setCurrentSlideID, b
   }, [currentSlideID, slides]);
 
   return (
-    <div className="flex overflow-x-auto gap-4">
+    <div className="flex overflow-x-auto gap-4 p-2">
       {slides.map((slide, index) => (
         <div
           key={slide.id}
@@ -38,7 +37,7 @@ export function SlideThumbnailBar({ slides, currentSlideID, setCurrentSlideID, b
             selected={slide.id === currentSlideID}
             onClick={() => setCurrentSlideID(slide.id)}
           /> */}
-          <div className={cn("w-[128px] aspect-video rounded-lg overflow-hidden", slide.id === currentSlideID && 'border-2 border-primary-500' )} onClick={!blockSlideSwitching ? () => setCurrentSlideID(slide.id) : undefined} >{slide.slide_title}</div>
+          <div className={cn("w-[128px] aspect-video rounded-lg overflow-hidden", slide.id === currentSlideID && 'ring-2 ring-primary-500' )} onClick={!blockSlideSwitching ? () => setCurrentSlideID(slide.id) : undefined} >{slide.slide_title}</div>
         </div>
       ))}
     </div>

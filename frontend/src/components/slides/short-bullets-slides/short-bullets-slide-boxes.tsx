@@ -273,10 +273,10 @@ const BulletItem: React.FC<BulletItemProps> = ({
                         />
                       </div>
                       <div className="text-start flex-none">
-                        {bullet.content.includes(":") ? (
+                        {bullet.content.includes(": ") ? (
                           <>
                             {bullet.content
-                              .split(":")
+                              .split(": ")
                               .map((part: string, partIndex: number) => (
                                 <p
                                   key={String(partIndex)}

@@ -1,3 +1,4 @@
+//slide-types.ts
 export type Slide = ShortBulletsSlide | MarkdownSlide | SimpleMermaidSlide | SectionHeaderSlide | PresentationTitleSlide;
 
 export interface BaseSlide {
@@ -81,3 +82,4 @@ export interface PresentationTitleSlide extends BaseSlide {
   slide_title: string;
   image: Image;
 }
+

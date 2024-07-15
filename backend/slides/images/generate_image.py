@@ -1,4 +1,3 @@
-# generate_image.py
 import base64
 import os
 from PIL import Image
@@ -19,9 +18,11 @@ from uuid_extensions import uuid7str
 import ssl
 import httpx
 
-
-
 load_dotenv()
+
+# Constants for thumbnail sizes
+THUMBNAIL_SIZE_FULL = (320, 180)
+THUMBNAIL_SIZE_SQUARE = (180, 180)
 
 stability_styles_guidance = """\
 1. 3d-model
@@ -98,7 +99,7 @@ openai_styles_guidance = """\
     - Themes: General-purpose images, versatile visuals, and content that doesn't require a specific artistic style.
 """
 
-negative_prompt = "looks bad, ugly, bad anatomy, bad hands, three hands, three legs, bad arms, missing legs, missing arms, poorly drawn face, bad face, fused face, cloned face, worst face, three crus, extra crus, fused crus, worst feet, three feet, fused feet, fused thigh, three thigh, fused thigh, extra thigh, worst thigh, missing fingers, extra fingers, ugly fingers, long fingers, horn, extra eyes, huge eyes, amputation, disconnected limbs, nsfw"
+default_negative_prompt = "looks bad, ugly, bad anatomy, bad hands, three hands, three legs, bad arms, missing legs, missing arms, poorly drawn face, bad face, fused face, cloned face, worst face, three crus, extra crus, fused crus, worst feet, three feet, fused feet, fused thigh, three thigh, fused thigh, extra thigh, worst thigh, missing fingers, extra fingers, ugly fingers, long fingers, horn, extra eyes, huge eyes, amputation, disconnected limbs, nsfw"
 
 stability_style_presets = [
     "default",
@@ -327,9 +328,9 @@ async def get_prompt(presentation_topic, presentation_audience="General", presen
 
 ### Task Description
 
-Your task is to help me create an image prompt and pick an image style for a presentation slide.
+Your task is to help us create an image prompt and pick an image style for a presentation slide.
 
-I'm making a presentation titled <presentation_title>{presentation_topic}</presentation_title>.
+We're making a presentation titled <presentation_title>{presentation_topic}</presentation_title>.
 The target audience is <presentation_audience>{presentation_audience}</presentation_audience>.
 The goal of the presentation is <presentation_goal>{presentation_goal}</presentation_goal>.
 {section_line}
@@ -341,12 +342,12 @@ First, in a <reasoning></reasoning> tag, think step by step about the following:
 - What mood or atmosphere should the image convey?
 - What style or artistic influences do you want the image to have?
 
-Then, give me a <prompt></prompt> for an image that fits the theme of the presentation. The prompt will be given to a text-to-image model, like Dall-E or Stable Diffusion. Only describe what will be seen in the image. NEVER include your reasoning behind the image, or what the image represents, symbolizes, or suggests in the prompt.
+Then, give us a <prompt></prompt> for an image that fits the theme of the presentation. The prompt will be given to a text-to-image model, like Dall-E or Stable Diffusion. Only describe what will be seen in the image. NEVER include your reasoning behind the image, or what the image represents, symbolizes, or suggests in the prompt.
 Follow the instructions above to create a good prompt.
 
 You also need to choose a <style></style> for the image from the following options: {openai_style_presets if model_type == "dalle" else stability_style_presets}.
 Refer to the descriptions above to understand the style options.
-You have to use one of the options I mentioned as the value for the <style></style> field in the response, you can't use anything else.
+You have to use one of the options mentioned as the value for the <style></style> field in the response, you can't use anything else.
 However, if your not sure what style to use, you can use the `default` style.
 
 Please respond in the following format:
@@ -367,10 +368,10 @@ Remember to follow the instructions for creating a good prompt and to provide a 
         max_tokens=500,
     )
 
-    return template
+    return template, messages
 
 async def upload_image(image_data, presentationID):
-    """Uploads the image to S3 and returns the S3 key."""
+    """Uploads the image and its thumbnail to S3 and returns the S3 key."""
     
     # Convert base64 image data to Pillow Image
     image = Image.open(BytesIO(image_data))
@@ -383,11 +384,24 @@ async def upload_image(image_data, presentationID):
     # Generate the S3 key
     s3_key = f"{presentationID}/backgrounds/{uuid7str()}.webp"
 
-    # Upload the image bytes to S3
-    await upload_bytes_to_s3(image_bytes, s3_key)
+    # Create and upload the thumbnail
+    thumbnail_size = THUMBNAIL_SIZE_FULL if image.width > image.height else THUMBNAIL_SIZE_SQUARE
+    thumbnail = image.copy()
+    thumbnail.thumbnail(thumbnail_size)
 
-    return s3_key    
-   
+    thumbnail_bytes_io = BytesIO()
+    thumbnail.save(thumbnail_bytes_io, format="WEBP", quality=85)
+    thumbnail_bytes = thumbnail_bytes_io.getvalue()
+
+    thumbnail_key = s3_key.replace(".webp", "_thumbnail.webp")
+
+    # Use asyncio.gather to run both uploads concurrently
+    await asyncio.gather(
+        upload_bytes_to_s3(image_bytes, s3_key),
+        upload_bytes_to_s3(thumbnail_bytes, thumbnail_key)
+    )
+    return s3_key
+
     
 async def generate_upload_update_by_prompt(presentationID, prompt, shape, style_preset=None, model_type="sdxl", negative_prompt=None):
     
@@ -423,7 +437,7 @@ async def generate_upload_update_by_prompt(presentationID, prompt, shape, style_
     
 
 async def generate_and_upload_image(presentationID, presentation_topic, presentation_audience, presentation_goal, section_topic=None, shape="square", model_type="sdxl"):
-    template = await get_prompt(presentation_topic, presentation_audience, presentation_goal, section_topic, model_type)
+    template, messages = await get_prompt(presentation_topic, presentation_audience, presentation_goal, section_topic, model_type)
     
     if template.style == "default":
         style_preset = None
@@ -432,11 +446,11 @@ async def generate_and_upload_image(presentationID, presentation_topic, presenta
         
     revised_prompt = None
     if model_type == "core":
-        image_data = await generate_image_stable_core(template.prompt, style_preset=style_preset, negative_prompt=negative_prompt, shape=shape)
+        image_data = await generate_image_stable_core(template.prompt, style_preset=style_preset, negative_prompt=default_negative_prompt, shape=shape)
     elif model_type == "dalle":
         image_data, revised_prompt = await generate_image_dalle(template.prompt, style_preset=style_preset, shape=shape)
     elif model_type == "sdxl":
-        image_data = await generate_image_sdxl(template.prompt, style_preset=style_preset, negative_prompt=negative_prompt, shape=shape)
+        image_data = await generate_image_sdxl(template.prompt, style_preset=style_preset, negative_prompt=default_negative_prompt, shape=shape)
     else:
         raise Exception("Invalid model type")
     
@@ -454,11 +468,8 @@ async def generate_and_upload_image(presentationID, presentation_topic, presenta
         "shape": shape,
         "model": model_type,
     }
-    
-    if negative_prompt:
-        image_data["negative_prompt"] = negative_prompt
         
-    return image_data
+    return image_data, messages
     
 
 # test function

@@ -44,3 +44,6 @@ __pycache__/
 # history
 .history/
 backend/slides/icons/icon_data/icon_embeddings/
+
+# headless-service
+headless-service/screenshots/

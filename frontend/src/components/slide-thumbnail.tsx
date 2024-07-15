@@ -46,7 +46,7 @@ export function SlideThumbnail({ slide, selected, onClick }: SlideThumbnailProps
 
   return (
     <div
-      className={cn('w-[128px] rounded-lg overflow-hidden flex-none aspect-video m-2 cursor-pointer', selected ? 'border-blue-500 border-2' : 'border-gray-300 border')}
+      className={cn('w-[150px] rounded-lg overflow-hidden flex-none aspect-video m-2 cursor-pointer', selected ? 'ring-blue-500 ring-2' : 'ring-gray-300 ring')}
       onClick={onClick}
     >
       {thumbnailUrl && (

@@ -1,83 +1,46 @@
-import puppeteer from "puppeteer";
-import { marked } from "marked";
-import fs from "fs";
-import path from "path";
+import axios from 'axios';
 
-export async function getProseClass(markdown: string): Promise<string> {
-  try {
-    const browser = await puppeteer.launch();
-    const page = await browser.newPage();
+const BASE_URL = process.env.NEXT_PUBLIC_HEADLESS_API_PATH;
 
-    // Set the viewport size to match the slide dimensions
-    await page.setViewport({ width: 960, height: 540 });
+export async function getProseClass(markdown: string, title: string): Promise<string> {
 
-    // Convert the markdown to HTML using marked
-    const html = marked(markdown);
-
-    // Set the page content to the HTML with the generated styles
-    await page.setContent(`
-      <html>
-        <head>
-        <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
-        </head>
-        <body>
-          <div class="p-12 pb-0 flex flex-col relative text-foreground dark:bg-foreground/10 bg-foreground/5 box-border bg-content1 outline-none shadow-medium rounded-large w-full flex-none aspect-video overflow-scroll">
-            <div class="flex-none">
-              <div class="border-b-medium border-transparent rounded-none">
-                <div class="pb-[8px] box-border text-4xl font-bold [overflow-wrap:anywhere]">
-                  Slide Title
-                </div>
-              </div>
-            </div>
-            <div class="flex-auto"></div>
-            <div class="slide-content flex flex-col justify-center w-full max-w-none prose">
-              ${html}
-            </div>
-            <div class="flex-auto"></div>
-          </div>
-        </body>
-      </html>
-    `);
-
-    // Get the height of the slide content
-    const contentHeight = await page.evaluate(() => {
-      const content = document.querySelector(".slide-content");
-      // @ts-ignore
-      return content.offsetHeight;
-    });
-
-    console.log("Content height:", contentHeight);
-
-    // Save the rendered page as an image
-    const outputDir = "./public/rendered-pages";
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
-    }
-    const imagePath = path.join(outputDir, "rendered-page.png");
-    await page.screenshot({ path: imagePath, fullPage: true });
-
-    await browser.close();
-
-    // Determine the prose class based on the content height
-    let proseClass = "prose-2xl";
-    if (contentHeight >= 570) {
-      proseClass = "overheight";
-    } else if (contentHeight >= 500) {
-      proseClass = "prose-xs";
-    } else if (contentHeight >= 400) {
-      proseClass = "prose-sm";
-    } else if (contentHeight >= 375) {
-      proseClass = "prose-base";
-    } else if (contentHeight >= 300) {
-      proseClass = "prose-lg";
-    } else if (contentHeight > 190) {
-      proseClass = "prose-xl";
-    }
-
-    console.log("Prose class:", proseClass);
-    return proseClass;
-  } catch (error) {
-    console.error(error);
-    throw new Error("Failed to determine prose class");
+  if (!markdown) {
+    throw new Error("Markdown is required to determine prose class");
   }
+
+  if (typeof markdown !== "string") {
+    throw new Error(`Markdown must be a string, received ${typeof markdown}`);
+  }
+
+  if (!title) {
+    throw new Error("Title is required to determine prose class");
+  }
+
+  const maxRetries = 3;
+  let attempt = 0;
+
+  while (attempt < maxRetries) {
+    try {
+      // Send the markdown and title to the new service
+      const response = await axios.post(`${BASE_URL}/prose-class`, { markdown, title });
+      const { proseClass } = response.data;
+
+      console.log("Prose class:", proseClass);
+      return proseClass;
+    } catch (error) {
+      attempt++;
+      const delay = Math.pow(2, attempt) * 500; // Exponential backoff
+      console.error(`Attempt ${attempt} failed: ${error.message}. Retrying in ${delay / 1000} seconds...`);
+
+      if (attempt >= maxRetries) {
+        throw new Error(`Failed to determine prose class after ${maxRetries} attempts. Error: ${error.response ? error.response.data : error.message}, markdown: ${markdown}`);
+      }
+
+      // Wait for the delay before retrying
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+
+  // This line should never be reached
+  throw new Error("Unexpected error: retry loop exited unexpectedly.");
 }

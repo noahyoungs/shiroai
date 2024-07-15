@@ -1,3 +1,4 @@
+//@ts-nocheck
 //long-bullets-slide.tsx
 "use client";
 import { LongBulletsSlide } from "@/utils/slide-types";

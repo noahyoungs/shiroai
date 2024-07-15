@@ -1,3 +1,4 @@
+from abc import ABCMeta
 from instructor import OpenAISchema
 from enum import Enum
 from pydantic import BaseModel, Field
@@ -6,13 +7,50 @@ from typing_extensions import Literal
 from init_llm import client
 import tokentrim as tt
 from dynamodb import get_presentation
-from edit_slide import edit_slide
+from slides.edit_slide_content import edit_slide_content
+from slides.images.edit_slide_image import edit_slide_image
 import json
+from slides.slide_models import Slide
+from slides.persistent_slide_list import PersistentSlideList
+import copy
+import traceback
 
 
+slide_type_descriptions = {
+    'short_bullets_slide': 'Icon Node Slide (This slide type has a title and 2-5 nodes, each with an icon and a short text description (<=80 chars). The nodes can be arranged in a list or a grid, and arrows can be displayed between the nodes to indicate sequentiality. The layout and arrangement of the title and nodes are determined by the content and number of nodes.)',
+    'markdown_slide': 'Markdown Slide (A slide with a title and markdown content. The title is displayed above the markdown content. The markdown content typically includes either headings and bullet points or a table. Images are not supported. Icons are not supported, but emojis can be used.)',
+    'section_header_slide': 'Section Header Slide (A slide with a section title and an image. The image can be positioned on the left or right side of the slide.)',
+    'presentation_title_slide': 'Presentation Title Slide (A slide with the presentation title and an image. The image is displayed as the background of the entire slide, and the title is overlaid on top of it.)',
+    'simple_mermaid_slide': 'Mermaid Diagram Slide (A slide with a title and a mermaid diagram. The title is displayed right above the mermaid diagram.)',
+}
 
-async def getCurrentSlideMessage(interfaceData, presentationID):
-    pass
+def slideToText(current_slide: Slide):
+    slide_content_string = ""
+    
+    if current_slide.slide_type == 'short_bullets_slide':
+        slide_content_string = "\n".join([f"Icon: {item.icon.name if item.icon and item.icon.name else 'Icon'}, Text: {item.content}" for item in current_slide.slide_content])
+        slide_content_string = f"Slide Content:\n{slide_content_string}"
+    elif current_slide.slide_type == 'markdown_slide':
+        slide_content_string = current_slide.slide_content['content']
+        slide_content_string = f"Slide Content:\n{slide_content_string}"
+    elif current_slide.slide_type == 'simple_mermaid_slide':
+        slide_content_string = current_slide.slide_content['mermaid_code']
+        slide_content_string = f"Slide Content:\nA mermaid diagram with the following code is rendered for the user:\n{slide_content_string}"
+    elif current_slide.slide_type in ['section_header_slide', 'presentation_title_slide']:
+        slide_content_string = f"Slide Image: An image containing `{current_slide.image.prompt}` is displayed on the slide."
+    
+    prompt = f"""\
+Slide Type: {slide_type_descriptions.get(current_slide.slide_type, 'Unknown Slide Type')}
+Slide Title: {current_slide.slide_title}
+{slide_content_string}
+"""
+    return prompt
+
+async def getCurrentSlideMessage(current_slide: Slide):
+    if current_slide.hidden:
+        return {'role': 'system', 'content': f"The slide the user was looking at was deleted."}
+    return {'role': 'system', 'content': f"Here's the slide the user is currently looking at:\n{slideToText(current_slide)}"}
+
 
 def pydantic_to_dict(obj):
     if isinstance(obj, BaseModel):
@@ -33,11 +71,15 @@ def pydantic_to_dict(obj):
         return obj
     
 
-async def complete(presentationID, messages, interfaceData, max_turns=5, emitter=None, memory=None):
+async def complete(presentationID, messages, emitter, memory, interface_data, max_turns=5):
+    slide_list: PersistentSlideList = memory['slide_list']
+    current_slide_id = interface_data['current_slide_id']
+    current_slide: Slide = slide_list.get_slide(current_slide_id)
+    
     current_turn = 0
     new_messages = []
     
-    async def new_turn(presentationID, messages, interfaceData, current_turn, max_turns=5, emitter=None, memory=None):
+    async def new_turn(presentationID, messages, interface_data, current_turn, max_turns=5, emitter=None, memory=None):
     
         class ProceedToNextStepException(Exception):
             pass
@@ -52,27 +94,61 @@ async def complete(presentationID, messages, interfaceData, max_turns=5, emitter
             async def post_run(self, output):
                 raise ProceedToNextStepException()
             
-        class EditCurrentSlide(OpenAISchema):
-            """Call this function to have the Slide Editor Agent edit the current slide in the presentation."""
+        class EditCurrentSlideTitle(OpenAISchema):
+            """Directly edit only the title of the current slide."""
+            new_slide_title: str
+            
+            async def run(self):
+                await slide_list.update_slides([{'id': current_slide_id, 'slide_title': self.new_slide_title}], wait_for_db=True)
+                return f"Success, New Slide Title: {self.new_slide_title}"
+            
+            
+        class InvokeContentEditorAgent(OpenAISchema):
+            """Send an instruction to the Content Editor Agent to edit the current slide content."""
             edit_instructions: str
             
             async def run(self):
-                return True
-            
-            async def post_run(self, output):
                 try:
                     # edit the current slide
-                    slide, message = await edit_slide(presentationID, interfaceData, self.edit_instructions)
-                    return "Success! Slide Editor Agent: " + message
+                    updated_slide, message = await edit_slide_content(presentationID, copy.deepcopy(current_slide), slide_list.update_slides, self.edit_instructions)
+                    # add agent message to messages
+                    messages.append({'role': 'meta_content_editor', 'content': message})
+                    # emit agent message
+                    await emitter('message', {'role': 'meta_content_editor', 'content': message})
+                    return f"Success! Message from Content Editor Agent: {message}"
                 except Exception as e:
-                    return f"Error: {str(e)}"
-                    
-        
+                    traceback.print_exc()
+                    return f"Error with Content Editor Agent: {str(e)}"
+            
+                
+        class InvokeImageEditorAgent(OpenAISchema):
+            """Send an instruction to the Image Editor Agent to edit the current slide image."""
+            edit_instructions: str
+            
+            async def run(self):
+                try:
+                    # edit the current slide
+                    updated_slide, message = await edit_slide_image(presentationID, copy.deepcopy(current_slide), slide_list.update_slides, self.edit_instructions)
+                    # add agent message to messages
+                    messages.append({'role': 'meta_image_editor', 'content': message})
+                    # emit agent message
+                    await emitter('message', {'role': 'meta_image_editor', 'content': message})
+                    return f"Success! Message from Image Editor Agent: {message}"
+                except Exception as e:
+                    traceback.print_exc()
+                    return f"Error with Image Editor Agent: {str(e)}"
+            
+                        
         class DeleteCurrentSlide(OpenAISchema):
-            pass
-        
-        class AddSlideHere(OpenAISchema):
-            pass
+            """Deletes the current slide."""
+            
+            async def run(self):
+                old_title = current_slide.slide_title
+                await slide_list.hide_slide(current_slide_id, True)
+                interface_data['current_slide_id'] = current_slide.previous
+                await emitter('interface_update', {'current_slide_id': current_slide.previous})
+                return f"Success, the slide titled `{old_title}` was deleted."
+            
         
         async def execute_tool(tool_call, funcs):
             """
@@ -95,7 +171,7 @@ async def complete(presentationID, messages, interfaceData, max_turns=5, emitter
             except StopIteration:
                 available_funcs = [func.__name__ for func in funcs]
                 error_message = f"Error: Function '{tool_call.function.name}' not found. Available functions: {available_funcs}"
-                return error_message, None
+                return error_message
 
             output = None
             try:
@@ -105,42 +181,56 @@ async def complete(presentationID, messages, interfaceData, max_turns=5, emitter
                 output = await func.run()
             except Exception as e:
                 # model error
-                return f"Error: {str(e)}", None
+                 # Print the stack trace
+                traceback.print_exc()
+                
+                return f"Error: {str(e)}"
 
             # Run post_run() method after the try block
             if func is not None and hasattr(func, 'post_run'):
-                tool_result = await func.post_run(output)
+                output = await func.post_run(output)
 
-            return tool_result
+            return output # tool result
         
         # Update the model on the current slide
-        messages.append( await getCurrentSlideMessage(interfaceData, presentationID))
+        messages.append( await getCurrentSlideMessage(current_slide))
         
-        completion = await client.chat.completions.create(
-            model="gpt-3.5-turbo-0125",
-            # filter out any messages with roles that start with meta
-            messages=tt.trim(
-                messages=[message for message in messages if not message["role"].startswith("meta")],
-                model="gpt-3.5-turbo-16k",
-            ),
-            tools=[
+        base_tools = [
                     {
                         "type": "function",
-                        "function": dict(ProceedToNextStep.openai_schema),
-                    },
-                    {
-                        "type": "function",
-                        "function": dict(EditCurrentSlide.openai_schema),
+                        "function": dict(EditCurrentSlideTitle.openai_schema),
                     },
                     {
                         "type": "function",
                         "function": dict(DeleteCurrentSlide.openai_schema),
-                    },
+                    }
+                ]
+        
+        image_tools = [
                     {
                         "type": "function",
-                        "function": dict(AddSlideHere.openai_schema),
-                    }
-                ],
+                        "function": dict(InvokeImageEditorAgent.openai_schema),
+                    },
+                ]
+        
+        content_tools = [
+                    {
+                        "type": "function",
+                        "function": dict(InvokeContentEditorAgent.openai_schema),
+                    },
+                ]
+        
+        tools = base_tools + (image_tools if current_slide.slide_type in ['section_header_slide', 'presentation_title_slide'] else content_tools)
+        
+        completion = await client.chat.completions.create(
+            model="gpt-3.5-turbo-0125",
+            # filter out any messages with roles that start with meta
+            # reduce messages to 16k tokens
+            messages=tt.trim(
+                messages=[message for message in messages if not message["role"].startswith("meta")],
+                model="gpt-3.5-turbo-16k",
+            ),
+            tools=tools,
             tool_choice=("auto" if current_turn < max_turns else "none"),
         )
         
@@ -156,9 +246,7 @@ async def complete(presentationID, messages, interfaceData, max_turns=5, emitter
             
             for tool_call in completion.choices[0].message.tool_calls:
                 try: 
-                    # tool_result = await execute_tool(tool_call, [IncludeTopic, ExcludeTopic, ReorderIncludedTopics, ProceedToNextStep])
-                    tool_result = await execute_tool(tool_call, [ProceedToNextStep, EditCurrentSlide, DeleteCurrentSlide, AddSlideHere])
-                    print(f"Line 344 Interface Data all_topics length: {len(interfaceData['all_topics'])}")
+                    tool_result = await execute_tool(tool_call, [EditCurrentSlideTitle, InvokeContentEditorAgent, InvokeImageEditorAgent, DeleteCurrentSlide, ProceedToNextStep])
                     print(f"Tool Result: {tool_result}")
                 except ProceedToNextStepException:
                     return messages, [{"role": "system", "content": "Proceeding to the next step..."}], True
@@ -172,15 +260,16 @@ async def complete(presentationID, messages, interfaceData, max_turns=5, emitter
                     })
             
             # recursively call complete until no tool calls
-            return await new_turn(presentationID, messages, interfaceData, current_turn + 1, max_turns, emitter=emitter, memory=memory)
+            return await new_turn(presentationID, messages, interface_data, current_turn + 1, max_turns, emitter=emitter, memory=memory)
         else:
-            assert completion.choices[0].message.content
+            if not completion.choices[0].message.content:
+                raise Exception("No message content found in completion and no tool calls either.")
             responseMessage = {'role':'assistant', 'content': completion.choices[0].message.content}
             new_messages.append(responseMessage)
             messages.append(responseMessage)
             return messages, new_messages, False
         
-    return await new_turn(presentationID, messages, interfaceData, current_turn, max_turns, emitter=emitter, memory=memory)
+    return await new_turn(presentationID, messages, interface_data, current_turn, max_turns, emitter=emitter, memory=memory)
         
         
                     

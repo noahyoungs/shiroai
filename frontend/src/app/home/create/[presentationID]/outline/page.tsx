@@ -21,7 +21,6 @@ export default function Page({ params }: { params: { presentationID: string } })
   const [socket, setSocket] = useState<any>(null);
   const [blockChat, setBlockChat] = useState<boolean>(false);
   const [blockInterface, setBlockInterface] = useState<boolean>(true);
-  const [typing, setTyping] = useState<boolean>(false);
 
   // Interface states
   const [allTopics, setAllTopics] = useState<any[]>(["loading"]);
@@ -57,10 +56,6 @@ export default function Page({ params }: { params: { presentationID: string } })
         setMessages((prevMessages: any[]) => [...prevMessages, socketMessage]);
         if (socketMessage.role === "assistant" ){
           setBlockChat(false);
-          setTyping(false);
-        }
-        if (socketMessage.role === "user"){
-          setTyping(true);
         }
       } else {
         console.error("Received invalid message from socket: ", socketMessage);
@@ -163,10 +158,11 @@ export default function Page({ params }: { params: { presentationID: string } })
   const chat = <Chat
     presentationID={params.presentationID}
     messages={messages}
+    setMessages={setMessages}
     socket={socket}
     block={blockChat}
     setBlock={setBlockChat}
-    typing={typing}
+    typing={messages.at(-1)?.role === "user"}
   />;
 
   const interfaceComponent = <Interface

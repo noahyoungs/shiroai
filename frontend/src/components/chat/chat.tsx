@@ -1,3 +1,4 @@
+// chat.tsx
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -9,7 +10,8 @@ import { set } from "lodash";
 
 export type ChatProps = {
   presentationID: string;
-  messages: any;
+  messages: any[];
+  setMessages: React.Dispatch<React.SetStateAction<any[]>>;
   socket: any;
   block: boolean;
   setBlock: (block: boolean) => void;
@@ -18,9 +20,25 @@ export type ChatProps = {
   refreshSources?: () => void;
   placeholder?: string;
   title?: string;
+  statusMessage?: string;
 };
 
-export function Chat({ presentationID, messages, socket, block, setBlock, typing, sources, refreshSources, placeholder, title="Chat with Shiro" }: ChatProps) {
+export function Chat({
+  presentationID,
+  messages,
+  setMessages,
+  socket,
+  block,
+  setBlock,
+  typing,
+  sources,
+  refreshSources,
+  placeholder,
+  title = "Chat with Shiro",
+  statusMessage = "",
+}: ChatProps) {
+  console.log("setMessages in Chat:", setMessages);
+
   const scrollShadowRef = useRef<HTMLDivElement>(null);
   const promptInputRef = useRef<HTMLDivElement>(null);
 
@@ -29,13 +47,14 @@ export function Chat({ presentationID, messages, socket, block, setBlock, typing
     if (scrollShadowRef.current) {
       scrollShadowRef.current.scrollTop = scrollShadowRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, statusMessage]);
 
   // Scroll to bottom when prompt input is resized
   useEffect(() => {
     const observer = new ResizeObserver(() => {
       if (scrollShadowRef.current) {
-        scrollShadowRef.current.scrollTop = scrollShadowRef.current.scrollHeight;
+        scrollShadowRef.current.scrollTop =
+          scrollShadowRef.current.scrollHeight;
       }
     });
 
@@ -59,7 +78,7 @@ export function Chat({ presentationID, messages, socket, block, setBlock, typing
       <div className="flex flex-col h-full">
         <div className="text-center p-1 translate-y-2 flex-none">
           <p>{title}</p>
-          </div>
+        </div>
         <ScrollShadow
           className="flex flex-col flex-auto grow"
           ref={scrollShadowRef}
@@ -72,6 +91,7 @@ export function Chat({ presentationID, messages, socket, block, setBlock, typing
             messages={messages}
             typing={typing}
             classNames="py-4"
+            statusMessage={statusMessage}
           />
         </ScrollShadow>
 
@@ -81,23 +101,25 @@ export function Chat({ presentationID, messages, socket, block, setBlock, typing
           </p>
 
           <div ref={promptInputRef}>
-            {
-              (Array.isArray(sources) && refreshSources) ?
-                <PromptInputDropbox
-                  socket={socket}
-                  block={block}
-                  setBlockSend={setBlock}
-                  sources={sources}
-                  presentationID={presentationID}
-                  refreshSources={refreshSources}
-                />
-                :
-                <PromptInputBasic
-                  socket={socket}
-                  block={block}
-                  setBlockSend={setBlock}
-                />
-            }
+            {Array.isArray(sources) && refreshSources ? (
+              <PromptInputDropbox
+                setMessages={setMessages}
+                socket={socket}
+                block={block}
+                setBlockSend={setBlock}
+                sources={sources}
+                presentationID={presentationID}
+                refreshSources={refreshSources}
+              />
+            ) : (
+              <PromptInputBasic
+                setMessages={setMessages}
+                statusMessage={statusMessage}
+                socket={socket}
+                block={block}
+                setBlockSend={setBlock}
+              />
+            )}
           </div>
         </div>
       </div>

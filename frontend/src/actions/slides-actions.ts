@@ -14,20 +14,33 @@ import { cleanMarkdown } from "@/actions/clean-editor-md";
 import { splitMarkdown } from "@/actions/split-markdown";
 import { uuidv7 } from "uuidv7";
 
-
 /**
  * Adds prose classes and splits overheight slides.
- * 
+ *
  * @param slide - The slide to process.
  * @param checkProseClass - Optional. Specifies whether to skip processing if slide.slide_content.prose_class is true. Default is true.
  * @param recursionLimit - Optional. Specifies the recursion limit. Default is 5. (Maximum number of splits for one original slide)
  * @returns A promise that resolves to an array of slides. If the slide is not a markdown slide or already has a prose class, the original slide is returned as a single-element array.
  */
-async function _addProseClassesAndSplitOverheight(slide: Slide, checkProseClass: boolean = true, recursionLimit: number = 5): Promise<Slide[]> {
-  if (slide.slide_type === "markdown_slide" && (!slide.slide_content?.prose_class || !checkProseClass)) {
-    // console.log("Processing markdown slide:", slide.id);
+export async function addProseClassesAndSplitOverheight(
+  slide: Slide,
+  checkProseClass: boolean = true,
+  recursionLimit: number = 5
+): Promise<Slide[]> {
+  // console.log("Adding prose class for slide:", slide.id);
+  if (
+    slide.slide_type === "markdown_slide" &&
+    (!slide.slide_content?.prose_class || !checkProseClass)
+  ) {
+    console.log("Processing markdown slide:", slide.id);
 
-    const processSlide = async (slideContent: string, slideTitle: string, slideId: string, isContinuation: boolean = false, depth: number = 0): Promise<Slide[]> => {
+    const processSlide = async (
+      slideContent: string,
+      slideTitle: string,
+      slideId: string,
+      isContinuation: boolean = false,
+      depth: number = 0
+    ): Promise<Slide[]> => {
       if (depth > recursionLimit) {
         console.log(`Recursion limit reached for slide ${slideTitle}`);
         return [
@@ -40,13 +53,24 @@ async function _addProseClassesAndSplitOverheight(slide: Slide, checkProseClass:
               prose_class: "prose-sm",
             },
             // regex replaces any number of (Cont.) at the end of the title
-            slide_title: isContinuation ? `${slideTitle.replace(/(\s\(Cont\.\))+$/g, '')} (Cont.)` : slideTitle,
+            slide_title: isContinuation
+              ? `${slideTitle.replace(/(\s\(Cont\.\))+$/g, "")} (Cont.)`
+              : slideTitle,
           },
         ];
       }
 
-      const proseClass = await getProseClass(slideContent);
-      // console.log("Prose class:", proseClass);
+      let proseClass;
+
+      try {
+        proseClass = await getProseClass(slideContent, slideTitle);
+      } catch (error) {
+        throw new Error(
+          `Error getting prose class for slide ${slideId}: ${error}`
+        );
+      }
+
+      console.log("Prose class:", proseClass);
 
       if (proseClass === "overheight") {
         console.log(`Splitting overheight slide ${slideTitle}`);
@@ -54,11 +78,25 @@ async function _addProseClassesAndSplitOverheight(slide: Slide, checkProseClass:
         const [slide1Content, slide2Content] = splitMarkdown(slideContent);
         console.log(`Split First half: ${slide1Content}`);
         console.log(`Split Second half: ${slide2Content}`);
-        const slide1Title = isContinuation ? slideTitle : slideTitle.replace(/ \(Cont\.\)$/, '');
+        const slide1Title = isContinuation
+          ? slideTitle
+          : slideTitle.replace(/ \(Cont\.\)$/, "");
         const slide2Title = `${slide1Title} (Cont.)`;
 
-        const slide1Prose = await processSlide(slide1Content, slide1Title, slideId, isContinuation, depth + 1);
-        const slide2Prose = await processSlide(slide2Content, slide2Title, uuidv7(), true, depth + 1);
+        const slide1Prose = await processSlide(
+          slide1Content,
+          slide1Title,
+          slideId,
+          isContinuation,
+          depth + 1
+        );
+        const slide2Prose = await processSlide(
+          slide2Content,
+          slide2Title,
+          uuidv7(),
+          true,
+          depth + 1
+        );
 
         return [...slide1Prose, ...slide2Prose];
       } else {
@@ -71,18 +109,27 @@ async function _addProseClassesAndSplitOverheight(slide: Slide, checkProseClass:
               content: slideContent,
               prose_class: proseClass || "prose-sm",
             },
-            slide_title: isContinuation ? `${slideTitle.replace(/(\s\(Cont\.\))+$/g, '')} (Cont.)` : slideTitle,
+            slide_title: isContinuation
+              ? `${slideTitle.replace(/(\s\(Cont\.\))+$/g, "")} (Cont.)`
+              : slideTitle,
           },
         ];
       }
     };
 
-    return processSlide(slide.slide_content.content, slide.slide_title, slide.id);
+    return processSlide(
+      slide.slide_content.content,
+      slide.slide_title,
+      slide.id
+    );
+  } else {
+    console.log(
+      // `Not processing this slide: ${slide.id}, slide type: ${slide.slide_type} prose class: ${slide.slide_content?.prose_class}, checkProseClass: ${checkProseClass}`
+    );
   }
 
   return [slide];
 }
-
 
 /**
  * Authenticates the user based on the presentation ID.
@@ -111,7 +158,7 @@ async function authenticateUser(presentationID: string) {
  * @returns A promise that resolves to an array of sources, or throws an error if the sources cannot be retrieved.
  */
 export async function getSources(presentationID: string) {
-    let auth = await authenticateUser(presentationID);
+  let auth = await authenticateUser(presentationID);
 
   if (!auth) {
     throw new Error("Unauthorized.");
@@ -126,10 +173,9 @@ export async function getSources(presentationID: string) {
   }
 }
 
-
 /**
  * Retrieves the slides for a given presentation ID. Also processes the markdown slides to determine the prose class and splits it if overheight.
- * 
+ *
  * @param presentationID - The ID of the presentation.
  * @returns A sorted array of slides.
  * @throws Error if there is a failure in retrieving the slides.
@@ -154,12 +200,16 @@ export async function getAllSlides(presentationID: string) {
     return slides;
   }
 
-  let previousUpdates: { [key: string]: string } = {}; // Track updates for previous pointers
+  // Broken
+  // let previousUpdates: { [key: string]: string } = {}; // Track updates for previous pointers
 
   let updatedSlides: Slide[] = (
     await Promise.all(
       slides.map(async (slide, index) => {
-        let processedSlides = await _addProseClassesAndSplitOverheight(slide, true);
+        let processedSlides = await addProseClassesAndSplitOverheight(
+          slide,
+          true
+        );
 
         if (processedSlides.length > 1) {
           for (let i = 0; i < processedSlides.length; i++) {
@@ -171,9 +221,17 @@ export async function getAllSlides(presentationID: string) {
             currentSlide.next = nextSlide?.id || slide.next;
           }
 
-          if (slides[index + 1]) {
-            previousUpdates[slides[index + 1].id] = processedSlides[processedSlides.length - 1].id;
-          }
+          // Broken
+          // if (slides[index + 1]) {
+          //   previousUpdates[slides[index + 1].id] = processedSlides[processedSlides.length - 1].id;
+          // }
+          console.log(
+            `Slide '${
+              slides[index + 1].slide_title
+            }' updated with previous pointer to '${
+              processedSlides[processedSlides.length - 1].id
+            } (index: ${index})'`
+          );
         }
 
         return processedSlides;
@@ -181,31 +239,70 @@ export async function getAllSlides(presentationID: string) {
     )
   ).flat();
 
+  // Broken
+  // // Update the previous pointers
+  // updatedSlides.forEach((slide) => {
+  //   slide.previous = previousUpdates[slide.id] || slide.previous;
+  // });
+
+  // Monkey patch to fix the previous pointers by iterating through the linked list
+  let head = updatedSlides.find(
+    (slide) => slide.slide_type === "presentation_title_slide"
+  );
+  if (!head) {
+    throw new Error("presentation_title_slide slide not found");
+  }
+
+  let previousSlide: Slide = head;
+  let currentSlide = updatedSlides.find((slide) => slide.id === head!.next);
+  if (!currentSlide) {
+    throw new Error(`Slide with id ${head.next} not found (Second slide)`);
+  }
+
+  while (currentSlide.next) {
+    currentSlide.previous = previousSlide.id;
+    previousSlide = currentSlide;
+    currentSlide = updatedSlides.find(
+      (slide) => slide.id === currentSlide!.next
+    );
+    if (!currentSlide) {
+      throw new Error(`Slide with id ${previousSlide.next} not found`);
+    }
+  }
+
+  // This line will execute even when the condition currentSlide!.next is false
+  currentSlide.previous = previousSlide.id;
 
   // Optimize updatedSlides by only including fields that are different
-  const optimizedUpdatedSlides = updatedSlides.map((updatedSlide): Partial<Slide> => {
-    const matchingSlide = slides.find((slide) => slide.id === updatedSlide.id);
-    const updatedFields: Partial<Slide> = {
-      id: updatedSlide.id,
-    };
+  const optimizedUpdatedSlides = updatedSlides.map(
+    (updatedSlide): Partial<Slide> => {
+      const matchingSlide = slides.find(
+        (slide) => slide.id === updatedSlide.id
+      );
+      const updatedFields: Partial<Slide> = {
+        id: updatedSlide.id,
+      };
 
-    if (matchingSlide) {
-      for (const key in updatedSlide) {
-        if (updatedSlide[key] !== matchingSlide[key]) {
+      if (matchingSlide) {
+        for (const key in updatedSlide) {
+          if (updatedSlide[key] !== matchingSlide[key]) {
+            updatedFields[key] = updatedSlide[key];
+          }
+        }
+      } else {
+        for (const key in updatedSlide) {
           updatedFields[key] = updatedSlide[key];
         }
       }
-    } else {
-      for (const key in updatedSlide) {
-        updatedFields[key] = updatedSlide[key];
-      }
-    }
 
-    return updatedFields;
-  });
+      return updatedFields;
+    }
+  );
 
   // filter out any slides that only have id
-  const filteredUpdatedSlides = optimizedUpdatedSlides.filter((slide) => Object.keys(slide).length > 1);
+  const filteredUpdatedSlides = optimizedUpdatedSlides.filter(
+    (slide) => Object.keys(slide).length > 1
+  );
 
   if (filteredUpdatedSlides.length > 0) {
     // Fire and forget
@@ -214,14 +311,16 @@ export async function getAllSlides(presentationID: string) {
   return updatedSlides;
 }
 
-
 /**
  * Retrieves a specific slide from a presentation.
  * @param presentationID - The ID of the presentation.
  * @param slideIDs - Either a single slide ID or an array of slide IDs.
  * @returns A promise that resolves to the requested slide, or throws an error if the slide cannot be retrieved.
  */
-export async function getSlides(presentationID: string, slideIDs: string | string[]): Promise<Slide | Slide[]> {
+export async function getSlides(
+  presentationID: string,
+  slideIDs: string | string[]
+): Promise<Slide | Slide[]> {
   let auth = await authenticateUser(presentationID);
 
   if (!auth) {
@@ -233,7 +332,7 @@ export async function getSlides(presentationID: string, slideIDs: string | strin
   try {
     // slides = await dynamodbGetSlides(presentationID, slideIDs);
     // Looks redundant but this is to fix the type error
-    if (typeof slideIDs === 'string') {
+    if (typeof slideIDs === "string") {
       // Single slideID case
       slides = await dynamodbGetSlides(presentationID, slideIDs);
     } else if (Array.isArray(slideIDs)) {
@@ -259,51 +358,71 @@ export async function getSlides(presentationID: string, slideIDs: string | strin
   let updatedSlides: Slide[] = (
     await Promise.all(
       slides.map(async (slide) => {
-        let processedSlides = await _addProseClassesAndSplitOverheight(slide, true);
+        let processedSlides = await addProseClassesAndSplitOverheight(
+          slide,
+          true
+        );
         // will result in Slide[], containing one or more slides
-        
+
         if (processedSlides.length > 1) {
           // Update the prev and next of the slides
           for (let i = 0; i < processedSlides.length; i++) {
             const currentSlide = processedSlides[i];
             const prevSlide = processedSlides[i - 1];
             const nextSlide = processedSlides[i + 1];
-  
+
             currentSlide.previous = prevSlide?.id || slide.previous; // if prevSlide is undefined, use original previous
             currentSlide.next = nextSlide?.id || slide.next; // if nextSlide is undefined, use original next
           }
         }
-  
+
         return processedSlides; // This returns Slide[], so the map function returns Slide[][]
-      }) 
+      })
     )
   ).flat(); // Flatten Slide[][] to Slide[]
 
+  // Add a slide to the end of the array to set the previous pointer of the slide after the last slide
+  let nextSlide = {
+    id: updatedSlides[updatedSlides.length - 1].next,
+    previous: updatedSlides[updatedSlides.length - 1].id,
+  };
+
+  let updatedSlidesWithNext: Partial<Slide>[] = [
+    ...updatedSlides,
+    nextSlide as Partial<Slide>,
+  ];
+
+  // TODO: Fix the previous pointers of the slides not being updated
+
   // Optimize updatedSlides by only including fields that are different
-  const optimizedUpdatedSlides = updatedSlides.map((updatedSlide, index): Partial<Slide> => {
-    const matchingSlide = slides!.find((slide: Slide) => slide.id === updatedSlide.id);
-    const updatedFields: Partial<Slide> = {
-      id: updatedSlide.id,
-    };
-  
-    if (matchingSlide) {
-      for (const key in updatedSlide) {
-        if (updatedSlide[key] !== matchingSlide[key]) {
+  const optimizedUpdatedSlides = updatedSlidesWithNext.map(
+    (updatedSlide, index): Partial<Slide> => {
+      const matchingSlide = slides!.find(
+        (slide: Slide) => slide.id === updatedSlide.id
+      );
+      const updatedFields: Partial<Slide> = {
+        id: updatedSlide.id,
+      };
+
+      if (matchingSlide) {
+        for (const key in updatedSlide) {
+          if (updatedSlide[key] !== matchingSlide[key]) {
+            updatedFields[key] = updatedSlide[key];
+          }
+        }
+      } else {
+        for (const key in updatedSlide) {
           updatedFields[key] = updatedSlide[key];
         }
       }
-    } else {
-      for (const key in updatedSlide) {
-        updatedFields[key] = updatedSlide[key];
-      }
-    }
 
-    return updatedFields;
-  });
+      return updatedFields;
+    }
+  );
 
   // fire and forget
   await dynamodbUpdateSlides(presentationID, optimizedUpdatedSlides);
-  return updatedSlides
+  return updatedSlides;
 }
 
 /**
@@ -334,6 +453,8 @@ export async function getHeadSlideID(presentationID: string) {
     throw new Error("Unauthorized.");
   }
 
-  const { head_slide_id } = await getPresentationByID(presentationID, ["head_slide_id"]);
+  const { head_slide_id } = await getPresentationByID(presentationID, [
+    "head_slide_id",
+  ]);
   return head_slide_id;
 }
