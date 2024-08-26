@@ -52,7 +52,7 @@ backend/slides/icons/icon_data/icon_embeddings/*
 
 # headless-service
 headless-service/screenshots/
-headless-servuce/dist/
+headless-service/dist/
 
 # Ignore all .key files
 *.key
