@@ -1,0 +1,38 @@
+[tool.poetry]
+name = "shiroai-backend"
+version = "0.1.0"
+description = "A brief description of your project"
+authors = ["Noah Youngs <noah@aldeoinnovations.com>"]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = ">=3.11,<4.0.0"
+fastapi = "^0.112.2"
+uvicorn = "^0.30.6"
+python-socketio = "^5.11.3"
+fastapi-socketio = "^0.0.10"
+hkdf = "^0.0.3"
+python-jose = "^3.3.0"
+python-dotenv = "^1.0.1"
+aiobotocore = "^2.13.3"
+uuid7 = "^0.1.0"
+openai-multi-tool-use-parallel-patch = "^0.2.0"
+portkey-ai = "^1.8.3"
+tokentrim = "^0.1.13"
+instructor = "^1.4.0"
+brave-search = "^0.2.0"
+openparse = "^0.5.7"
+langchain = "^0.2.14"
+llama-index = "^0.11.1"
+maincontentextractor = {git = "https://github.com/noahyoungs/main_content_extractor.git"}
+playwright = "^1.46.0"
+llama-index-readers-web = "^0.2.1"
+langchain-openai = "^0.1.22"
+scikit-learn = "^1.5.1"
+s3fs = "^2024.6.1"
+bertopic = "^0.16.3"
+inflection = "^0.5.1"
+pydantic-async-validation = "^0.2.0"
+
+[tool.poetry.dev-dependencies]
