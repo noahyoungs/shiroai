@@ -18,7 +18,6 @@ coverage
 
 # misc
 .DS_Store
-*.pem
 
 # debug
 npm-debug.log*
@@ -55,4 +54,5 @@ headless-service/screenshots/
 headless-service/dist/
 
 # Ignore all .key files
+*key.pem
 *.key
