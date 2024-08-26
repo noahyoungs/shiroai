@@ -9,7 +9,7 @@ import ReactDOMServer from "react-dom/server";
 import { Request, Response } from "express";
 import { getPresentationByID, getAllSlides } from "../utils/dynamodb";
 import { SlideComponent } from "../components/slide-component";
-import { Slide } from "/Users/noahyoungs/VSCode/ai-presenter-v2/frontend/src/utils/slide-types";
+import { Slide } from "../../../frontend/src/utils/slide-types";
 import logger from "../utils/logger";
 import { sanitizeFileName } from "../utils/sanitize-file-name";
 import { createSignedUrlSuffix } from "../utils/create-signed-url-suffix";

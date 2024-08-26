@@ -5,7 +5,7 @@ import {
   QueryCommand,
 } from "@aws-sdk/client-dynamodb";
 import { unmarshall } from "@aws-sdk/util-dynamodb";
-import { Slide } from "/Users/noahyoungs/VSCode/ai-presenter-v2/frontend/src/utils/slide-types";
+import { Slide } from "../../../frontend/src/utils/slide-types";
 
 const client = new DynamoDBClient({});
 

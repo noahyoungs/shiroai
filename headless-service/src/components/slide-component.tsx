@@ -1,6 +1,6 @@
 // frontend/src/components/slides/slide-component.tsx
 import React from "react";
-import { Slide } from "/Users/noahyoungs/VSCode/ai-presenter-v2/frontend/src/utils/slide-types";
+import { Slide } from "../../../frontend/src/utils/slide-types";
 
 // View Only
 import { ViewOnlyPresentationTitleSlideComponent } from "./view-only-presentation-title-slide";
