@@ -632,14 +632,17 @@ export function PillShortBulletsSlideComponent({
 
 
   const allBulletsShort = slide.slide_content.every(
-    (bullet) => bullet.content.length <= 45
+    (bullet) => bullet.content.length <= 50
   );
 
+  console.log(`"All bullets are short: ${allBulletsShort}`);
+
+
   return (
-    <div className="px-12 flex flex-col relative overflow-hidden height-auto bg-foreground/5 dark:bg-foreground/10 text-foreground box-border bg-content1 outline-none shadow-medium rounded-[15px] w-full aspect-video flex-none">
+    <div className="p-12 w-full flex-grow flex flex-col">
       {allBulletsShort ? (
-        <div className="flex flex-row w-full h-full">
-          <div className="w-1/3 flex items-center justify-center">
+        <div className="flex flex-row w-full h-full px-24">
+          <div className="w-1/3 flex flex-col items-end justify-center">
             <EditableTitle
               title={slide.slide_title}
               onSave={saveSlideTitle}
@@ -647,7 +650,7 @@ export function PillShortBulletsSlideComponent({
               setBlockArrowKeys={setBlockArrowKeys}
             />
           </div>
-          <div className="w-2/3 flex justify-center flex-grow">
+          <div className="w-2/3 flex justify-end flex-grow">
             <ul className="flex flex-col justify-center gap-6 h-full max-w-max">
               {slide.slide_content.map((bullet, index) => (
                 <React.Fragment key={bullet.id}>
@@ -681,7 +684,7 @@ export function PillShortBulletsSlideComponent({
         </div>
       ) : (
         <>
-          <div className="mt-12 mb-0">
+          <div className="flex-none w-full">
             <EditableTitle
               title={slide.slide_title}
               onSave={saveSlideTitle}
@@ -690,7 +693,7 @@ export function PillShortBulletsSlideComponent({
             />
           </div>
           <div className="flex justify-center w-full flex-grow">
-            <ul className="flex flex-col justify-center gap-6 h-full max-w-max">
+            <ul className="flex flex-col justify-evenly gap-6 max-w-max my-8">
               {slide.slide_content.map((bullet, index) => (
                 <React.Fragment key={bullet.id}>
                   <BulletItem

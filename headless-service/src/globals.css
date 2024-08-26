@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Apply the Inter font family to the body tag */
+body {
+  font-family: "Inter", sans-serif;
+}
+
+.prose-xs {
+  @apply prose-sm;
+}
+
+.prose-xs #prose-container h1 {
+  margin-top: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.prose-xs #prose-container h2 {
+  margin-top: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.prose-xs #prose-container h3,
+.prose-xs #prose-container h4,
+.prose-xs #prose-container h5 {
+  margin-top: 0.5rem;
+  margin-bottom: 0.25rem;
+  font-size: 1em;
+}
+
+.prose-xs #prose-container li {
+  line-height: 1.2;
+  margin-top: 0.5em;
+  /* margin-top: 0.25em; */
+}
+
+.prose-xs #prose-container td {
+  padding-top: 0.25em;
+  padding-bottom: 0.25em;
+}
+
+#prose-container > *:first-child {
+  margin-top: 0;
+}
+
+#prose-container li h1,
+#prose-container li h2,
+#prose-container li h3,
+#prose-container li h4,
+#prose-container li h5,
+#prose-container li h6 {
+  margin-left: -1.4em;
+}
+
+#mermaid-svg-container {
+    line-height: normal;
+}
+
+iconify-icon {
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+ }
+
+ #prose-container table {
+  color: var(--tw-prose-body) !important;
+ }
+
+ #prose-container tr td {
+  color: var(--tw-prose-body) !important;
+ }

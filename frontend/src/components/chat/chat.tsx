@@ -21,6 +21,7 @@ export type ChatProps = {
   placeholder?: string;
   title?: string;
   statusMessage?: string;
+  autoFocus?: boolean;
 };
 
 export function Chat({
@@ -36,6 +37,7 @@ export function Chat({
   placeholder,
   title = "Chat with Shiro",
   statusMessage = "",
+  autoFocus = true,
 }: ChatProps) {
   console.log("setMessages in Chat:", setMessages);
 
@@ -110,6 +112,7 @@ export function Chat({
                 sources={sources}
                 presentationID={presentationID}
                 refreshSources={refreshSources}
+                autoFocus={autoFocus}
               />
             ) : (
               <PromptInputBasic
@@ -118,6 +121,7 @@ export function Chat({
                 socket={socket}
                 block={block}
                 setBlockSend={setBlock}
+                autoFocus={autoFocus}
               />
             )}
           </div>

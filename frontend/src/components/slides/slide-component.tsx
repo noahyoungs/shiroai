@@ -1,4 +1,4 @@
-// SlideComponent.tsx
+// frontend/src/components/slides/slide-component.tsx
 import React from "react";
 import { Slide } from "@/utils/slide-types";
 import { PillShortBulletsSlideComponent } from "@/components/slides/short-bullets-slides/short-bullets-slide-pills";
@@ -8,90 +8,127 @@ import { SectionHeaderSlideComponent } from "@/components/slides/section-header-
 import { PresentationTitleSlideComponent } from "@/components/slides/presentation-title-slide";
 import { BoxesShortBulletsSlideComponent } from "@/components/slides/short-bullets-slides/short-bullets-slide-boxes";
 
-interface SlideComponentProps {
+// View Only
+import { ViewOnlyPresentationTitleSlideComponent } from "./view-only/view-only-presentation-title-slide";
+import { ViewOnlySectionHeaderSlideComponent } from "./view-only/view-only-section-header-slide";
+import { ViewOnlySimpleMermaidSlideComponent } from "./view-only/view-only-mermaid-diagram-slide";
+import { ViewOnlyMarkdownSlideComponent } from "./view-only/view-only-markdown-slide";
+import { ViewOnlyPillShortBulletsSlideComponent } from "./view-only/view-only-short-bullets-slide-pills";
+import { ViewOnlyBoxesShortBulletsSlideComponent } from "./view-only/view-only-short-bullets-slide-boxes";
+
+interface CommonSlideComponentProps {
   slide: Slide;
-  setSlide: (
-    slide: Partial<Slide>,
-    splitSlides?: boolean
-  ) => void;
-  presentationID: string;
   allSources?: any[];
+  thumbnail?: boolean;
+}
+
+interface EditModeProps extends CommonSlideComponentProps {
+  viewOnly?: false;
+  setSlide: (slide: Partial<Slide>, splitSlides?: boolean) => void;
+  presentationID: string;
   setBlockArrowKeys: (block: boolean) => void;
 }
 
+interface ViewOnlyModeProps extends CommonSlideComponentProps {
+  viewOnly: true;
+}
 
-export const SlideComponent: React.FC<SlideComponentProps> = ({
-  slide,
-  setSlide,
-  allSources,
-  presentationID,
-  setBlockArrowKeys,
-}) => {
-  // console.log(`Slide ID: ${slide.id}`);
-  switch (slide.slide_type) {
-    case "short_bullets_slide":
-      // Alternate between PillShortBulletsSlideComponent and BoxesShortBulletsSlideComponent
-      return slide.layout === 'list' ? (
-        <PillShortBulletsSlideComponent
-          presentationID={presentationID}
-          slide={slide}
-          setSlide={setSlide}
-          allSources={allSources}
-          setBlockArrowKeys={setBlockArrowKeys}
-        />
-      ) : (
-        <BoxesShortBulletsSlideComponent
-          presentationID={presentationID}
-          slide={slide}
-          setSlide={setSlide}
-          allSources={allSources}
-          setBlockArrowKeys={setBlockArrowKeys}
-        />
-      );
-      
-    case "markdown_slide":
-      return (
-        <MarkdownSlideComponent
-          presentationID={presentationID}
-          slide={slide}
-          setSlide={setSlide}
-          allSources={allSources}
-          setBlockArrowKeys={setBlockArrowKeys}
-        />
-      );
+type SlideComponentProps = EditModeProps | ViewOnlyModeProps;
 
-    case "simple_mermaid_slide":
-      return (
-        <SimpleMermaidSlideComponent
-          presentationID={presentationID}
-          slide={slide}
-          setSlide={setSlide}
-          allSources={allSources}
-          setBlockArrowKeys={setBlockArrowKeys}
-        />
-      );
+export const SlideComponent: React.FC<SlideComponentProps> = (props) => {
+  const { slide, allSources, thumbnail } = props;
 
-    case "section_header_slide":
-      return (
-        <SectionHeaderSlideComponent
-          presentationID={presentationID}
-          slide={slide}
-          setSlide={setSlide}
-          setBlockArrowKeys={setBlockArrowKeys}
-        />
-      );
+  if (props.viewOnly) {
+    switch (slide.slide_type) {
+      case "short_bullets_slide":
+        return slide.layout === 'list' ? (
+          <ViewOnlyPillShortBulletsSlideComponent slide={slide} allSources={allSources} />
+        ) : (
+          <ViewOnlyBoxesShortBulletsSlideComponent slide={slide} allSources={allSources} />
+        );
 
-    case "presentation_title_slide":
-      return (
-        <PresentationTitleSlideComponent
-          presentationID={presentationID}
-          slide={slide}
-          setSlide={setSlide}
-          setBlockArrowKeys={setBlockArrowKeys}
-        />
-      );
+      case "markdown_slide":
+        return <ViewOnlyMarkdownSlideComponent slide={slide} allSources={allSources} />;
 
-    default:
-      return <div>Slide type not supported: {JSON.stringify(slide)}</div>;
+      case "simple_mermaid_slide":
+        return <ViewOnlySimpleMermaidSlideComponent slide={slide} allSources={allSources} />;
+
+      case "section_header_slide":
+        return <ViewOnlySectionHeaderSlideComponent slide={slide} thumbnail={thumbnail}/>;
+
+      case "presentation_title_slide":
+        return <ViewOnlyPresentationTitleSlideComponent slide={slide} thumbnail={thumbnail}/>;
+
+      default:
+        return <div>Slide type not supported: {JSON.stringify(slide)}</div>;
+    }
+  } else {
+    const { setSlide, presentationID, setBlockArrowKeys } = props;
+
+    switch (slide.slide_type) {
+      case "short_bullets_slide":
+        return slide.layout === 'list' ? (
+          <PillShortBulletsSlideComponent
+            presentationID={presentationID}
+            slide={slide}
+            setSlide={setSlide}
+            allSources={allSources}
+            setBlockArrowKeys={setBlockArrowKeys}
+          />
+        ) : (
+          <BoxesShortBulletsSlideComponent
+            presentationID={presentationID}
+            slide={slide}
+            setSlide={setSlide}
+            allSources={allSources}
+            setBlockArrowKeys={setBlockArrowKeys}
+          />
+        );
+
+      case "markdown_slide":
+        return (
+          <MarkdownSlideComponent
+            presentationID={presentationID}
+            slide={slide}
+            setSlide={setSlide}
+            allSources={allSources}
+            setBlockArrowKeys={setBlockArrowKeys}
+          />
+        );
+
+      case "simple_mermaid_slide":
+        return (
+          <SimpleMermaidSlideComponent
+            presentationID={presentationID}
+            slide={slide}
+            setSlide={setSlide}
+            allSources={allSources}
+            setBlockArrowKeys={setBlockArrowKeys}
+          />
+        );
+
+      case "section_header_slide":
+        return (
+          <SectionHeaderSlideComponent
+            presentationID={presentationID}
+            slide={slide}
+            setSlide={setSlide}
+            setBlockArrowKeys={setBlockArrowKeys}
+          />
+        );
+
+      case "presentation_title_slide":
+        return (
+          <PresentationTitleSlideComponent
+            presentationID={presentationID}
+            slide={slide}
+            setSlide={setSlide}
+            setBlockArrowKeys={setBlockArrowKeys}
+          />
+        );
+
+      default:
+        return <div>Slide type not supported: {JSON.stringify(slide)}</div>;
+    }
   }
 };

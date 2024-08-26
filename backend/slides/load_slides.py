@@ -2,7 +2,7 @@ from typing import List
 import global_prompts_config
 from dynamodb import get_presentation, update_presentation
 import asyncio
-from slides.generate_initial_slides import make_presentation_slides
+from slides.generate_initial.generate_slides import make_presentation_slides
 from s3 import download_model_list_from_s3, download_np_array_from_s3
 from portkey_ai import PORTKEY_GATEWAY_URL, createHeaders, AsyncPortkey
 from langchain_openai import OpenAIEmbeddings

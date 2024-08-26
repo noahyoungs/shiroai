@@ -1,3 +1,4 @@
+// src/components/slides/image/editable-slide-image.tsx
 import NextImage from "next/image";
 import { useEffect, useState } from "react";
 import { Image as ImageType } from "@/utils/slide-types";
@@ -13,20 +14,6 @@ import { EditImageModal } from "./edit-image-modal";
 import { ImageUploadModal } from "./image-upload-modal";
 import axios from "axios";
 
-const getImage = (key: string) => {
-  return fetch(
-    `http://localhost:3000/api/images?key=${encodeURIComponent(key)}`
-  )
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error("Failed to fetch image");
-      }
-      return response.json(); // Parse the response as JSON
-    })
-    .catch((error) => {
-      console.error("Error fetching image:", error);
-    });
-};
 
 const generateImage = async (
   presentationID: string,
@@ -66,29 +53,15 @@ export function SlideImage({
   image,
   variant = "left",
 }: SlideImageProps) {
+
+  const imageUrl = image?.s3_key ? `https://${process.env.NEXT_PUBLIC_CLOUDFRONT_DOMAIN}/${image.s3_key}` : undefined;
+
   const [editing, setEditing] = useState(false);
   const [currentImage, setCurrentImage] = useState(image);
-  const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(false);
 
   const tempWidth = variant === "full" ? 1920 : 1080;
   const tempHeight = 1080;
-
-  useEffect(() => {
-    if (currentImage) {
-      if (currentImage.url) {
-        setImageUrl(currentImage.url);
-      } else if (currentImage.s3_key) {
-        getImage(currentImage.s3_key).then((data) => {
-          if (typeof data === "string") {
-            setImageUrl(data);
-          } else if (typeof data === "object" && data.url) {
-            setImageUrl(data.url);
-          }
-        });
-      }
-    }
-  }, [currentImage]);
 
   if (!image) {
     return null; // or return a placeholder or error message
@@ -227,23 +200,22 @@ export function SlideImage({
           onClick={() => setEditing(true)} // Set editing to true on click
           onBlur={() => setEditing(false)}
           className={cn(
-            "relative",
+            "relative h-full",
             roundedClass,
             editing && "cursor-pointer ring-4 ring-primary"
           )}
         >
-          {imageUrl && (
-            <NextUIImage
-              src={imageUrl}
-              alt={currentImage?.prompt}
-              width={currentImage?.width || tempWidth}
-              height={currentImage?.height || tempHeight}
-              classNames={{
-                img: cn(roundedClass),
-                wrapper: cn(roundedClass, "w-full h-full"),
-              }}
-            />
-          )}
+          <NextUIImage
+            src={imageUrl}
+            alt={currentImage?.prompt}
+            width={currentImage?.width || tempWidth}
+            height={currentImage?.height || tempHeight}
+            classNames={{
+              img: cn("object-cover w-full h-full", roundedClass),
+              wrapper: cn(roundedClass, "w-full h-full"),
+            }}
+            // fallbackSrc={variant === "full" ? "/1920placeholder.jpeg" : "/1080placeholder.jpeg"}
+          />
           {variant == "full" && (
             <div className={cn("absolute inset-0 rounded-[15px]")}>
               <div

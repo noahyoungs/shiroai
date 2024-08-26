@@ -1,9 +1,7 @@
-//page.tsx
 "use client";
 
 import { Chat } from "@/components/chat/chat";
 import Interface from "./interface";
-import { Tabs, Tab, Card, CardBody } from "@nextui-org/react";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { io } from "socket.io-client";
 import { useRouter } from "next/navigation";
@@ -11,6 +9,10 @@ import ChatConfigureLayout from "@/components/chat-configure-layout";
 import { PersistentSlideList } from "@/utils/persistent-slides-list";
 import { getSources } from "@/actions/slides-actions";
 import debounce from "lodash/debounce";
+import internal from "stream";
+import { set } from "lodash";
+import { toast } from "sonner"
+import {ToastProgress } from "@/components/toast-progress";
 
 export default function Page({
   params,
@@ -24,7 +26,6 @@ export default function Page({
   const [messages, setMessages] = useState<any[]>([]);
   const socketRef = useRef<any>(null);
   const [blockChat, setBlockChat] = useState<boolean>(false);
-  // const [typing, setTyping] = useState<boolean>(false);
 
   // Interface states
   const [currentSlideID, setCurrentSlideID] = useState<string | null>(null);
@@ -36,6 +37,10 @@ export default function Page({
     [key: string]: string;
   }>({});
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  // New states for tracking script and notes generation
+  const [isScriptGenerating, setIsScriptGenerating] = useState<boolean>(false);
+  const [isNotesGenerating, setIsNotesGenerating] = useState<boolean>(false);
 
   const router = useRouter();
 
@@ -69,8 +74,14 @@ export default function Page({
     )
   );
 
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+  if (!backendUrl) {
+    throw new Error("Backend URL not set");
+  }
+
   useEffect(() => {
-    const newSocket = io("http://localhost:8000", {
+    const newSocket = io(backendUrl, {
       withCredentials: true,
       query: {
         presentationID: params.presentationID,
@@ -103,11 +114,7 @@ export default function Page({
         setMessages((prevMessages: any[]) => [...prevMessages, socketMessage]);
         if (socketMessage.role === "assistant") {
           setBlockChat(false);
-          // setTyping(false);
         }
-        // if (socketMessage.role === "user") {
-        //   setTyping(true);
-        // }
       } else {
         console.error("Received invalid message from socket: ", socketMessage);
       }
@@ -183,6 +190,43 @@ export default function Page({
           );
         }
         setCurrentSlideID(socketMessage.current_slide_id);
+      }
+
+      if (socketMessage.script || socketMessage.notes) {
+        if (socketMessage.script?.status.includes("/")) {
+          const numbers = socketMessage.script.status.split("/");
+          // Convert the strings to numbers if needed
+          const complete = parseInt(numbers[0], 10);
+          const total = parseInt(numbers[1], 10);
+          const progress = Math.round((complete / total) * 100)
+
+          if (complete >= total) {
+            toast(<ToastProgress progress_value={100} message="Script Generated Successfully!" />, {id: "script-gen", duration: 2000})
+            setIsScriptGenerating(false);
+          } else {
+            toast(<ToastProgress progress_value={progress} message={`Generating script for slide ${complete+1} of ${total}...`} />, {id: "script-gen", duration: 2000})
+            setIsScriptGenerating(true);
+          }
+        }
+        if (socketMessage.script?.status === "complete") {
+          // toast(<ToastProgress progress_value={100} message="Script Generated Successfully!" />, {id: "script-gen", duration: 2000})
+          setIsScriptGenerating(false);
+        }
+        if (socketMessage.notes?.status.includes("/")) {
+          const numbers = socketMessage.notes.status.split("/");
+          // Convert the strings to numbers if needed
+          const complete = parseInt(numbers[0], 10);
+          const total = parseInt(numbers[1], 10);
+          const progress = Math.round((complete / total) * 100)
+
+          if (complete >= total) {
+            toast(<ToastProgress progress_value={100} message="Notes Generated Successfully!" />, {id: "notes-gen", duration: 2000})
+            setIsNotesGenerating(false);
+          } else {
+            // toast(<ToastProgress progress_value={progress} message="Generating notes..." />, {id: "notes-gen", duration: 2000})
+            setIsNotesGenerating(true);
+          }
+        }
       }
     });
 
@@ -267,7 +311,6 @@ export default function Page({
   };
 
   const fetchSlides = async (slideIDs: string | string[]) => {
-    // console.log("Fetching slide(s):", slideIDs);
     // set status to 'fetching'
     if (Array.isArray(slideIDs)) {
       console.log("fetching slides", slideIDs);
@@ -286,7 +329,7 @@ export default function Page({
       }));
     }
 
-    slideList.fetchSlides(slideIDs);
+    await slideList.fetchSlides(slideIDs);
 
     // delete the status
     if (Array.isArray(slideIDs)) {
@@ -303,6 +346,56 @@ export default function Page({
         delete newStatus[slideIDs];
         return newStatus;
       });
+    }
+  };
+
+  const requestGenerate = async (
+    type: "script" | "notes",
+    style: number,
+    customStyle?: string,
+    maxChars?: number,
+  ) => {
+    console.log(`Requesting ${type} generation with style ${style}, customStyle ${customStyle}, and maxChars ${maxChars}`);
+
+    if (socketRef.current && socketRef.current.connected) {
+      if (type === "script") {
+        setIsScriptGenerating(true);
+      } else if (type === "notes") {
+        setIsNotesGenerating(true);
+      }
+
+      socketRef.current.emit("interface_update", {
+        [type]: {
+          status: "requested",
+          style_key: style,
+          custom_style: customStyle,
+          max_char_per_slide: maxChars,
+        },
+      });
+    } else {
+      console.error("Socket not connected");
+    }
+  };
+
+  const generateScriptNotes = async (
+    target: "script" | "notes",
+    style: number,
+    customStyle?: string,
+    maxChars?: number,
+  ) => {
+    await requestGenerate(target, style, customStyle, maxChars);
+
+    // Wait until the corresponding generation process is complete
+    if (target === "script") {
+      while (isScriptGenerating) {
+        await new Promise((resolve) => setTimeout(resolve, 200));
+      }
+    } else if (target === "notes") {
+      while (isNotesGenerating) {
+        await new Promise((resolve) => setTimeout(resolve, 200));
+      }
+    } else {
+      console.error("Invalid target for generating script/notes");
     }
   };
 
@@ -332,6 +425,7 @@ export default function Page({
             }*. Let me know if I can change anything on this slide for you.`
           : undefined
       }
+      autoFocus={false}
     />
   );
 
@@ -346,6 +440,7 @@ export default function Page({
       fetchingSlideStatus={fetchingSlideStatus}
       errors={errors}
       socketReady={socketRef.current && socketRef.current.connected}
+      generateScriptNotes={generateScriptNotes}
     />
   );
 
@@ -353,7 +448,7 @@ export default function Page({
     <ChatConfigureLayout
       chat={chat}
       interfaceComponent={interfaceComponent}
-      thirds
+      thirds={true}
     />
   );
 }

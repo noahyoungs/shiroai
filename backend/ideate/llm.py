@@ -15,7 +15,7 @@ import os
 async def ask_perplexity(question):
     response = await perplexity_client.chat.completions.create(
                             messages= [{ "role": 'user', "content": f"{question} Keep your answer short. No longer than a short paragraph."}],
-                            model= 'sonar-small-online',
+                            model= 'llama-3.1-sonar-small-128k-online',
                             
                         )
     # print(f"Perplexity Response: {response.choices[0].message.content}")
@@ -63,8 +63,9 @@ async def get_completion(
             messages=[message for message in messages if not message["role"].startswith("meta")],
             model="gpt-3.5-turbo-16k",
             ),
-        model="gpt-3.5-turbo-0125",
+        model=os.getenv("CHAT_MODEL_OPENAI_ID"),
         tools=ideate_prompts.getTools(interface_fields[interface], complete),
+        tool_choice='auto',
         user=user,
     )
     

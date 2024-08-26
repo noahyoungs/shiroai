@@ -4,6 +4,7 @@ import WebSearchCard from "./web-search-card";
 import { Spinner } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import { cn } from "@/utils/cn";
+import { stat } from "fs";
 
 export default function Component({
   messages = [] as any[],
@@ -60,6 +61,15 @@ export default function Component({
               )
             )
           )}
+          {
+            statusMessage && !typing && (
+              <MessageCard
+                avatar="https://nextuipro.nyc3.cdn.digitaloceanspaces.com/components-images/avatar_ai.png"
+                message={statusMessage}
+                messageClassName=""
+              />
+            )
+          }
           {typing ? (
             <MessageCard
               avatar="https://nextuipro.nyc3.cdn.digitaloceanspaces.com/components-images/avatar_ai.png"

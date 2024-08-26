@@ -1,12 +1,10 @@
-//markdown-slide.tsx
-"use client";
+import React, { useState, useRef, useEffect } from "react";
 import Markdown, { RuleType } from "markdown-to-jsx";
 import { Tooltip, Skeleton } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import { ForwardRefEditor } from "../mdx-editor/ForwardRefEditor";
 import "@mdxeditor/editor/style.css";
 import "@/components/mdx-editor/styles.css";
-import { useState, useRef, useEffect } from "react";
 import { EditableTitle } from "./editable-title";
 import { cleanMarkdown } from "@/actions/clean-editor-md";
 import {
@@ -19,15 +17,11 @@ import {
 } from "@mdxeditor/editor";
 import { cn } from "@/utils/cn";
 import { Footnote } from "@/components/footnote";
-import React from "react";
 import { MarkdownSlide, Slide } from "@/utils/slide-types";
 
 type MarkdownSlideComponentProps = {
   slide: MarkdownSlide;
-  setSlide: (
-    slide: Partial<Slide>,
-    splitSlides?: boolean
-  ) => void;
+  setSlide: (slide: Partial<Slide>, splitSlides?: boolean) => void;
   allSources?: any[];
   presentationID: string;
   setBlockArrowKeys: (block: boolean) => void;
@@ -43,33 +37,35 @@ export function MarkdownSlideComponent({
   const [editingMarkdown, setEditingMarkdown] = useState(false);
   const [titleLoading, setTitleLoading] = useState(false);
   const [markdownLoading, setMarkdownLoading] = useState(false);
+  const [hasTable, setHasTable] = useState(false);
   const editorRef = useRef<MDXEditorMethods>(null);
+  const markdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setBlockArrowKeys(editingMarkdown);
   }, [editingMarkdown, setBlockArrowKeys]);
 
-  // for title
+  useEffect(() => {
+    if (markdownRef.current) {
+      const tableElement = markdownRef.current.querySelector("table");
+      setHasTable(!!tableElement);
+    }
+  }, [slide.slide_content.content]);
+
   const saveSlideTitle = async (newTitle: string) => {
     setTitleLoading(true);
     setSlide({
-      slide_title: newTitle
+      slide_title: newTitle,
     });
     setTitleLoading(false);
   };
 
-  // for markdown
   const saveSlideMarkdown = async () => {
     if (!editorRef.current) return;
     if (editorRef.current?.getMarkdown().trim() === "") {
       alert("Slide content cannot be empty");
       return;
     }
-    setEditingMarkdown(false);
-    // if (editorRef.current.getMarkdown() == slide.slide_content.table) {
-    //     console.log("No changes made to the markdown")
-    //     return;
-    // }
     setEditingMarkdown(false);
     setMarkdownLoading(true);
     setSlide(
@@ -86,7 +82,6 @@ export function MarkdownSlideComponent({
   };
 
   const handleContentClick = async (e: React.MouseEvent) => {
-    // Prevent triggering setEditingMarkdown when clicking inside Footnote
     if ((e.target as HTMLElement).closest(".footnote-container")) {
       return;
     }
@@ -94,7 +89,7 @@ export function MarkdownSlideComponent({
   };
 
   return (
-    <div className="p-12 pb-0 flex flex-col relative text-foreground dark:bg-foreground/10 bg-foreground/5 box-border bg-content1 outline-none shadow-medium rounded-[15px] w-full flex-none aspect-video overflow-scroll">
+    <div className="p-12 pb-0 flex flex-col relative w-full flex-grow overflow-scroll">
       <div className="flex-none">
         <EditableTitle
           title={slide.slide_title}
@@ -124,7 +119,6 @@ export function MarkdownSlideComponent({
                 <BoldItalicUnderlineToggles />
                 <ListsToggle />
                 <InsertTable />
-                {/* Revert Button */}
                 <ButtonWithTooltip
                   onClick={() => setEditingMarkdown(false)}
                   title="Revert"
@@ -136,7 +130,6 @@ export function MarkdownSlideComponent({
                     className="text-warning-500 hover:text-warning-600 ml-2 -mr-0.5"
                   />
                 </ButtonWithTooltip>
-                {/* Save Button */}
                 <ButtonWithTooltip onClick={saveSlideMarkdown} title="Save">
                   <Icon
                     icon="tabler:circle-check"
@@ -153,45 +146,50 @@ export function MarkdownSlideComponent({
         </div>
       ) : (
         <>
-          <div className="flex-auto min-h-3"></div>
+          <div className="flex-auto min-h-6"></div>
           <div
-            className={cn(
-              "flex justify-start w-full flex-shrink max-w-none prose dark:prose-invert",
-              slide.slide_content.prose_class || "prose-sm"
-              // "prose-xs"
-            )}
             onClick={handleContentClick}
+            className={cn("flex items-center w-full", {
+              "justify-center": hasTable,
+            })}
+            ref={markdownRef}
           >
             <Skeleton isLoaded={!markdownLoading} className="rounded-lg">
               {typeof slide.slide_content.content === "string" ? (
-                <Markdown
-                  options={{
-                    renderRule(next, node, renderChildren, state) {
-                      // @ts-ignore
-                      if (node.type === RuleType.footnoteReference) {
-                        // console.log(node);
-                        const footnoteKeys = node.text.split(",^");
-                        // console.log("footnoteKeys:", footnoteKeys);
-                        return (
-                          <Footnote
-                            footnoteKeys={footnoteKeys}
-                            slide={slide}
-                            allSources={allSources}
-                          />
-                        );
-                      }
-                      return next();
-                    },
-                    wrapper: ({ children }) => (
-                      <div id="prose-container" className="px-1">
-                        {children}
-                      </div>
-                    ),
-                    forceWrapper: true,
-                  }}
-                >
-                  {slide.slide_content.content}
-                </Markdown>
+                <div className="flex flex-col">
+                  <div
+                    className={cn(
+                      "flex justify-start w-full max-w-none prose dark:prose-invert",
+                      slide.slide_content.prose_class || "prose-sm"
+                    )}
+                  >
+                    <Markdown
+                      options={{
+                        renderRule(next, node, renderChildren, state) {
+                          if (node.type === RuleType.footnoteReference) {
+                            const footnoteKeys = node.text.split(",^");
+                            return (
+                              <Footnote
+                                footnoteKeys={footnoteKeys}
+                                slide={slide}
+                                allSources={allSources}
+                              />
+                            );
+                          }
+                          return next();
+                        },
+                        wrapper: ({ children }) => (
+                          <div id="prose-container" className="px-1">
+                            {children}
+                          </div>
+                        ),
+                        forceWrapper: true,
+                      }}
+                    >
+                      {slide.slide_content.content}
+                    </Markdown>
+                  </div>
+                </div>
               ) : (
                 <div className="flex justify-center items-center h-[300px]">
                   <p className="text-center text-foreground dark:text-background">
@@ -204,7 +202,7 @@ export function MarkdownSlideComponent({
               )}
             </Skeleton>
           </div>
-          <div className="flex-auto min-h-3"></div>
+          <div className="flex-auto min-h-12"></div>
         </>
       )}
     </div>

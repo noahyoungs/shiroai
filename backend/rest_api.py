@@ -26,7 +26,7 @@ app = FastAPI(debug=True)
 # Allow all origins for CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000", "https://meetshiro.com:3000", "https://meetshiro.com"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -77,7 +77,7 @@ async def authenticate_request(request: Request, presentation_id: str):
     cookies = http.cookies.SimpleCookie()
     cookies.load(cookie_str)
     
-    accessToken = cookies.get("next-auth.session-token", None).value if cookies else None
+    accessToken = cookies.get("__Secure-next-auth.session-token", None).value if cookies else None
     
     if accessToken:
         logger.debug(f"Access token found: {accessToken}")

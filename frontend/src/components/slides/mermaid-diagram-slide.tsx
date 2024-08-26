@@ -12,16 +12,11 @@ import {
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import { ExcerptCard } from "../excerpt-card";
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { EditableTitle } from "./editable-title";
 
 const SvgRenderer = ({ svgString }: { svgString: string }) => {
-  // const sanitizedSvgString = DOMPurify.sanitize(svgString, {
-  //     USE_PROFILES: { svg: true, svgFilters: true },
-  //     ADD_ATTR: ['xmlns', 'xmlns:xlink'],
-  //     ADD_TAGS: ['foreignObject', 'br']
-  //   });
   const sanitizedSvgString = svgString;
-
   return (
     <div
       className="w-full flex flex-row justify-center max-h-[50vh]"
@@ -31,7 +26,6 @@ const SvgRenderer = ({ svgString }: { svgString: string }) => {
   );
 };
 
-// IMPORTANT: Sources and Excerpts are different. Each excerpt has a source id. The source needs to be matched to get the source name and icon, etc.
 export function MermaidSources({
   excerpts,
   allSources,
@@ -53,30 +47,50 @@ export function MermaidSources({
     }
   };
 
-  console.log(`Length of excerpts: ${excerpts?.length}`);
-  console.log(`Length of allSources: ${allSources?.length}`)
   if (!(excerpts?.length > 0)) return <div>No sources found</div>;
-  else return (
-    <>
-      <h3 className="text-left text-lg">
-        {excerpts.length > 1
-          ? `Source ${currentIndex + 1} of ${excerpts.length}`
-          : "Source"}
-      </h3>
-      <div className="flex flex-col gap-4 items-center">
-        {excerpts.length > 1 && (
-          <div className="flex items-center justify-between w-full">
-            <Icon
-              icon="tabler:chevron-compact-left"
-              width="32"
-              height="32"
-              className={
-                currentIndex === 0
-                  ? "text-foreground/30"
-                  : "text-foreground/80  hover:text-foreground cursor-pointer"
-              }
-              onClick={handlePrev}
-            />
+  else
+    return (
+      <>
+        <h3 className="text-left text-lg">
+          {excerpts.length > 1
+            ? `Source ${currentIndex + 1} of ${excerpts.length}`
+            : "Source"}
+        </h3>
+        <div className="flex flex-col gap-4 items-center">
+          {excerpts.length > 1 && (
+            <div className="flex items-center justify-between w-full">
+              <Icon
+                icon="tabler:chevron-compact-left"
+                width="32"
+                height="32"
+                className={
+                  currentIndex === 0
+                    ? "text-foreground/30"
+                    : "text-foreground/80  hover:text-foreground cursor-pointer"
+                }
+                onClick={handlePrev}
+              />
+              <ExcerptCard
+                key={currentIndex}
+                text={excerpts[currentIndex]?.text || ""}
+                source={allSources.find(
+                  (source) => source.id === excerpts[currentIndex]?.source_id
+                )}
+              />
+              <Icon
+                icon="tabler:chevron-compact-right"
+                width="32"
+                height="32"
+                className={
+                  currentIndex === excerpts.length - 1
+                    ? "text-foreground/30"
+                    : "text-foreground/80 hover:text-foreground cursor-pointer"
+                }
+                onClick={handleNext}
+              />
+            </div>
+          )}
+          {excerpts.length === 1 && (
             <ExcerptCard
               key={currentIndex}
               text={excerpts[currentIndex]?.text || ""}
@@ -84,31 +98,10 @@ export function MermaidSources({
                 (source) => source.id === excerpts[currentIndex]?.source_id
               )}
             />
-            <Icon
-              icon="tabler:chevron-compact-right"
-              width="32"
-              height="32"
-              className={
-                currentIndex === excerpts.length - 1
-                  ? "text-foreground/30"
-                  : "text-foreground/80 hover:text-foreground cursor-pointer"
-              }
-              onClick={handleNext}
-            />
-          </div>
-        )}
-        {excerpts.length === 1 && (
-          <ExcerptCard
-            key={currentIndex}
-            text={excerpts[currentIndex]?.text || ""}
-            source={allSources.find(
-              (source) => source.id === excerpts[currentIndex]?.source_id
-            )}
-          />
-        )}
-      </div>
-    </>
-  );
+          )}
+        </div>
+      </>
+    );
 }
 
 type SimpleMermaidSlideComponentProps = {
@@ -129,6 +122,15 @@ export function SimpleMermaidSlideComponent({
   const dark = theme === "dark";
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const [titleLoading, setTitleLoading] = useState(false);
+
+  const saveSlideTitle = async (newTitle: string) => {
+    setTitleLoading(true);
+    setSlide({
+      slide_title: newTitle,
+    });
+    setTitleLoading(false);
+  };
 
   return (
     <>
@@ -160,26 +162,34 @@ export function SimpleMermaidSlideComponent({
           )}
         </ModalContent>
       </Modal>
-      <div className="p-12 flex flex-col relative overflow-hidden height-auto text-foreground bg-foreground/5 dark:bg-foreground/10 box-border bg-content1 outline-none shadow-medium rounded-[15px] w-full aspect-videow-full aspect-video flex-none">
-        <h1 className="self-start mb-0">{slide.slide_title}</h1>
-        {/* Vertical centering: */}
-        <div className="flex flex-col h-full pt-5">
-          <div className="flex-grow"></div>
-          <div
-            className="flex-none"
-            onClick={() => console.log(slide.slide_content.mermaid_code)}
-          >
-            <SvgRenderer
-              svgString={
-                dark
-                  ? slide.slide_content.dark_svg
-                  : slide.slide_content.light_svg
-              }
-            />
-          </div>
-          <div className="flex-grow"></div>
+      <div className="flex flex-col p-12 w-full flex-grow">
+        <div className="flex-none">
+          <EditableTitle
+            title={slide.slide_title}
+            onSave={saveSlideTitle}
+            loading={titleLoading}
+            setBlockArrowKeys={setBlockArrowKeys}
+          />
         </div>
-        <div className="ml-auto">
+
+        {/* Vertical centering: */}
+        <div className="flex-grow min-h-6"></div>
+        <div
+          className="flex-none"
+          onClick={() => console.log(slide.slide_content.mermaid_code)}
+        >
+          <SvgRenderer
+            svgString={
+              dark
+                ? slide.slide_content.dark_svg
+                : slide.slide_content.light_svg
+            }
+          />
+        </div>
+        <div className="flex-grow min-h-1"></div>
+      </div>
+      <div className="absolute right-[5%] bottom-[5%]">
+        <Tooltip content="Click to view diagram sources" color='primary' placement="left">
           <Icon
             icon="tabler:input-search"
             width={33}
@@ -187,7 +197,7 @@ export function SimpleMermaidSlideComponent({
             onClick={onOpen}
             className="text-primary-500 hover:text-primary-600"
           />
-        </div>
+        </Tooltip>
       </div>
     </>
   );

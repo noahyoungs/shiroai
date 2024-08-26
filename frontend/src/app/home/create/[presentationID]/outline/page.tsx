@@ -28,9 +28,16 @@ export default function Page({ params }: { params: { presentationID: string } })
   const [excludedTopics, setExcludedTopics] = useState<any[]>([]);
 
   const router = useRouter();
+
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+  if (!backendUrl) {
+    throw new Error("Backend URL not set");
+  }
+
   // Socket connection, handle received messages
   useEffect(() => {
-    const newSocket = io("http://localhost:8000", {
+    const newSocket = io(backendUrl, {
       withCredentials: true,
       query: {
         presentationID: params.presentationID,

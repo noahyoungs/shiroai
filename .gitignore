@@ -47,3 +47,8 @@ backend/slides/icons/icon_data/icon_embeddings/
 
 # headless-service
 headless-service/screenshots/
+headless-servuce/dist/
+
+# Ignore all .key and .crt files
+*.key
+*.crt

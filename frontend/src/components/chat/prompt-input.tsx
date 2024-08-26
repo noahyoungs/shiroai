@@ -29,7 +29,6 @@ const PromptInput = React.forwardRef<
       maxRows={6}
       minRows={1}
       {...props}
-      autoFocus
     />
   );
 });

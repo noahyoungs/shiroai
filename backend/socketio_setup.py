@@ -8,7 +8,7 @@ def socketio_mount(
     socketio_path: str = "socket.io",
     logger: bool = False,
     engineio_logger: bool = False,
-    cors_allowed_origins=["http://localhost:3000"],
+    cors_allowed_origins=["http://localhost:3000", "https://meetshiro.com:3000"],
     **kwargs
 ) -> AsyncServer:
     """Mounts an async SocketIO app over an FastAPI app."""

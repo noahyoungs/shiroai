@@ -20,6 +20,7 @@ export default function Component({
   presentationID,
   refreshSources,
   onHeightChange,
+  autoFocus = false,
 }: {
   setMessages: (messages: any) => void;
   socket: any;
@@ -29,6 +30,7 @@ export default function Component({
   presentationID: string;
   refreshSources: () => void;
   onHeightChange?: (height: number, meta: { rowHeight: number }) => void;
+  autoFocus?: boolean;
 }) {
   // const [isRegenerating, setIsRegenerating] = useState<boolean>(false);
   const [prompt, setPrompt] = useState<string>("");
@@ -396,6 +398,7 @@ export default function Component({
           }}
           placeholder={"Message Shiro or drag and drop files here..."}
           onHeightChange={onHeightChange}
+          autoFocus={autoFocus}
         />
         <div className="flex w-full flex-wrap items-center justify-between gap-2 px-4">
           <div className="flex flex-wrap gap-3">

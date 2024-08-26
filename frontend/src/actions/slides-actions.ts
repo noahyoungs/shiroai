@@ -177,7 +177,7 @@ export async function getSources(presentationID: string) {
  * Retrieves the slides for a given presentation ID. Also processes the markdown slides to determine the prose class and splits it if overheight.
  *
  * @param presentationID - The ID of the presentation.
- * @returns A sorted array of slides.
+ * @returns An array of slides.
  * @throws Error if there is a failure in retrieving the slides.
  */
 export async function getAllSlides(presentationID: string) {
@@ -195,120 +195,7 @@ export async function getAllSlides(presentationID: string) {
     console.error("Error retrieving slides:", error);
     throw new Error("Failed to retrieve slides");
   }
-
-  if (slides.length === 0) {
-    return slides;
-  }
-
-  // Broken
-  // let previousUpdates: { [key: string]: string } = {}; // Track updates for previous pointers
-
-  let updatedSlides: Slide[] = (
-    await Promise.all(
-      slides.map(async (slide, index) => {
-        let processedSlides = await addProseClassesAndSplitOverheight(
-          slide,
-          true
-        );
-
-        if (processedSlides.length > 1) {
-          for (let i = 0; i < processedSlides.length; i++) {
-            const currentSlide = processedSlides[i];
-            const prevSlide = processedSlides[i - 1];
-            const nextSlide = processedSlides[i + 1];
-
-            currentSlide.previous = prevSlide?.id || slide.previous;
-            currentSlide.next = nextSlide?.id || slide.next;
-          }
-
-          // Broken
-          // if (slides[index + 1]) {
-          //   previousUpdates[slides[index + 1].id] = processedSlides[processedSlides.length - 1].id;
-          // }
-          console.log(
-            `Slide '${
-              slides[index + 1].slide_title
-            }' updated with previous pointer to '${
-              processedSlides[processedSlides.length - 1].id
-            } (index: ${index})'`
-          );
-        }
-
-        return processedSlides;
-      })
-    )
-  ).flat();
-
-  // Broken
-  // // Update the previous pointers
-  // updatedSlides.forEach((slide) => {
-  //   slide.previous = previousUpdates[slide.id] || slide.previous;
-  // });
-
-  // Monkey patch to fix the previous pointers by iterating through the linked list
-  let head = updatedSlides.find(
-    (slide) => slide.slide_type === "presentation_title_slide"
-  );
-  if (!head) {
-    throw new Error("presentation_title_slide slide not found");
-  }
-
-  let previousSlide: Slide = head;
-  let currentSlide = updatedSlides.find((slide) => slide.id === head!.next);
-  if (!currentSlide) {
-    throw new Error(`Slide with id ${head.next} not found (Second slide)`);
-  }
-
-  while (currentSlide.next) {
-    currentSlide.previous = previousSlide.id;
-    previousSlide = currentSlide;
-    currentSlide = updatedSlides.find(
-      (slide) => slide.id === currentSlide!.next
-    );
-    if (!currentSlide) {
-      throw new Error(`Slide with id ${previousSlide.next} not found`);
-    }
-  }
-
-  // This line will execute even when the condition currentSlide!.next is false
-  currentSlide.previous = previousSlide.id;
-
-  // Optimize updatedSlides by only including fields that are different
-  const optimizedUpdatedSlides = updatedSlides.map(
-    (updatedSlide): Partial<Slide> => {
-      const matchingSlide = slides.find(
-        (slide) => slide.id === updatedSlide.id
-      );
-      const updatedFields: Partial<Slide> = {
-        id: updatedSlide.id,
-      };
-
-      if (matchingSlide) {
-        for (const key in updatedSlide) {
-          if (updatedSlide[key] !== matchingSlide[key]) {
-            updatedFields[key] = updatedSlide[key];
-          }
-        }
-      } else {
-        for (const key in updatedSlide) {
-          updatedFields[key] = updatedSlide[key];
-        }
-      }
-
-      return updatedFields;
-    }
-  );
-
-  // filter out any slides that only have id
-  const filteredUpdatedSlides = optimizedUpdatedSlides.filter(
-    (slide) => Object.keys(slide).length > 1
-  );
-
-  if (filteredUpdatedSlides.length > 0) {
-    // Fire and forget
-    dynamodbUpdateSlides(presentationID, filteredUpdatedSlides);
-  }
-  return updatedSlides;
+  return slides
 }
 
 /**
@@ -453,8 +340,8 @@ export async function getHeadSlideID(presentationID: string) {
     throw new Error("Unauthorized.");
   }
 
-  const { head_slide_id } = await getPresentationByID(presentationID, [
+  const { head_slide_id: headSlideID } = await getPresentationByID(presentationID, [
     "head_slide_id",
   ]);
-  return head_slide_id;
+  return headSlideID;
 }

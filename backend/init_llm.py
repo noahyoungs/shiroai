@@ -16,6 +16,7 @@ client = AsyncOpenAI(
     )
 )
 
+
 groq_client = AsyncOpenAI(
     base_url="https://api.groq.com/openai/v1",
     api_key=os.getenv("GROQ_API_KEY")

@@ -2,11 +2,21 @@ import re
 import xml.etree.ElementTree as ET
 import base64
 import aiohttp
-import os 
+import os
+import ssl
+import asyncio
 
 from slides.mermaid.tall_shapes_lines_inference import predict_ideal_lines
 
 HEADLESS_API_PATH = os.getenv('HEADLESS_API_PATH')
+SSL_VERIFY = False  # Set to True to enable SSL verification, False to disable
+
+# Create an SSL context that disables verification if SSL_VERIFY is False
+ssl_context = None
+if not SSL_VERIFY:
+    ssl_context = ssl.create_default_context()
+    ssl_context.check_hostname = False
+    ssl_context.verify_mode = ssl.CERT_NONE
 
 def break_string_into_lines(input_string, n):
     # replace \n and <br> with <br/>
@@ -69,7 +79,7 @@ def process_tall_shapes(diagram):
 async def get_dimensions_from_service(diagram):
     async with aiohttp.ClientSession() as session:
         url = f"{HEADLESS_API_PATH}/mermaid-dimensions"
-        async with session.post(url, json={"code": diagram}) as response:
+        async with session.post(url, json={"code": diagram}, ssl=ssl_context) as response:
             response_data = await response.json()
             if response.status == 200:
                 return response_data['width'], response_data['height']
@@ -79,7 +89,7 @@ async def get_dimensions_from_service(diagram):
 async def generate_svgs_from_service(diagram):
     async with aiohttp.ClientSession() as session:
         url = f"{HEADLESS_API_PATH}/mermaid"
-        async with session.post(url, json={"code": diagram}) as response:
+        async with session.post(url, json={"code": diagram}, ssl=ssl_context) as response:
             response_data = await response.json()
             if response.status == 200:
                 return response_data['lightSvg'], response_data['darkSvg']
@@ -176,3 +186,22 @@ async def process_diagram_to_svgs(diagram, adjust_ar=True):
     diagram = round_rectangles(diagram)
     light_svg, dark_svg = await generate_svgs_from_service(diagram)
     return light_svg, dark_svg
+
+
+# Define an example Mermaid diagram
+example_diagram = """
+graph TD;
+    A-->B;
+    A-->C;
+    B-->D;
+    C-->D;
+"""
+
+# Function to test get_dimensions_from_service
+async def test_get_dimensions_from_service():
+    width, height = await get_dimensions_from_service(example_diagram)
+    print(f"Width: {width}, Height: {height}")
+
+# Run the test function
+if __name__ == "__main__":
+    asyncio.run(test_get_dimensions_from_service())

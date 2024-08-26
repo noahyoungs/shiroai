@@ -9,6 +9,7 @@ import { io } from "socket.io-client";
 import { debounce } from 'lodash';
 import { useRouter } from 'next/navigation';
 import ChatConfigureLayout from '@/components/chat-configure-layout';
+import { env } from 'process';
 
 export default function Page({ params }: { params: { presentationID: string } }) {
   const interfaceName = "ideate";
@@ -27,9 +28,15 @@ export default function Page({ params }: { params: { presentationID: string } })
 
   const router = useRouter();
 
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+  if (!backendUrl) {
+    throw new Error("Backend URL not set");
+  }
+
   // Socket connection, handle received messages
   useEffect(() => {
-    const newSocket = io("http://localhost:8000", {
+    const newSocket = io(backendUrl, {
       withCredentials: true,
       query: {
         presentationID: params.presentationID,

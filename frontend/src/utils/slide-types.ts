@@ -1,4 +1,4 @@
-//slide-types.ts
+// frontend/src/utils/slide-types.ts
 export type Slide = ShortBulletsSlide | MarkdownSlide | SimpleMermaidSlide | SectionHeaderSlide | PresentationTitleSlide;
 
 export interface BaseSlide {
@@ -8,6 +8,9 @@ export interface BaseSlide {
   hidden?: boolean;
   previous?: string;
   next?: string;
+  generation_messages?: LLMMessage[];
+  speaker_notes?: string;
+  script?: string;
   [key: string]: any;
 }
 
@@ -83,3 +86,7 @@ export interface PresentationTitleSlide extends BaseSlide {
   image: Image;
 }
 
+export interface LLMMessage {
+  role: string;
+  content: string;
+}

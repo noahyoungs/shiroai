@@ -30,7 +30,7 @@ export function SectionHeaderSlideComponent({
   const isImageLeft = slide.image_position !== "right"; // Defaults to left if image_position is undefined or any other value except 'right'
 
   return (
-    <div className="flex flex-row relative overflow-visible height-auto bg-foreground/5 text-foreground box-border bg-content1 outline-none shadow-medium rounded-[15px] w-full aspect-video flex-none">
+    <div className="flex flex-row relative overflow-visible aspect-video w-full">
       {isImageLeft ? (
         <>
           <div className="aspect-square h-full">

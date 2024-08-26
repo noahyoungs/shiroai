@@ -28,7 +28,7 @@ export function PresentationTitleSlideComponent({
   };
 
   return (
-    <div className="relative overflow-visible height-auto bg-foreground/5 text-foreground box-border bg-content1 outline-none shadow-medium rounded-[15px] w-full aspect-video flex-none">
+    <div className="h-full">
       <div className="absolute mx-12 mb-3 bottom-10 z-[21] text-background/90 cursor-text w-[90%]" id="presentation-title">
         <EditableTitle
           title={slide.slide_title}

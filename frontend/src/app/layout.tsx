@@ -6,6 +6,7 @@ import { getServerSession } from "next-auth";
 import { AuthProvider } from "@/components/session-provider";
 import { redirect } from "next/navigation";
 import '@mantine/dropzone/styles.css';
+import { Toaster } from "@/components/toaster"
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -28,6 +29,7 @@ export default async function RootLayout({
         <AuthProvider session={session}>
           <Providers>
             {children}
+            <Toaster />
           </Providers>
         </AuthProvider>
       </body>

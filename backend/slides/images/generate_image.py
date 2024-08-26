@@ -372,6 +372,7 @@ Remember to follow the instructions for creating a good prompt and to provide a 
 
 async def upload_image(image_data, presentationID):
     """Uploads the image and its thumbnail to S3 and returns the S3 key."""
+    print("Uploading image...")
     
     # Convert base64 image data to Pillow Image
     image = Image.open(BytesIO(image_data))

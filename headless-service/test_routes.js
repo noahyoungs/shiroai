@@ -1,7 +1,7 @@
 const axios = require('axios');
 const fs = require('fs').promises;
 
-const BASE_URL = 'http://localhost:3003';
+const BASE_URL = 'https://meetshiro.com:3003';
 
 // Test data
 const mermaidCode = `
@@ -31,8 +31,8 @@ async function testMermaid() {
     const response = await axios.post(`${BASE_URL}/mermaid`, { code: mermaidCode });
     const { lightSvg, darkSvg } = response.data;
 
-    await fs.writeFile('mermaid_light.svg', lightSvg);
-    await fs.writeFile('mermaid_dark.svg', darkSvg);
+    await fs.writeFile('tests/mermaid_light.svg', lightSvg);
+    await fs.writeFile('tests/mermaid_dark.svg', darkSvg);
 
     console.log('Mermaid SVGs saved to files.');
   } catch (error) {

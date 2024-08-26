@@ -44,14 +44,15 @@ export class PersistentSlideList {
         this.headID = await getHeadSlideIDAction(this.presentationID);
       }
 
-      const slidesData = await getAllSlidesAction(this.presentationID);
-      if (slidesData) {
+      const slides = await getAllSlidesAction(this.presentationID);
+      if (slides) {
         // Add slides to the local list
-        slidesData.forEach((data: Slide) => {
+        slides.forEach((data: Slide) => {
           this.slides[data.id] = data;
           this.length++;
         });
       }
+
     } catch (error) {
       this.updateErrors(
         "allSlides",
@@ -237,7 +238,9 @@ export class PersistentSlideList {
         slides.forEach((slide: Partial<Slide>) => {
           this.updatePushingSlideStatus(slide.id!, "uploaded");
         });
-        this.sendInterfaceUpdate(slides.map((slide: Partial<Slide>) => slide.id));
+        this.sendInterfaceUpdate(
+          slides.map((slide: Partial<Slide>) => slide.id)
+        );
       } else {
         slides.forEach((slide: Partial<Slide>) => {
           this.updatePushingSlideStatus(slide.id!, "uploading");
@@ -257,7 +260,9 @@ export class PersistentSlideList {
             slides.forEach((slide: Partial<Slide>) => {
               this.updatePushingSlideStatus(slide.id!, "uploaded");
             });
-            this.sendInterfaceUpdate(slides.map((slide:Partial<Slide>) => slide.id));
+            this.sendInterfaceUpdate(
+              slides.map((slide: Partial<Slide>) => slide.id)
+            );
           });
       }
     } catch (error) {

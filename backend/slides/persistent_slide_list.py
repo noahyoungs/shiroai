@@ -48,6 +48,10 @@ class PersistentSlideList:
         # must be list
         if not isinstance(slides_to_update, list):
             slides_to_update = [slides_to_update]
+            
+        # error on length 0
+        if len(slides_to_update) == 0:
+            raise ValueError("No slides to update")
         
         if push_value is None:
             if isinstance(slides_to_update[0], SlideModel):
@@ -76,7 +80,8 @@ class PersistentSlideList:
             return
 
         for slide in initial_slides:
-            if not slide.id:
+            if not hasattr(slide, 'id') or not slide.id:
+                print(f"Slide: {slide}")
                 raise ValueError("Each slide must have an ID")
 
         self.head_id = initial_slides[0].id
@@ -296,7 +301,7 @@ class PersistentSlideList:
         finally:
             self.saving = False
 
-    def get_slide(self, slide_id: str) -> Optional[SlideModel]:
+    async def get_slide(self, slide_id: str) -> Optional[SlideModel]:
         """
         Retrieves a slide by its ID.
 
@@ -307,7 +312,19 @@ class PersistentSlideList:
             Optional[SlideModel]: The slide if found, or None if not found.
         """
         if slide_id not in self.slides:
-            raise ValueError(f"Slide with id {slide_id} does not exist")
+            print(f"WARNING: Attepted to get slide with id {slide_id} which does not exist locally. Attempting to fetch from dynmamodb.")
+            
+            fetched_slide = await get_slides_action(self.presentation_id, slide_id)
+            
+            print(f"fetched slide {fetched_slide}")
+
+            if not fetched_slide:
+                raise ValueError(f"Error: Slides with IDs {slide_id} not found in local storage or dynamodb")
+            else:
+                self.length += 1
+                self.slides[slide_id] = fetched_slide
+                return fetched_slide
+                    
         return self.slides[slide_id]
 
     def get_head_slide_id(self) -> str:

@@ -11,6 +11,7 @@ interface PromptInputBasicProps {
   block: boolean;
   setBlockSend: (block: boolean) => void;
   statusMessage: string;
+  autoFocus?: boolean;
 }
 
 export default function PromptInputBasic({
@@ -19,6 +20,7 @@ export default function PromptInputBasic({
   block,
   setBlockSend,
   statusMessage,
+  autoFocus = false,
 }: PromptInputBasicProps) {
   const [prompt, setPrompt] = useState<string>("");
 
@@ -99,6 +101,7 @@ export default function PromptInputBasic({
             if (!block) sendMessage();
           }}
           placeholder={"Message Shiro..."}
+          autoFocus={autoFocus}
         />
       </div>
     </div>

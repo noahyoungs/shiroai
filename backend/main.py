@@ -27,6 +27,8 @@ from slides.on_connect import initialize as slides_initialize
 from slides.load_slides import load_slides as slides_load_slides
 from slides.on_disconnect import save_progress as slides_save_progress
 from slides.llm import complete as slides_get_completion
+from slides.script.generate_script import generate_all_scripts
+from slides.notes.generate_notes import generate_all_notes
 
 
 app = FastAPI()
@@ -79,7 +81,11 @@ async def connect(sid, environ):
     cookies = http.cookies.SimpleCookie()
     cookies.load(cookie_str)
     
-    accessToken = cookies.get("next-auth.session-token", None).value if cookies else None
+    if cookies.get("__Secure-next-auth.session-token", None) is None:
+        await handleDisconnect(sid, "Authorization issue. Please try logging out and logging back in.")
+        return
+    
+    accessToken = cookies.get("__Secure-next-auth.session-token").value
     
     if accessToken:
         isAuthorized, isAuthenticated, userID = await authorize(presentationID, accessToken)
@@ -270,7 +276,30 @@ async def interface_update(sid, data):
                 
         # update the other interface data including current slide id
         connected_users[sid]["interfaceData"].update(other_keys)
-            
+        
+        if data.get('script', {}).get('status', {None}) == 'requested':
+            # start generating all scripts
+            await generate_all_scripts(
+                psl=connected_users[sid]["memory"]["slide_list"],
+                style_key=data.get('script', {}).get('style_key', 0),
+                custom_style=data.get('script', {}).get('custom_style', None),
+                max_char_per_slide=data.get('script', {}).get('max_char_per_slide', None),
+                interface_data=connected_users[sid]["interfaceData"],
+                emitter=functools.partial(sio.emit, event='interface_update', to=sid)
+            )
+        if data.get('notes', {}).get('status', {None}) == 'requested':
+            # # start generating all notes
+            # await generate_all_notes(
+            #     psl=connected_users[sid]["memory"]["slide_list"],
+            #     style_key=data.get('notes', {}).get('style_key', ''),
+            #     custom_style=data.get('notes', {}).get('custom_style', None),
+            #     max_char_per_slide=data.get('notes', {}).get('max_char_per_slide', None)
+            # )
+            # # update status in interfaceData
+            # connected_users[sid]["interfaceData"]["notes"]["status"] = "complete"
+            # # emit interface update with new status
+            # sio.emit('interface_update', connected_users[sid]["interfaceData"], to=sid)
+            print("Notes generation is not implemented")
     else:
         raise ValueError("Interface not found")
     

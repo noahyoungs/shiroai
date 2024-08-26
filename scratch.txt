@@ -1,0 +1,22 @@
+
+```
+# Display the first few rows of the dataset
+print(\"
+First few rows of the dataset:\")
+print(df_loaded.head())
+# Perform some basic data manipulation
+average_age = df_loaded[\"age\"].mean()
+print(f\"
+The average age in the dataset is: {average_age:.2f}\")
+# Filter the dataset for people from a specific city
+city_filter = \"New York\"
+filtered_df = df_loaded[df_loaded[\"city\"] == city_filter]
+print(f\"
+People from {city_filter}:\")
+print(filtered_df)
+# Group the data by city and calculate the average age in each city
+grouped_data = df_loaded.groupby(\"city\")[\"age\"].mean()
+print(\"
+Average age by city:\")
+print(grouped_data)
+```

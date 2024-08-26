@@ -18,7 +18,7 @@ def getInterfaceUpdateSystemMessage(interface, interfaceData):
     for key in interface_keys_for_interface[interface]:
         if key not in interfaceData:
             raise ValueError(f"Interface data missing key: {key}")
-    content = "Here are the current parameters displayed to the user in the configuration screen. You must keep these parameters updated as the conversation progresses. Use the set_topic, set_audience, and set_goal function tools to make sure these parameters are kept up with the conversation:\n"
+    content = "Here are the current parameters displayed to the user in the configuration screen. You must keep these parameters updated as the conversation progresses. Use the set_topic, set_audience, and set_goal function tools with JSON arguments to make sure these parameters are kept up with the conversation:\n"
     for key, value in interfaceData.items():
         if value == "":
             value = "<Empty>"

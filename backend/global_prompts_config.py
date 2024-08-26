@@ -1,3 +1,5 @@
+from ideate.generate_topic_idea_examples import get_formatted_topics
+
 initial_assistant_message = {"role":"assistant", "content":"Hi, it's nice to meet you, I'm Shiro. I'm here to help you create an amazing presentation."}
 initial_system_message = {"role":"system", "content":"You are a helpful assistant for an AI based presentation creation tool. Your job is to talk to the user to create an amazing power-point style presentation together."}
 
@@ -8,7 +10,7 @@ initial_system_message_for_interface = {
     "slides": {"role": "system", "content": "Your current task is to edit the current slide based on the users requests. Currently you're not capable of creating new slides or editing more than one slide at a time. You can edit the slide title using the EditCurrentSlideTitle function directly, and you can delete the current slide using the DeleteCurrentSlide function directly. All other edits must be made by relaying the user's instructions to either the Image Editor Agent or the Content Editor Agent."}
 }
 initial_assistant_message_for_interface = {
-    "ideate": {"role": "assistant", "content":"Let's start by coming up with a topic for your presentation. What would you like your presentation to talk about? Here are some examples:\n 1. The Impact of Social Media on Mental Health\n 2. The Future of Artificial Intelligence and Its Implications\n 3. 7 Strategies for Effective Commmunication"},
+    "ideate": {"role": "assistant", "content":f"Let's start by coming up with a topic for your presentation. What would you like your presentation to talk about? Here are some examples:\n {get_formatted_topics(5)}"},
     "research": {"role": "assistant", "content":"Great! Now that we have an idea for our presentation, let's start gathering some sources.\n\nDo you have any sources you'd like to include in your presentation? If so, please provide them now.\n\nIf not, don't worry, since I will help you find some sources on the web. Let me know if you have any preferences for the sources I should look for, whether you have any specific keywords in mind, or would like to include or exclude sources from a particular website."},
     "outline": {"role": "assistant", "content": "I have examined the sources and developed a list of topics.\n\nOf these, I've selected the most relevant topics, which you can see in the **Included Subtopics** section. These topics will be included in your presentation in the order that they appear.\n\nThe **Excluded Subtopics** section contains subtopics that I've decided not to include in the outline.\n\nI can always move subtopics between these two sections if you'd like, and I can rearrange the order of the included subtopics as well. Let me know if you'd like to make any changes."},
     "slides": {"role": "assistant", "content": "I have created the slides for your presentation. Let me know if you would like to make any changes."}

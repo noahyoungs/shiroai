@@ -843,7 +843,7 @@ export const BoxesShortBulletsSlideComponent: React.FC<
   console.log("Component mount, Slide content", slide.slide_content);
 
   return (
-    <div className="p-12 flex flex-col relative overflow-hidden height-auto bg-foreground/5 dark:bg-foreground/10 text-foreground box-border bg-content1 outline-none shadow-medium rounded-[15px] w-full aspect-video flex-none">
+    <div className="p-12 flex flex-col relative overflow-scroll height-auto w-full flex-grow">
       <div className="flex justify-center w-full h-full">
         {renderSlideContent(
           { ...slide, slide_content: testSlideContent },

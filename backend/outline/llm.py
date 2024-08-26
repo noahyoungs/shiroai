@@ -7,6 +7,7 @@ from init_llm import client
 import tokentrim as tt
 from dynamodb import get_presentation
 import json
+import os
 
 
 async def getCurrentSubtopicListMessage(interfaceData, presentationID):
@@ -279,7 +280,7 @@ async def complete(presentationID, messages, interfaceData, max_turns=5, emitter
         messages.append( await getCurrentSubtopicListMessage(interfaceData, presentationID))
         
         completion = await client.chat.completions.create(
-            model="gpt-3.5-turbo-0125",
+            model=os.getenv("CHAT_MODEL_OPENAI_ID"),
             # filter out any messages with roles that start with meta
             messages=tt.trim(
                 messages=[message for message in messages if not message["role"].startswith("meta")],

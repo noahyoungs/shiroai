@@ -104,7 +104,9 @@ Finally, include a <message_to_user></message_to_user> tag with a message to the
 Remember, if the <user_request></user_request> conflicts with any <system_requirements></system_requirements> you must prioritize the <system_requirements></system_requirements> and try to fufill the <user_request></user_request> as closely as possible while following the <system_requirements></system_requirements>.
 """
 
-    messages = messages + [{'role': 'user', 'content': prompt}]
+    if messages is None:
+        messages = []
+    messages.append({'role': 'user', 'content': prompt})
 
     short_bullets_slide, new_messages = await get_basemodel_instance_from_llm(
         client=bedrock_client,
@@ -121,37 +123,57 @@ Remember, if the <user_request></user_request> conflicts with any <system_requir
     return short_bullets_slide, new_messages
 
 
-async def edit_markdown_slide(slide_title, slide_content, instruction, messages, excerpt_ids):
+async def edit_markdown_slide(slide_title, slide_content, instruction, messages, excerpt_ids=None):
+    
+    footnotes = slide_content.get('footnotes', [])
+    no_footnotes = not isinstance(footnotes, list) or len(footnotes) == 0
 
-    id_suffixes = [id[-8:] for id in excerpt_ids]
+    if not no_footnotes:
+        id_suffixes = [id[-8:] for id in excerpt_ids]
 
-    class Footnote(BaseModel):
-        marker: int = Field(..., ge=1)
-        excerpt_id: str = Field(..., min_length=8, max_length=8)
+        class Footnote(BaseModel):
+            marker: int = Field(..., ge=1)
+            excerpt_id: str = Field(..., min_length=8, max_length=8)
 
-        validate_excerpt_id = create_dynamic_enum_validator(
-            'valid_ids', 'excerpt_id')
+            validate_excerpt_id = create_dynamic_enum_validator(
+                'valid_ids', 'excerpt_id')
 
-    class MarkdownSlide(BaseModel):
-        slide_title: Optional[str] = Field(None, min_length=5, max_length=75)
-        markdown_content: Optional[str] = Field(
-            None, min_length=1, max_length=2000)
-        footnotes: Optional[List[Footnote]] = Field(
-            None, min_items=1, max_items=15)
-        message_to_user: str
+        class MarkdownSlide(BaseModel):
+            slide_title: Optional[str] = Field(None, min_length=5, max_length=75)
+            markdown_content: Optional[str] = Field(
+                None, min_length=1, max_length=2000)
+            footnotes: Optional[List[Footnote]] = Field(
+                None, min_items=1, max_items=15)
+            message_to_user: str
 
-    class OldMarkdownSlide(BaseModel):
-        slide_title: Optional[str] = Field(None, min_length=5, max_length=75)
-        markdown_content: Optional[str] = Field(
-            None, min_length=1, max_length=2000)
-        footnotes: List[Footnote]
+        class OldMarkdownSlide(BaseModel):
+            slide_title: Optional[str] = Field(None, min_length=5, max_length=75)
+            markdown_content: Optional[str] = Field(
+                None, min_length=1, max_length=2000)
+            footnotes: List[Footnote]
 
-    old_mds = OldMarkdownSlide.model_validate({
-        "slide_title": slide_title,
-        "markdown_content": slide_content['content'],
-        "footnotes": [{"marker": int(marker), "excerpt_id": excerpt['excerpt_id'][-8:]} for marker, excerpt in slide_content['footnotes'].items()],
-        "valid_ids": id_suffixes
-    })
+        old_mds = OldMarkdownSlide.model_validate({
+            "slide_title": slide_title,
+            "markdown_content": slide_content['content'],
+            "footnotes": [{"marker": int(marker), "excerpt_id": excerpt['excerpt_id'][-8:]} for marker, excerpt in slide_content['footnotes'].items()],
+            "valid_ids": id_suffixes
+        })
+    else:
+        class MarkdownSlide(BaseModel):
+            slide_title: Optional[str] = Field(None, min_length=5, max_length=75)
+            markdown_content: Optional[str] = Field(
+                None, min_length=1, max_length=2000)
+            message_to_user: str
+
+        class OldMarkdownSlide(BaseModel):
+            slide_title: Optional[str] = Field(None, min_length=5, max_length=75)
+            markdown_content: Optional[str] = Field(
+                None, min_length=1, max_length=2000)
+
+        old_mds = OldMarkdownSlide.model_validate({
+            "slide_title": slide_title,
+            "markdown_content": slide_content['content'],
+        })
 
     prompt = f"""\
 Here's the slide we have so far:
@@ -172,17 +194,26 @@ To change the <slide_title></slide_title>, include a <slide_title></slide_title>
 To change the <markdown_content></markdown_content>, include a <markdown_content></markdown_content> tag with the new markdown content in your response. If you don't include a <markdown_content></markdown_content> tag, the current markdown content will be kept.
 Note that if you include a <markdown_content></markdown_content> tag, the current <markdown_content></markdown_content> will be replaced entirely by the new one you provide.
 
+"""
+
+    if not no_footnotes:
+        prompt += """\
 If you update the <markdown_content>, make sure you keep the footnote references (e.g. [^1]) in the markdown content up to date and update the <footnotes></footnotes> tag accordingly.
 
 To update the <footnotes></footnotes>, include a <footnotes></footnotes> tag with the new footnotes in your response. If you don't include the a <footnotes></footnotes> tag, the current footnotes will be kept.
 If you do include a <footnotes></footnotes> tag, you must include a list of <footnote></footnote> tags inside the <footnotes></footnotes> tag. In each <footnote></footnote> tag, include a <marker></marker> and an optional <excerpt_id></excerpt_id> to cite a source from the research whenever appropriate. The <marker></marker> must be an integer (e.g. 1) that corresponds to the footnote reference (e.g. [^1]) in the markdown content. The <excerpt_id></excerpt_id> must match one of the <excerpt_id></excerpt_id> tags in the <research><research>.
 Note that if you include the <footnotes></footnotes> tag, the current <footnotes></footnotes> will be replaced entirely by the new ones you provide.
-
+"""
+    
+    prompt += """\
 Finally, include a <message_to_user></message_to_user> tag with a message to the user explaining the changes you made to the slide.
 Remember, there should be up to date footnote references in the format [^1], [^2], etc. in the <markdown_content></markdown_content> and the <marker></marker> in the <footnotes></footnotes> should correspond to these references. The <excerpt_id></excerpt_id> in the <footnotes></footnotes> should be a valid <excerpt_id></excerpt_id> from the <research></research>.
 """
 
-    messages = messages + [{'role': 'user', 'content': prompt}]
+    if messages is None:
+        messages = []
+    messages.append({'role': 'user', 'content': prompt})
+
     markdown_slide, new_messages = await get_basemodel_instance_from_llm(
         client=bedrock_client,
         pydantic_model_class=MarkdownSlide,
@@ -191,11 +222,11 @@ Remember, there should be up to date footnote references in the format [^1], [^2
         model=claude_haiku,
         max_tokens=2000,
         messages=messages,
-        dynamic_val_params={"valid_ids": id_suffixes},
-        # error_prompt_suffix="\nIf this error was caused because the user request conflicted with the system requirements, please fix your response to adhere to the system requirements and in your <message_to_user></message_to_user> tag, explain to the user why you couldn't meet the user request due to the system requirements.",
+        dynamic_val_params={"valid_ids": id_suffixes} if not no_footnotes else {},
     )
 
     return markdown_slide, new_messages
+
 
 
 async def edit_mermaid_slide(slide_title, slide_content, instruction, messages, excerpt_ids):
@@ -221,7 +252,7 @@ async def edit_mermaid_slide(slide_title, slide_content, instruction, messages, 
         mermaid_diagram: Optional[str] = Field(
             None, min_length=1, max_length=2000)
         excerpt_ids: Optional[List[ExcerptId]] = Field(
-            None, min_items=1, max_items=5)
+            None, min_items=1, max_items=20)
         message_to_user: str
 
         @async_field_validator('mermaid_diagram')
@@ -256,7 +287,9 @@ Please make the requested changes to the markdown diagram.
 Respond in the following format:
 {generate_variable_input_xml(Response)}"""
 
-    messages = messages + [{'role': 'user', 'content': prompt}]
+    if messages is None:
+        messages = []
+    messages.append({'role': 'user', 'content': prompt})
     markdown_slide, new_messages = await get_basemodel_instance_from_llm(
         client=bedrock_client,
         pydantic_model_class=Response,
@@ -287,16 +320,16 @@ async def edit_slide_content(
 
     slide_type = current_slide.slide_type
 
-    if not current_slide.topic_id:
-        raise ValueError("No topic_id found for the slide")
+    reduced_docs = None
+    excerpt_ids = None
+    if current_slide.topic_id:
+        # Get reduced docs
+        reduced_docs = (await get_topics(presentation_id, current_slide.topic_id, ['reduced_docs'])).reduced_docs
+        if not reduced_docs:
+            raise RuntimeError("No reduced docs found for the topic")
 
-    # Get reduced docs
-    reduced_docs = (await get_topics(presentation_id, current_slide.topic_id, ['reduced_docs'])).reduced_docs
-    if not reduced_docs:
-        raise RuntimeError("No reduced docs found for the topic")
-
-    # Get excerpt ids
-    excerpt_ids = get_excerpt_ids(reduced_docs)
+        # Get excerpt ids
+        excerpt_ids = get_excerpt_ids(reduced_docs)
 
     if slide_type == 'short_bullets_slide':
         print("Editing Short Bullets Slide")
@@ -366,7 +399,7 @@ async def edit_slide_content(
         print(f"Model: {model.dict()}")
         if model.slide_title:
             current_slide.slide_title = model.slide_title
-        if model.footnotes:
+        if getattr(model, 'footnotes', None):
             new_footnotes = {}
 
             for old_footnote in model.dict()['footnotes']:

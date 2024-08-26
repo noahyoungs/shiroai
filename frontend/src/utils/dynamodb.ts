@@ -75,6 +75,24 @@ export async function getPresentationsByUserID(userID: string, attributes: strin
   };
 }
 
+/**
+ * Retrieves a presentation by its ID from a DynamoDB table, returning specified attributes.
+ *
+ * @param {string} presentationID - The unique identifier for the presentation.
+ * @param {string[]} attributes - An array of attribute names to be retrieved from the presentation.
+ * @returns {Promise<object | null>} - A promise that resolves to an object containing the requested presentation attributes, or null if the presentation is not found.
+ *
+ * @example
+ * const presentationID = '12345';
+ * const attributes = ['title', 'createdAt'];
+ * const presentation = await getPresentationByID(presentationID, attributes);
+ * if (presentation) {
+ *   console.log(`Presentation Title: ${presentation.title}`);
+ *   console.log(`Created At: ${presentation.createdAt}`);
+ * } else {
+ *   console.log('Presentation not found');
+ * }
+ */
 export async function getPresentationByID(presentationID: string, attributes: string[]) {
   attributes.push("PK");
 
@@ -489,6 +507,9 @@ export async function getAllSlides(
         image_position: slideFields.image_position,
         previous: slideFields.previous,
         next: slideFields.next,
+        generation_messages: slideFields.generation_messages,
+        speaker_notes: slideFields.speaker_notes,
+        script: slideFields.script,
       };
 
       return slide;
@@ -580,6 +601,9 @@ export async function getSlides(
           image_position: slideFields.image_position,
           previous: slideFields.previous,
           next: slideFields.next,
+          generation_messages: slideFields.generation_messages,
+          speaker_notes: slideFields.speaker_notes,
+          script: slideFields.script,
         };
 
         return slide;
@@ -634,6 +658,7 @@ export async function getSlides(
           image_position: slideFields.image_position,
           previous: slideFields.previous,
           next: slideFields.next,
+          generation_messages: slideFields.generation_messages,
         };
 
         return slide;
