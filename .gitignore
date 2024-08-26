@@ -43,7 +43,12 @@ __pycache__/
 
 # history
 .history/
-backend/slides/icons/icon_data/icon_embeddings/
+
+# Ignore all files inside the icon_embeddings folder
+backend/slides/icons/icon_data/icon_embeddings/*
+
+# But don't ignore the .gitkeep file
+!backend/slides/icons/icon_data/icon_embeddings/.gitkeep
 
 # headless-service
 headless-service/screenshots/
