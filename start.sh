@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Session name
-SESSION_NAME="ai-presenter"
+SESSION_NAME="shiroai"
 
 # Get the directory where the script is located
 SCRIPT_DIR="$(dirname "$0")"
@@ -14,20 +14,20 @@ if [ $? != 1 ]; then
   tmux kill-session -t $SESSION_NAME
 fi
 
-# Start a new tmux session named 'ai-presenter' with the first window named 'Frontend Main'
-tmux new-session -d -s $SESSION_NAME -n 'Frontend Main'
+# Next frontend
+tmux new-session -d -s $SESSION_NAME -n 'Next.js Frontend'
 tmux send-keys -t $SESSION_NAME:0 "cd $SCRIPT_DIR/frontend" C-m
 tmux send-keys -t $SESSION_NAME:0 'npm run dev' C-m
 
-# Create a new window named 'Backend Main'
-tmux new-window -t $SESSION_NAME -n 'Backend Main'
+# FastAPI SocketIO Backend using Poetry
+tmux new-window -t $SESSION_NAME -n 'FastAPI SocketIO Backend'
 tmux send-keys -t $SESSION_NAME:1 "cd $SCRIPT_DIR/backend" C-m
-tmux send-keys -t $SESSION_NAME:1 'uvicorn main:app --reload --host 0.0.0.0 --port 8000 --ssl-keyfile server.key --ssl-certfile server.crt' C-m
+tmux send-keys -t $SESSION_NAME:1 'poetry run uvicorn main:app --reload --host 0.0.0.0 --port 8000 --ssl-keyfile server.key --ssl-certfile server.crt' C-m
 
-# Create a new window and start the backend icon API router
-tmux new-window -t $SESSION_NAME -n 'Edit Actions API'
+# FastAPI REST API Backend using Poetry
+tmux new-window -t $SESSION_NAME -n 'FastAPI REST API Backend'
 tmux send-keys -t $SESSION_NAME:2 "cd $SCRIPT_DIR/backend" C-m
-tmux send-keys -t $SESSION_NAME:2 'uvicorn rest_api:app --host 0.0.0.0 --port 8001 --ssl-keyfile server.key --ssl-certfile server.crt --log-level debug' C-m
+tmux send-keys -t $SESSION_NAME:2 'poetry run uvicorn rest_api:app --host 0.0.0.0 --port 8001 --ssl-keyfile server.key --ssl-certfile server.crt --log-level debug' C-m
 
 # Create another window and start the mermaid.ink service
 tmux new-window -t $SESSION_NAME -n 'Headless API'

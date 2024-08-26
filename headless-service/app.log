@@ -18974,3 +18974,5 @@ Expecting 'AMP', 'COLON', 'PIPE', 'TESTSTR', 'DOWN', 'DEFAULT', 'NUM', 'COMMA', 
 2024-08-20T20:40:58.370Z [INFO]: Page content set
 2024-08-20T20:41:11.902Z [INFO]: PDF generated and uploaded to S3: 01917137-a536-7b88-ab0b-6d5db2f3dbae/Marketing_to_the_Chronically_Online__Strategies_for_Engaging_Brainrot_Kids_in_a_Digital_World.pdf
 2024-08-20T20:41:11.902Z [INFO]: POST /generate-pdf/01917137-a536-7b88-ab0b-6d5db2f3dbae/pdf 200 15885ms
+2024-08-26T07:25:01.817Z [INFO]: Server is running on port 3003 with HTTPS
+2024-08-26T07:27:59.063Z [INFO]: Server is running on port 3003 with HTTPS
