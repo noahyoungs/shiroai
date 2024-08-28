@@ -89,7 +89,7 @@ export function MarkdownSlideComponent({
   };
 
   return (
-    <div className="p-12 pb-0 flex flex-col relative w-full flex-grow overflow-scroll">
+    <div className="p-12 pb-0 flex flex-col relative w-full flex-grow">
       <div className="flex-none">
         <EditableTitle
           title={slide.slide_title}

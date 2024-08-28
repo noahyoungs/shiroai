@@ -92,7 +92,7 @@ export default function Interface({
                 />
               )}
               {/* min height maintains aspect ratio of slide */}
-              <div className="flex overflow-visible text-foreground bg-foreground/5 box-border rounded-[15px] w-full flex-none ring-1 ring-foreground/30 min-h-[54vw] xl:min-h-[36vw]">
+              <div className="flex overflow-clip text-foreground bg-foreground/5 box-border rounded-[15px] w-full flex-none ring-1 ring-foreground/30 min-h-[54vw] xl:min-h-[35.5vw] p-0">
                 <SlideComponent
                   key={slideUpdateTrigger} // Ensure re-render by updating key
                   presentationID={presentationID}
