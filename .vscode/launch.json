@@ -4,27 +4,63 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-
-    
-        {
-            "name": "Python Debugger: Current File",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${file}",
-            "console": "integratedTerminal"
+      {
+        "type": "aws-sam",
+        "request": "direct-invoke",
+        "name": "generate-video:HelloWorldFunction (python3.10)",
+        "invokeTarget": {
+          "target": "template",
+          "templatePath": "${workspaceFolder}/sam-lambda/generate-video/template.yaml",
+          "logicalId": "HelloWorldFunction"
         },
-        {
-            "name": "TS-Node",
-            "type": "node",
-            "request": "launch",
-            "runtimeExecutable": "/Users/noahyoungs/.nvm/versions/node/v18.17.1/bin/ts-node",
-            "runtimeArgs": [
-              "--transpile-only"
-            ],
-            "program": "${file}",
-            "cwd": "${workspaceRoot}",
-            "internalConsoleOptions": "openOnSessionStart",
-            "skipFiles": ["<node_internals>/**", "node_modules/**"]
+        "lambda": {
+          "payload": {},
+          "environmentVariables": {},
+          "runtime": "python3.10"
+        }
+      },
+      {
+        "type": "aws-sam",
+        "request": "direct-invoke",
+        "name": "API generate-video:HelloWorldFunction (python3.10)",
+        "invokeTarget": {
+          "target": "api",
+          "templatePath": "${workspaceFolder}/sam-lambda/generate-video/template.yaml",
+          "logicalId": "HelloWorldFunction"
+        },
+        "api": {
+          "path": "/hello",
+          "httpMethod": "get",
+          "payload": {
+            "json": {}
           }
+        },
+        "lambda": {
+          "runtime": "python3.10"
+        }
+      },
+      {
+        "name": "Python Debugger: Current File",
+        "type": "debugpy",
+        "request": "launch",
+        "program": "${file}",
+        "console": "integratedTerminal"
+      },
+      {
+        "name": "TS-Node",
+        "type": "node",
+        "request": "launch",
+        "runtimeExecutable": "/Users/noahyoungs/.nvm/versions/node/v18.17.1/bin/ts-node",
+        "runtimeArgs": [
+          "--transpile-only"
+        ],
+        "program": "${file}",
+        "cwd": "${workspaceRoot}",
+        "internalConsoleOptions": "openOnSessionStart",
+        "skipFiles": [
+          "<node_internals>/**",
+          "node_modules/**"
+        ]
+      }
     ]
 }
