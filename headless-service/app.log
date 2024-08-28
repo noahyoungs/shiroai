@@ -18976,3 +18976,738 @@ Expecting 'AMP', 'COLON', 'PIPE', 'TESTSTR', 'DOWN', 'DEFAULT', 'NUM', 'COMMA', 
 2024-08-20T20:41:11.902Z [INFO]: POST /generate-pdf/01917137-a536-7b88-ab0b-6d5db2f3dbae/pdf 200 15885ms
 2024-08-26T07:25:01.817Z [INFO]: Server is running on port 3003 with HTTPS
 2024-08-26T07:27:59.063Z [INFO]: Server is running on port 3003 with HTTPS
+2024-08-26T07:44:49.465Z [INFO]: Server is running on port 3003 with HTTPS
+2024-08-26T07:47:29.216Z [INFO]: Server is running on port 3003 with HTTPS
+2024-08-26T09:28:29.546Z [INFO]: Cluster launched
+2024-08-26T09:28:29.550Z [INFO]: Cluster launched
+2024-08-26T09:28:29.557Z [INFO]: Cluster launched
+2024-08-26T09:28:29.558Z [INFO]: Cluster launched
+2024-08-26T09:28:29.559Z [INFO]: Cluster launched
+2024-08-26T09:28:33.831Z [INFO]: Prose class determined
+2024-08-26T09:28:33.834Z [INFO]: POST /prose-class 200 5382ms
+2024-08-26T09:28:34.207Z [INFO]: Prose class determined
+2024-08-26T09:28:34.210Z [INFO]: POST /prose-class 200 7803ms
+2024-08-26T09:28:34.464Z [INFO]: Prose class determined
+2024-08-26T09:28:34.467Z [INFO]: POST /prose-class 200 8517ms
+2024-08-26T09:28:34.506Z [INFO]: Prose class determined
+2024-08-26T09:28:34.507Z [INFO]: POST /prose-class 200 6055ms
+2024-08-26T09:28:34.574Z [INFO]: Prose class determined
+2024-08-26T09:28:34.575Z [INFO]: POST /prose-class 200 6122ms
+2024-08-26T09:28:36.563Z [INFO]: Valid Mermaid diagram
+2024-08-26T09:28:36.564Z [INFO]: POST /validate-mermaid 200 438ms
+2024-08-26T09:28:36.615Z [INFO]: Prose class determined
+2024-08-26T09:28:36.616Z [INFO]: POST /prose-class 200 490ms
+2024-08-26T09:28:36.663Z [INFO]: Prose class determined
+2024-08-26T09:28:36.663Z [INFO]: POST /prose-class 200 537ms
+2024-08-26T09:28:36.675Z [INFO]: Valid Mermaid diagram
+2024-08-26T09:28:36.680Z [INFO]: POST /validate-mermaid 200 553ms
+2024-08-26T09:28:36.996Z [INFO]: Valid Mermaid diagram
+2024-08-26T09:28:36.996Z [INFO]: POST /validate-mermaid 200 868ms
+2024-08-26T09:28:37.225Z [INFO]: Valid Mermaid diagram
+2024-08-26T09:28:37.226Z [INFO]: POST /validate-mermaid 200 1090ms
+2024-08-26T09:28:37.233Z [INFO]: Valid Mermaid diagram
+2024-08-26T09:28:37.234Z [INFO]: POST /validate-mermaid 200 1098ms
+2024-08-26T09:28:37.266Z [INFO]: Prose class determined
+2024-08-26T09:28:37.266Z [INFO]: POST /prose-class 200 945ms
+2024-08-26T09:28:37.401Z [INFO]: Splitting markdown
+2024-08-26T09:28:37.403Z [INFO]: POST /markdown-split/split 200 2ms
+2024-08-26T09:28:37.405Z [INFO]: Splitting markdown
+2024-08-26T09:28:37.406Z [INFO]: POST /markdown-split/split 200 1ms
+2024-08-26T09:28:37.408Z [INFO]: Splitting markdown
+2024-08-26T09:28:37.409Z [INFO]: POST /markdown-split/split 200 1ms
+2024-08-26T09:28:37.717Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:37.718Z [INFO]: POST /mermaid-dimensions 200 315ms
+2024-08-26T09:28:37.724Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:37.725Z [INFO]: POST /mermaid-dimensions 200 327ms
+2024-08-26T09:28:37.733Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:37.734Z [INFO]: POST /mermaid-dimensions 200 335ms
+2024-08-26T09:28:37.868Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:37.868Z [INFO]: POST /mermaid-dimensions 200 462ms
+2024-08-26T09:28:38.010Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:38.011Z [INFO]: POST /mermaid-dimensions 200 602ms
+2024-08-26T09:28:38.167Z [INFO]: Prose class determined
+2024-08-26T09:28:38.168Z [INFO]: POST /prose-class 200 758ms
+2024-08-26T09:28:38.249Z [INFO]: Prose class determined
+2024-08-26T09:28:38.250Z [INFO]: POST /prose-class 200 838ms
+2024-08-26T09:28:38.312Z [INFO]: Prose class determined
+2024-08-26T09:28:38.313Z [INFO]: POST /prose-class 200 901ms
+2024-08-26T09:28:38.382Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:38.383Z [INFO]: POST /mermaid-dimensions 200 660ms
+2024-08-26T09:28:38.529Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:38.530Z [INFO]: POST /mermaid-dimensions 200 801ms
+2024-08-26T09:28:38.603Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:38.604Z [INFO]: POST /mermaid-dimensions 200 729ms
+2024-08-26T09:28:38.662Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:38.663Z [INFO]: POST /mermaid-dimensions 200 925ms
+2024-08-26T09:28:38.735Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:38.735Z [INFO]: POST /mermaid-dimensions 200 714ms
+2024-08-26T09:28:39.014Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:39.015Z [INFO]: POST /mermaid-dimensions 200 626ms
+2024-08-26T09:28:39.088Z [INFO]: Prose class determined
+2024-08-26T09:28:39.088Z [INFO]: POST /prose-class 200 909ms
+2024-08-26T09:28:39.094Z [INFO]: Prose class determined
+2024-08-26T09:28:39.095Z [INFO]: POST /prose-class 200 770ms
+2024-08-26T09:28:39.105Z [INFO]: Prose class determined
+2024-08-26T09:28:39.105Z [INFO]: POST /prose-class 200 847ms
+2024-08-26T09:28:39.380Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:39.380Z [INFO]: POST /mermaid-dimensions 200 767ms
+2024-08-26T09:28:39.389Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:39.390Z [INFO]: POST /mermaid-dimensions 200 849ms
+2024-08-26T09:28:39.546Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:39.547Z [INFO]: POST /mermaid-dimensions 200 803ms
+2024-08-26T09:28:39.714Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:39.715Z [INFO]: POST /mermaid-dimensions 200 688ms
+2024-08-26T09:28:39.786Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:39.788Z [INFO]: POST /mermaid-dimensions 200 403ms
+2024-08-26T09:28:39.868Z [INFO]: Prose class determined
+2024-08-26T09:28:39.868Z [INFO]: POST /prose-class 200 760ms
+2024-08-26T09:28:39.937Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:39.937Z [INFO]: POST /mermaid-dimensions 200 541ms
+2024-08-26T09:28:40.085Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:40.085Z [INFO]: POST /mermaid-dimensions 200 531ms
+2024-08-26T09:28:40.147Z [INFO]: SVG generated successfully
+2024-08-26T09:28:40.154Z [INFO]: POST /mermaid 200 1485ms
+2024-08-26T09:28:40.228Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:40.229Z [INFO]: POST /mermaid-dimensions 200 500ms
+2024-08-26T09:28:40.245Z [INFO]: Prose class determined
+2024-08-26T09:28:40.245Z [INFO]: POST /prose-class 200 563ms
+2024-08-26T09:28:40.374Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:40.375Z [INFO]: POST /mermaid-dimensions 200 577ms
+2024-08-26T09:28:40.397Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:40.397Z [INFO]: POST /mermaid-dimensions 200 452ms
+2024-08-26T09:28:40.845Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:40.846Z [INFO]: POST /mermaid-dimensions 200 316ms
+2024-08-26T09:28:40.936Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:40.936Z [INFO]: POST /mermaid-dimensions 200 406ms
+2024-08-26T09:28:41.002Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:41.003Z [INFO]: POST /mermaid-dimensions 200 472ms
+2024-08-26T09:28:41.031Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:41.032Z [INFO]: POST /mermaid-dimensions 200 502ms
+2024-08-26T09:28:41.164Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:41.165Z [INFO]: POST /mermaid-dimensions 200 310ms
+2024-08-26T09:28:41.245Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:41.245Z [INFO]: POST /mermaid-dimensions 200 302ms
+2024-08-26T09:28:41.332Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:41.333Z [INFO]: POST /mermaid-dimensions 200 272ms
+2024-08-26T09:28:41.436Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:41.437Z [INFO]: POST /mermaid-dimensions 200 376ms
+2024-08-26T09:28:41.511Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:41.512Z [INFO]: POST /mermaid-dimensions 200 337ms
+2024-08-26T09:28:41.588Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:41.588Z [INFO]: POST /mermaid-dimensions 200 336ms
+2024-08-26T09:28:41.663Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:41.663Z [INFO]: POST /mermaid-dimensions 200 313ms
+2024-08-26T09:28:41.753Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:41.754Z [INFO]: POST /mermaid-dimensions 200 311ms
+2024-08-26T09:28:41.833Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:41.837Z [INFO]: POST /mermaid-dimensions 200 316ms
+2024-08-26T09:28:41.917Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:41.918Z [INFO]: POST /mermaid-dimensions 200 321ms
+2024-08-26T09:28:41.993Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:41.993Z [INFO]: POST /mermaid-dimensions 200 315ms
+2024-08-26T09:28:42.070Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:42.070Z [INFO]: POST /mermaid-dimensions 200 308ms
+2024-08-26T09:28:42.151Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:42.152Z [INFO]: POST /mermaid-dimensions 200 308ms
+2024-08-26T09:28:42.251Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:42.252Z [INFO]: POST /mermaid-dimensions 200 327ms
+2024-08-26T09:28:42.329Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:42.330Z [INFO]: POST /mermaid-dimensions 200 327ms
+2024-08-26T09:28:42.412Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:42.412Z [INFO]: POST /mermaid-dimensions 200 331ms
+2024-08-26T09:28:42.488Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:42.489Z [INFO]: POST /mermaid-dimensions 200 326ms
+2024-08-26T09:28:42.564Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:42.564Z [INFO]: POST /mermaid-dimensions 200 304ms
+2024-08-26T09:28:42.653Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:42.654Z [INFO]: POST /mermaid-dimensions 200 316ms
+2024-08-26T09:28:42.742Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:42.742Z [INFO]: POST /mermaid-dimensions 200 318ms
+2024-08-26T09:28:42.819Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:42.820Z [INFO]: POST /mermaid-dimensions 200 324ms
+2024-08-26T09:28:42.895Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:42.896Z [INFO]: POST /mermaid-dimensions 200 322ms
+2024-08-26T09:28:42.971Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:42.971Z [INFO]: POST /mermaid-dimensions 200 309ms
+2024-08-26T09:28:43.048Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:43.049Z [INFO]: POST /mermaid-dimensions 200 298ms
+2024-08-26T09:28:43.147Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:43.147Z [INFO]: POST /mermaid-dimensions 200 317ms
+2024-08-26T09:28:43.219Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:43.220Z [INFO]: POST /mermaid-dimensions 200 316ms
+2024-08-26T09:28:43.296Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:43.297Z [INFO]: POST /mermaid-dimensions 200 317ms
+2024-08-26T09:28:43.377Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:43.378Z [INFO]: POST /mermaid-dimensions 200 318ms
+2024-08-26T09:28:43.469Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:43.470Z [INFO]: POST /mermaid-dimensions 200 314ms
+2024-08-26T09:28:43.548Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:43.549Z [INFO]: POST /mermaid-dimensions 200 319ms
+2024-08-26T09:28:43.787Z [INFO]: Dimensions retrieved successfully
+2024-08-26T09:28:43.787Z [INFO]: POST /mermaid-dimensions 200 307ms
+2024-08-26T09:28:43.963Z [INFO]: SVG generated successfully
+2024-08-26T09:28:43.965Z [INFO]: POST /mermaid 200 659ms
+2024-08-26T09:28:44.045Z [INFO]: SVG generated successfully
+2024-08-26T09:28:44.046Z [INFO]: POST /mermaid 200 660ms
+2024-08-26T09:28:44.146Z [INFO]: SVG generated successfully
+2024-08-26T09:28:44.147Z [INFO]: POST /mermaid 200 589ms
+2024-08-26T09:28:44.297Z [INFO]: SVG generated successfully
+2024-08-26T09:28:44.298Z [INFO]: POST /mermaid 200 504ms
+2024-08-26T09:28:49.042Z [INFO]: Prose class determined
+2024-08-26T09:28:49.043Z [INFO]: POST /prose-class 200 329ms
+2024-08-26T09:28:49.336Z [INFO]: Prose class determined
+2024-08-26T09:28:49.336Z [INFO]: POST /prose-class 200 289ms
+2024-08-26T09:28:49.690Z [INFO]: Prose class determined
+2024-08-26T09:28:49.690Z [INFO]: POST /prose-class 200 348ms
+2024-08-26T09:28:49.991Z [INFO]: Prose class determined
+2024-08-26T09:28:49.992Z [INFO]: POST /prose-class 200 298ms
+2024-08-26T09:28:51.368Z [INFO]: Prose class determined
+2024-08-26T09:28:51.369Z [INFO]: POST /prose-class 200 475ms
+2024-08-26T09:28:51.712Z [INFO]: Prose class determined
+2024-08-26T09:28:51.712Z [INFO]: POST /prose-class 200 339ms
+2024-08-26T09:28:52.014Z [INFO]: Prose class determined
+2024-08-26T09:28:52.014Z [INFO]: POST /prose-class 200 298ms
+2024-08-26T09:28:52.328Z [INFO]: Prose class determined
+2024-08-26T09:28:52.328Z [INFO]: POST /prose-class 200 310ms
+2024-08-27T11:00:03.091Z [INFO]: Prose class determined
+2024-08-27T11:33:41.839Z [INFO]: Server is running on port 3003 with HTTPS
+2024-08-27T11:37:43.522Z [INFO]: Cluster launched
+2024-08-27T11:37:43.531Z [INFO]: Cluster launched
+2024-08-27T11:37:44.172Z [INFO]: Prose class determined
+2024-08-27T11:37:44.174Z [INFO]: Prose class determined
+2024-08-27T11:37:44.175Z [INFO]: POST /prose-class 200 1750ms
+2024-08-27T11:37:44.175Z [INFO]: POST /prose-class 200 1868ms
+2024-08-27T11:37:44.798Z [INFO]: Splitting markdown
+2024-08-27T11:37:44.798Z [INFO]: POST /markdown-split/split 200 1ms
+2024-08-27T11:37:45.415Z [INFO]: Prose class determined
+2024-08-27T11:37:45.416Z [INFO]: POST /prose-class 200 620ms
+2024-08-27T11:37:45.430Z [INFO]: Splitting markdown
+2024-08-27T11:37:45.430Z [INFO]: POST /markdown-split/split 200 0ms
+2024-08-27T11:37:45.464Z [INFO]: Prose class determined
+2024-08-27T11:37:45.465Z [INFO]: POST /prose-class 200 670ms
+2024-08-27T11:37:45.472Z [INFO]: Splitting markdown
+2024-08-27T11:37:45.472Z [INFO]: POST /markdown-split/split 200 0ms
+2024-08-27T11:37:45.752Z [INFO]: Valid Mermaid diagram
+2024-08-27T11:37:45.753Z [INFO]: POST /validate-mermaid 200 954ms
+2024-08-27T11:37:45.835Z [INFO]: Prose class determined
+2024-08-27T11:37:45.838Z [INFO]: POST /prose-class 200 1031ms
+2024-08-27T11:37:45.854Z [INFO]: Prose class determined
+2024-08-27T11:37:45.855Z [INFO]: POST /prose-class 200 1058ms
+2024-08-27T11:37:45.990Z [INFO]: Prose class determined
+2024-08-27T11:37:45.991Z [INFO]: POST /prose-class 200 564ms
+2024-08-27T11:37:46.221Z [INFO]: Valid Mermaid diagram
+2024-08-27T11:37:46.222Z [INFO]: POST /validate-mermaid 200 793ms
+2024-08-27T11:37:46.255Z [INFO]: Prose class determined
+2024-08-27T11:37:46.255Z [INFO]: POST /prose-class 200 821ms
+2024-08-27T11:37:46.285Z [INFO]: Prose class determined
+2024-08-27T11:37:46.286Z [INFO]: POST /prose-class 200 809ms
+2024-08-27T11:37:46.357Z [INFO]: Splitting markdown
+2024-08-27T11:37:46.359Z [INFO]: POST /markdown-split/split 200 2ms
+2024-08-27T11:37:46.361Z [INFO]: Splitting markdown
+2024-08-27T11:37:46.362Z [INFO]: POST /markdown-split/split 200 1ms
+2024-08-27T11:37:46.695Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:46.695Z [INFO]: POST /mermaid-dimensions 200 338ms
+2024-08-27T11:37:46.704Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:46.705Z [INFO]: POST /mermaid-dimensions 200 348ms
+2024-08-27T11:37:46.830Z [INFO]: Prose class determined
+2024-08-27T11:37:46.830Z [INFO]: POST /prose-class 200 472ms
+2024-08-27T11:37:46.899Z [INFO]: Prose class determined
+2024-08-27T11:37:46.900Z [INFO]: POST /prose-class 200 541ms
+2024-08-27T11:37:47.188Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:47.189Z [INFO]: POST /mermaid-dimensions 200 486ms
+2024-08-27T11:37:47.266Z [INFO]: Prose class determined
+2024-08-27T11:37:47.266Z [INFO]: POST /prose-class 200 906ms
+2024-08-27T11:37:47.283Z [INFO]: Prose class determined
+2024-08-27T11:37:47.283Z [INFO]: POST /prose-class 200 918ms
+2024-08-27T11:37:47.290Z [INFO]: Prose class determined
+2024-08-27T11:37:47.291Z [INFO]: POST /prose-class 200 929ms
+2024-08-27T11:37:47.588Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:47.588Z [INFO]: POST /mermaid-dimensions 200 387ms
+2024-08-27T11:37:47.670Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:47.671Z [INFO]: POST /mermaid-dimensions 200 961ms
+2024-08-27T11:37:47.750Z [INFO]: Prose class determined
+2024-08-27T11:37:47.750Z [INFO]: POST /prose-class 200 902ms
+2024-08-27T11:37:47.757Z [INFO]: Valid Mermaid diagram
+2024-08-27T11:37:47.757Z [INFO]: POST /validate-mermaid 200 502ms
+2024-08-27T11:37:48.084Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:48.087Z [INFO]: POST /mermaid-dimensions 200 492ms
+2024-08-27T11:37:48.163Z [INFO]: Valid Mermaid diagram
+2024-08-27T11:37:48.163Z [INFO]: POST /validate-mermaid 200 715ms
+2024-08-27T11:37:48.179Z [INFO]: Prose class determined
+2024-08-27T11:37:48.180Z [INFO]: POST /prose-class 200 892ms
+2024-08-27T11:37:48.196Z [INFO]: Prose class determined
+2024-08-27T11:37:48.196Z [INFO]: POST /prose-class 200 900ms
+2024-08-27T11:37:48.496Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:48.496Z [INFO]: POST /mermaid-dimensions 200 397ms
+2024-08-27T11:37:48.572Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:48.573Z [INFO]: POST /mermaid-dimensions 200 808ms
+2024-08-27T11:37:48.661Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:48.661Z [INFO]: POST /mermaid-dimensions 200 491ms
+2024-08-27T11:37:48.786Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:48.786Z [INFO]: POST /mermaid-dimensions 200 283ms
+2024-08-27T11:37:48.827Z [INFO]: SVG generated successfully
+2024-08-27T11:37:48.827Z [INFO]: POST /mermaid 200 1147ms
+2024-08-27T11:37:49.342Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:49.343Z [INFO]: POST /mermaid-dimensions 200 347ms
+2024-08-27T11:37:49.429Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:49.430Z [INFO]: POST /mermaid-dimensions 200 432ms
+2024-08-27T11:37:49.510Z [INFO]: Prose class determined
+2024-08-27T11:37:49.511Z [INFO]: POST /prose-class 200 513ms
+2024-08-27T11:37:49.580Z [INFO]: Prose class determined
+2024-08-27T11:37:49.580Z [INFO]: POST /prose-class 200 584ms
+2024-08-27T11:37:49.793Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:49.794Z [INFO]: POST /mermaid-dimensions 200 796ms
+2024-08-27T11:37:49.870Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:49.871Z [INFO]: POST /mermaid-dimensions 200 429ms
+2024-08-27T11:37:49.932Z [INFO]: Prose class determined
+2024-08-27T11:37:49.932Z [INFO]: POST /prose-class 200 934ms
+2024-08-27T11:37:49.950Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:49.951Z [INFO]: POST /mermaid-dimensions 200 506ms
+2024-08-27T11:37:50.235Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:50.238Z [INFO]: POST /mermaid-dimensions 200 436ms
+2024-08-27T11:37:50.338Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:50.340Z [INFO]: POST /mermaid-dimensions 200 463ms
+2024-08-27T11:37:50.405Z [INFO]: Prose class determined
+2024-08-27T11:37:50.405Z [INFO]: POST /prose-class 200 654ms
+2024-08-27T11:37:50.461Z [INFO]: Prose class determined
+2024-08-27T11:37:50.461Z [INFO]: POST /prose-class 200 645ms
+2024-08-27T11:37:50.694Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:50.695Z [INFO]: POST /mermaid-dimensions 200 738ms
+2024-08-27T11:37:50.732Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:50.733Z [INFO]: POST /mermaid-dimensions 200 481ms
+2024-08-27T11:37:50.760Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:50.761Z [INFO]: POST /mermaid-dimensions 200 412ms
+2024-08-27T11:37:50.795Z [INFO]: Prose class determined
+2024-08-27T11:37:50.795Z [INFO]: POST /prose-class 200 846ms
+2024-08-27T11:37:51.580Z [INFO]: Splitting markdown
+2024-08-27T11:37:51.581Z [INFO]: POST /markdown-split/split 200 1ms
+2024-08-27T11:37:51.896Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:51.896Z [INFO]: POST /mermaid-dimensions 200 316ms
+2024-08-27T11:37:51.919Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:51.919Z [INFO]: POST /mermaid-dimensions 200 339ms
+2024-08-27T11:37:51.946Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:51.946Z [INFO]: POST /mermaid-dimensions 200 366ms
+2024-08-27T11:37:52.287Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:52.288Z [INFO]: POST /mermaid-dimensions 200 320ms
+2024-08-27T11:37:52.371Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:52.372Z [INFO]: POST /mermaid-dimensions 200 402ms
+2024-08-27T11:37:52.452Z [INFO]: Prose class determined
+2024-08-27T11:37:52.452Z [INFO]: POST /prose-class 200 483ms
+2024-08-27T11:37:52.460Z [INFO]: Valid Mermaid diagram
+2024-08-27T11:37:52.461Z [INFO]: POST /validate-mermaid 200 490ms
+2024-08-27T11:37:52.731Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:52.732Z [INFO]: POST /mermaid-dimensions 200 761ms
+2024-08-27T11:37:52.750Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:52.751Z [INFO]: POST /mermaid-dimensions 200 455ms
+2024-08-27T11:37:52.871Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:52.871Z [INFO]: POST /mermaid-dimensions 200 490ms
+2024-08-27T11:37:52.943Z [INFO]: Prose class determined
+2024-08-27T11:37:52.943Z [INFO]: POST /prose-class 200 485ms
+2024-08-27T11:37:53.140Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:53.141Z [INFO]: POST /mermaid-dimensions 200 674ms
+2024-08-27T11:37:53.157Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:53.157Z [INFO]: POST /mermaid-dimensions 200 419ms
+2024-08-27T11:37:53.271Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:53.272Z [INFO]: POST /mermaid-dimensions 200 516ms
+2024-08-27T11:37:53.451Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:53.452Z [INFO]: POST /mermaid-dimensions 200 303ms
+2024-08-27T11:37:53.481Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:53.481Z [INFO]: POST /mermaid-dimensions 200 441ms
+2024-08-27T11:37:53.510Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:53.511Z [INFO]: POST /mermaid-dimensions 200 342ms
+2024-08-27T11:37:53.865Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:53.865Z [INFO]: POST /mermaid-dimensions 200 275ms
+2024-08-27T11:37:53.944Z [INFO]: SVG generated successfully
+2024-08-27T11:37:53.945Z [INFO]: POST /mermaid 200 666ms
+2024-08-27T11:37:54.027Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:54.027Z [INFO]: POST /mermaid-dimensions 200 437ms
+2024-08-27T11:37:54.177Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:54.177Z [INFO]: POST /mermaid-dimensions 200 306ms
+2024-08-27T11:37:54.276Z [INFO]: SVG generated successfully
+2024-08-27T11:37:54.277Z [INFO]: POST /mermaid 200 688ms
+2024-08-27T11:37:54.302Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:54.302Z [INFO]: POST /mermaid-dimensions 200 267ms
+2024-08-27T11:37:54.493Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:54.494Z [INFO]: POST /mermaid-dimensions 200 311ms
+2024-08-27T11:37:54.568Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:54.568Z [INFO]: POST /mermaid-dimensions 200 261ms
+2024-08-27T11:37:54.750Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:54.751Z [INFO]: POST /mermaid-dimensions 200 243ms
+2024-08-27T11:37:54.818Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:54.818Z [INFO]: POST /mermaid-dimensions 200 244ms
+2024-08-27T11:37:55.047Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:55.047Z [INFO]: POST /mermaid-dimensions 200 224ms
+2024-08-27T11:37:55.112Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:55.112Z [INFO]: POST /mermaid-dimensions 200 356ms
+2024-08-27T11:37:55.309Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:55.310Z [INFO]: POST /mermaid-dimensions 200 256ms
+2024-08-27T11:37:55.372Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:55.372Z [INFO]: POST /mermaid-dimensions 200 254ms
+2024-08-27T11:37:55.564Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:55.565Z [INFO]: POST /mermaid-dimensions 200 249ms
+2024-08-27T11:37:55.829Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:55.829Z [INFO]: POST /mermaid-dimensions 200 259ms
+2024-08-27T11:37:55.898Z [INFO]: SVG generated successfully
+2024-08-27T11:37:55.898Z [INFO]: POST /mermaid 200 522ms
+2024-08-27T11:37:56.076Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:56.076Z [INFO]: POST /mermaid-dimensions 200 242ms
+2024-08-27T11:37:56.462Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:56.462Z [INFO]: POST /mermaid-dimensions 200 219ms
+2024-08-27T11:37:56.692Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:56.693Z [INFO]: POST /mermaid-dimensions 200 226ms
+2024-08-27T11:37:56.925Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:56.925Z [INFO]: POST /mermaid-dimensions 200 228ms
+2024-08-27T11:37:57.153Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:57.153Z [INFO]: POST /mermaid-dimensions 200 223ms
+2024-08-27T11:37:57.402Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:57.402Z [INFO]: POST /mermaid-dimensions 200 219ms
+2024-08-27T11:37:57.637Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:57.637Z [INFO]: POST /mermaid-dimensions 200 230ms
+2024-08-27T11:37:57.868Z [INFO]: Dimensions retrieved successfully
+2024-08-27T11:37:57.868Z [INFO]: POST /mermaid-dimensions 200 206ms
+2024-08-27T11:37:58.345Z [INFO]: SVG generated successfully
+2024-08-27T11:37:58.346Z [INFO]: POST /mermaid 200 473ms
+2024-08-27T11:38:03.081Z [INFO]: Prose class determined
+2024-08-27T11:38:03.082Z [INFO]: POST /prose-class 200 350ms
+2024-08-27T11:38:03.399Z [INFO]: Prose class determined
+2024-08-27T11:38:03.400Z [INFO]: POST /prose-class 200 314ms
+2024-08-27T11:38:03.715Z [INFO]: Prose class determined
+2024-08-27T11:38:03.715Z [INFO]: POST /prose-class 200 311ms
+2024-08-27T11:38:06.752Z [INFO]: Prose class determined
+2024-08-27T11:38:06.752Z [INFO]: POST /prose-class 200 336ms
+2024-08-27T11:38:07.097Z [INFO]: Prose class determined
+2024-08-27T11:38:07.098Z [INFO]: POST /prose-class 200 342ms
+2024-08-27T11:38:07.408Z [INFO]: Prose class determined
+2024-08-27T11:38:07.408Z [INFO]: POST /prose-class 200 306ms
+2024-08-27T11:38:07.713Z [INFO]: Prose class determined
+2024-08-27T11:38:07.714Z [INFO]: POST /prose-class 200 301ms
+2024-08-28T09:26:48.318Z [INFO]: Server is running on port 3003 with HTTPS
+2024-08-28T09:30:19.729Z [INFO]: Cluster launched
+2024-08-28T09:30:19.730Z [INFO]: Cluster launched
+2024-08-28T09:30:19.731Z [INFO]: Cluster launched
+2024-08-28T09:30:19.735Z [INFO]: Cluster launched
+2024-08-28T09:30:19.736Z [INFO]: Cluster launched
+2024-08-28T09:30:19.738Z [INFO]: Cluster launched
+2024-08-28T09:30:19.740Z [INFO]: Cluster launched
+2024-08-28T09:30:19.742Z [INFO]: Cluster launched
+2024-08-28T09:30:19.841Z [INFO]: Cluster launched
+2024-08-28T09:30:19.844Z [INFO]: Cluster launched
+2024-08-28T09:30:26.140Z [INFO]: Cluster launched
+2024-08-28T09:30:27.643Z [INFO]: Valid Mermaid diagram
+2024-08-28T09:30:27.671Z [INFO]: POST /validate-mermaid 200 9179ms
+2024-08-28T09:30:29.239Z [INFO]: Valid Mermaid diagram
+2024-08-28T09:30:29.275Z [INFO]: POST /validate-mermaid 200 11971ms
+2024-08-28T09:30:29.307Z [INFO]: Valid Mermaid diagram
+2024-08-28T09:30:29.310Z [INFO]: POST /validate-mermaid 200 9433ms
+2024-08-28T09:30:29.379Z [INFO]: Prose class determined
+2024-08-28T09:30:29.381Z [INFO]: POST /prose-class 200 11356ms
+2024-08-28T09:30:29.439Z [INFO]: Prose class determined
+2024-08-28T09:30:29.440Z [INFO]: POST /prose-class 200 12137ms
+2024-08-28T09:30:29.521Z [INFO]: Prose class determined
+2024-08-28T09:30:29.521Z [INFO]: POST /prose-class 200 12241ms
+2024-08-28T09:30:29.617Z [INFO]: Prose class determined
+2024-08-28T09:30:29.617Z [INFO]: POST /prose-class 200 12332ms
+2024-08-28T09:30:29.797Z [INFO]: Prose class determined
+2024-08-28T09:30:29.798Z [INFO]: POST /prose-class 200 12497ms
+2024-08-28T09:30:29.801Z [INFO]: Prose class determined
+2024-08-28T09:30:29.803Z [INFO]: POST /prose-class 200 12503ms
+2024-08-28T09:30:31.028Z [INFO]: Prose class determined
+2024-08-28T09:30:31.030Z [INFO]: POST /prose-class 200 13746ms
+2024-08-28T09:30:31.457Z [INFO]: Valid Mermaid diagram
+2024-08-28T09:30:31.458Z [INFO]: POST /validate-mermaid 200 13275ms
+2024-08-28T09:30:31.570Z [INFO]: Prose class determined
+2024-08-28T09:30:31.571Z [INFO]: POST /prose-class 200 14274ms
+2024-08-28T09:30:32.323Z [INFO]: Prose class determined
+2024-08-28T09:30:32.324Z [INFO]: POST /prose-class 200 459ms
+2024-08-28T09:30:33.701Z [INFO]: Splitting markdown
+2024-08-28T09:30:33.702Z [INFO]: POST /markdown-split/split 200 1ms
+2024-08-28T09:30:33.703Z [INFO]: Splitting markdown
+2024-08-28T09:30:33.705Z [INFO]: POST /markdown-split/split 200 2ms
+2024-08-28T09:30:33.713Z [INFO]: Splitting markdown
+2024-08-28T09:30:33.714Z [INFO]: POST /markdown-split/split 200 1ms
+2024-08-28T09:30:34.123Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:34.123Z [INFO]: POST /mermaid-dimensions 200 421ms
+2024-08-28T09:30:34.130Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:34.131Z [INFO]: POST /mermaid-dimensions 200 431ms
+2024-08-28T09:30:34.357Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:34.358Z [INFO]: POST /mermaid-dimensions 200 656ms
+2024-08-28T09:30:34.506Z [INFO]: Prose class determined
+2024-08-28T09:30:34.506Z [INFO]: POST /prose-class 200 804ms
+2024-08-28T09:30:34.569Z [INFO]: Valid Mermaid diagram
+2024-08-28T09:30:34.569Z [INFO]: POST /validate-mermaid 200 862ms
+2024-08-28T09:30:34.612Z [INFO]: Prose class determined
+2024-08-28T09:30:34.614Z [INFO]: POST /prose-class 200 906ms
+2024-08-28T09:30:34.821Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:34.823Z [INFO]: POST /mermaid-dimensions 200 1110ms
+2024-08-28T09:30:34.913Z [INFO]: Prose class determined
+2024-08-28T09:30:34.914Z [INFO]: POST /prose-class 200 1204ms
+2024-08-28T09:30:34.930Z [INFO]: Splitting markdown
+2024-08-28T09:30:34.931Z [INFO]: POST /markdown-split/split 200 1ms
+2024-08-28T09:30:35.027Z [INFO]: Prose class determined
+2024-08-28T09:30:35.029Z [INFO]: POST /prose-class 200 1314ms
+2024-08-28T09:30:35.080Z [INFO]: Prose class determined
+2024-08-28T09:30:35.080Z [INFO]: POST /prose-class 200 1363ms
+2024-08-28T09:30:35.279Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:35.280Z [INFO]: POST /mermaid-dimensions 200 712ms
+2024-08-28T09:30:35.334Z [INFO]: Prose class determined
+2024-08-28T09:30:35.335Z [INFO]: POST /prose-class 200 1611ms
+2024-08-28T09:30:35.408Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:35.409Z [INFO]: POST /mermaid-dimensions 200 841ms
+2024-08-28T09:30:35.467Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:35.467Z [INFO]: POST /mermaid-dimensions 200 899ms
+2024-08-28T09:30:35.567Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:35.567Z [INFO]: POST /mermaid-dimensions 200 991ms
+2024-08-28T09:30:35.742Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:35.743Z [INFO]: POST /mermaid-dimensions 200 906ms
+2024-08-28T09:30:35.805Z [INFO]: Prose class determined
+2024-08-28T09:30:35.807Z [INFO]: POST /prose-class 200 867ms
+2024-08-28T09:30:35.878Z [INFO]: Prose class determined
+2024-08-28T09:30:35.879Z [INFO]: POST /prose-class 200 840ms
+2024-08-28T09:30:35.941Z [INFO]: Prose class determined
+2024-08-28T09:30:35.941Z [INFO]: POST /prose-class 200 856ms
+2024-08-28T09:30:36.112Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:36.113Z [INFO]: POST /mermaid-dimensions 200 822ms
+2024-08-28T09:30:36.199Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:36.200Z [INFO]: POST /mermaid-dimensions 200 783ms
+2024-08-28T09:30:36.273Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:36.274Z [INFO]: POST /mermaid-dimensions 200 797ms
+2024-08-28T09:30:36.347Z [INFO]: Prose class determined
+2024-08-28T09:30:36.347Z [INFO]: POST /prose-class 200 1006ms
+2024-08-28T09:30:36.533Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:36.534Z [INFO]: POST /mermaid-dimensions 200 957ms
+2024-08-28T09:30:36.604Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:36.605Z [INFO]: POST /mermaid-dimensions 200 850ms
+2024-08-28T09:30:36.673Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:36.675Z [INFO]: POST /mermaid-dimensions 200 553ms
+2024-08-28T09:30:36.729Z [INFO]: Prose class determined
+2024-08-28T09:30:36.729Z [INFO]: POST /prose-class 200 912ms
+2024-08-28T09:30:36.926Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:36.927Z [INFO]: POST /mermaid-dimensions 200 703ms
+2024-08-28T09:30:37.027Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:37.028Z [INFO]: POST /mermaid-dimensions 200 731ms
+2024-08-28T09:30:37.069Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:37.070Z [INFO]: POST /mermaid-dimensions 200 529ms
+2024-08-28T09:30:37.126Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:37.126Z [INFO]: POST /mermaid-dimensions 200 512ms
+2024-08-28T09:30:37.306Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:37.308Z [INFO]: POST /mermaid-dimensions 200 626ms
+2024-08-28T09:30:37.439Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:37.440Z [INFO]: POST /mermaid-dimensions 200 406ms
+2024-08-28T09:30:37.447Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:37.447Z [INFO]: POST /mermaid-dimensions 200 514ms
+2024-08-28T09:30:37.535Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:37.535Z [INFO]: POST /mermaid-dimensions 200 458ms
+2024-08-28T09:30:37.690Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:37.693Z [INFO]: POST /mermaid-dimensions 200 558ms
+2024-08-28T09:30:37.752Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:37.753Z [INFO]: POST /mermaid-dimensions 200 437ms
+2024-08-28T09:30:37.761Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:37.761Z [INFO]: POST /mermaid-dimensions 200 318ms
+2024-08-28T09:30:37.863Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:37.863Z [INFO]: POST /mermaid-dimensions 200 412ms
+2024-08-28T09:30:38.013Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:38.015Z [INFO]: POST /mermaid-dimensions 200 474ms
+2024-08-28T09:30:38.090Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:38.090Z [INFO]: POST /mermaid-dimensions 200 331ms
+2024-08-28T09:30:38.100Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:38.101Z [INFO]: POST /mermaid-dimensions 200 398ms
+2024-08-28T09:30:38.215Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:38.216Z [INFO]: POST /mermaid-dimensions 200 447ms
+2024-08-28T09:30:38.375Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:38.376Z [INFO]: POST /mermaid-dimensions 200 500ms
+2024-08-28T09:30:38.452Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:38.453Z [INFO]: POST /mermaid-dimensions 200 350ms
+2024-08-28T09:30:38.471Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:38.471Z [INFO]: POST /mermaid-dimensions 200 447ms
+2024-08-28T09:30:38.569Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:38.570Z [INFO]: POST /mermaid-dimensions 200 457ms
+2024-08-28T09:30:38.817Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:38.818Z [INFO]: POST /mermaid-dimensions 200 435ms
+2024-08-28T09:30:38.879Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:38.880Z [INFO]: POST /mermaid-dimensions 200 657ms
+2024-08-28T09:30:38.953Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:38.954Z [INFO]: POST /mermaid-dimensions 200 479ms
+2024-08-28T09:30:38.962Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:38.963Z [INFO]: POST /mermaid-dimensions 200 503ms
+2024-08-28T09:30:39.151Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:39.152Z [INFO]: POST /mermaid-dimensions 200 575ms
+2024-08-28T09:30:39.249Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:39.249Z [INFO]: POST /mermaid-dimensions 200 420ms
+2024-08-28T09:30:39.299Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:39.300Z [INFO]: POST /mermaid-dimensions 200 412ms
+2024-08-28T09:30:39.368Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:39.370Z [INFO]: POST /mermaid-dimensions 200 408ms
+2024-08-28T09:30:39.513Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:39.513Z [INFO]: POST /mermaid-dimensions 200 541ms
+2024-08-28T09:30:39.583Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:39.583Z [INFO]: POST /mermaid-dimensions 200 419ms
+2024-08-28T09:30:39.595Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:39.596Z [INFO]: POST /mermaid-dimensions 200 343ms
+2024-08-28T09:30:39.704Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:39.704Z [INFO]: POST /mermaid-dimensions 200 398ms
+2024-08-28T09:30:39.863Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:39.864Z [INFO]: POST /mermaid-dimensions 200 487ms
+2024-08-28T09:30:39.918Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:39.918Z [INFO]: POST /mermaid-dimensions 200 394ms
+2024-08-28T09:30:39.993Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:39.993Z [INFO]: POST /mermaid-dimensions 200 404ms
+2024-08-28T09:30:40.063Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:40.065Z [INFO]: POST /mermaid-dimensions 200 458ms
+2024-08-28T09:30:40.148Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:40.150Z [INFO]: POST /mermaid-dimensions 200 434ms
+2024-08-28T09:30:40.222Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:40.223Z [INFO]: POST /mermaid-dimensions 200 354ms
+2024-08-28T09:30:40.294Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:40.294Z [INFO]: POST /mermaid-dimensions 200 367ms
+2024-08-28T09:30:40.381Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:40.382Z [INFO]: POST /mermaid-dimensions 200 377ms
+2024-08-28T09:30:40.465Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:40.466Z [INFO]: POST /mermaid-dimensions 200 390ms
+2024-08-28T09:30:40.528Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:40.529Z [INFO]: POST /mermaid-dimensions 200 363ms
+2024-08-28T09:30:40.594Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:40.594Z [INFO]: POST /mermaid-dimensions 200 359ms
+2024-08-28T09:30:40.639Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:40.639Z [INFO]: POST /mermaid-dimensions 200 332ms
+2024-08-28T09:30:41.035Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:41.036Z [INFO]: POST /mermaid-dimensions 200 320ms
+2024-08-28T09:30:41.043Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:41.043Z [INFO]: POST /mermaid-dimensions 200 328ms
+2024-08-28T09:30:41.129Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:41.129Z [INFO]: POST /mermaid-dimensions 200 412ms
+2024-08-28T09:30:41.211Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:41.212Z [INFO]: POST /mermaid-dimensions 200 494ms
+2024-08-28T09:30:41.452Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:41.454Z [INFO]: POST /mermaid-dimensions 200 735ms
+2024-08-28T09:30:41.578Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:41.580Z [INFO]: POST /mermaid-dimensions 200 445ms
+2024-08-28T09:30:41.659Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:41.659Z [INFO]: POST /mermaid-dimensions 200 440ms
+2024-08-28T09:30:41.784Z [INFO]: SVG generated successfully
+2024-08-28T09:30:41.788Z [INFO]: POST /mermaid 200 747ms
+2024-08-28T09:30:41.862Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:41.863Z [INFO]: POST /mermaid-dimensions 200 402ms
+2024-08-28T09:30:41.953Z [INFO]: SVG generated successfully
+2024-08-28T09:30:41.953Z [INFO]: POST /mermaid 200 905ms
+2024-08-28T09:30:42.064Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:42.065Z [INFO]: POST /mermaid-dimensions 200 394ms
+2024-08-28T09:30:42.212Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:42.213Z [INFO]: POST /mermaid-dimensions 200 322ms
+2024-08-28T09:30:42.280Z [INFO]: SVG generated successfully
+2024-08-28T09:30:42.281Z [INFO]: POST /mermaid 200 691ms
+2024-08-28T09:30:42.316Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:42.317Z [INFO]: POST /mermaid-dimensions 200 239ms
+2024-08-28T09:30:42.464Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:42.464Z [INFO]: POST /mermaid-dimensions 200 246ms
+2024-08-28T09:30:42.632Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:42.633Z [INFO]: POST /mermaid-dimensions 200 226ms
+2024-08-28T09:30:42.697Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:42.698Z [INFO]: POST /mermaid-dimensions 200 229ms
+2024-08-28T09:30:42.880Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:42.882Z [INFO]: POST /mermaid-dimensions 200 243ms
+2024-08-28T09:30:42.985Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:42.985Z [INFO]: POST /mermaid-dimensions 200 281ms
+2024-08-28T09:30:43.170Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:43.170Z [INFO]: POST /mermaid-dimensions 200 235ms
+2024-08-28T09:30:43.229Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:43.229Z [INFO]: POST /mermaid-dimensions 200 238ms
+2024-08-28T09:30:43.403Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:43.403Z [INFO]: POST /mermaid-dimensions 200 227ms
+2024-08-28T09:30:43.463Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:43.464Z [INFO]: POST /mermaid-dimensions 200 230ms
+2024-08-28T09:30:43.634Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:43.634Z [INFO]: POST /mermaid-dimensions 200 224ms
+2024-08-28T09:30:43.694Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:43.694Z [INFO]: POST /mermaid-dimensions 200 224ms
+2024-08-28T09:30:43.861Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:43.862Z [INFO]: POST /mermaid-dimensions 200 223ms
+2024-08-28T09:30:43.919Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:43.923Z [INFO]: POST /mermaid-dimensions 200 223ms
+2024-08-28T09:30:44.101Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:44.101Z [INFO]: POST /mermaid-dimensions 200 234ms
+2024-08-28T09:30:44.162Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:44.162Z [INFO]: POST /mermaid-dimensions 200 236ms
+2024-08-28T09:30:44.396Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:44.397Z [INFO]: POST /mermaid-dimensions 200 227ms
+2024-08-28T09:30:44.575Z [INFO]: SVG generated successfully
+2024-08-28T09:30:44.575Z [INFO]: POST /mermaid 200 468ms
+2024-08-28T09:30:44.618Z [INFO]: Dimensions retrieved successfully
+2024-08-28T09:30:44.618Z [INFO]: POST /mermaid-dimensions 200 216ms
+2024-08-28T09:30:45.059Z [INFO]: SVG generated successfully
+2024-08-28T09:30:45.060Z [INFO]: POST /mermaid 200 416ms
+2024-08-28T09:30:59.898Z [INFO]: Prose class determined
+2024-08-28T09:30:59.899Z [INFO]: POST /prose-class 200 345ms
+2024-08-28T09:31:00.217Z [INFO]: Prose class determined
+2024-08-28T09:31:00.218Z [INFO]: POST /prose-class 200 315ms
+2024-08-28T09:31:00.563Z [INFO]: Prose class determined
+2024-08-28T09:31:00.563Z [INFO]: POST /prose-class 200 341ms
+2024-08-28T09:31:01.561Z [INFO]: Prose class determined
+2024-08-28T09:31:01.562Z [INFO]: POST /prose-class 200 321ms
+2024-08-28T09:31:01.903Z [INFO]: Prose class determined
+2024-08-28T09:31:01.904Z [INFO]: POST /prose-class 200 338ms
+2024-08-28T09:31:02.235Z [INFO]: Prose class determined
+2024-08-28T09:31:02.236Z [INFO]: POST /prose-class 200 328ms
+2024-08-28T09:31:02.567Z [INFO]: Prose class determined
+2024-08-28T09:31:02.568Z [INFO]: POST /prose-class 200 328ms
+2024-08-28T09:45:26.338Z [INFO]: OPTIONS /generate-pdf/0191984f-980e-7227-900a-7076afc01d46/pdf 204 4ms
+2024-08-28T09:45:26.344Z [INFO]: Received theme: light, footnotes: false
+2024-08-28T09:45:26.834Z [INFO]: Fetched presentation
+2024-08-28T09:45:27.653Z [INFO]: Fetched unsorted slides
+2024-08-28T09:45:27.653Z [INFO]: Converted slides to map
+2024-08-28T09:45:27.653Z [INFO]: Sorted slides
+2024-08-28T09:45:27.659Z [ERROR]: Failed to generate PDF: No key provided to sign
+Error: No key provided to sign
+    at Sign.sign (node:internal/crypto/sig:117:11)
+    at createSignedUrlSuffix (/Users/noahyoungs/VSCode/shiroai/headless-service/src/utils/create-signed-url-suffix.ts:18:6)
+    at /Users/noahyoungs/VSCode/shiroai/headless-service/src/utils/generate-pdf.tsx:118:50
+    at Generator.next (<anonymous>)
+    at fulfilled (/Users/noahyoungs/VSCode/shiroai/headless-service/src/utils/generate-pdf.tsx:5:58)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+2024-08-28T09:45:27.660Z [INFO]: POST /generate-pdf/0191984f-980e-7227-900a-7076afc01d46/pdf 500 1318ms
+2024-08-28T09:47:02.956Z [INFO]: Server is shutting down
+2024-08-28T09:47:06.479Z [INFO]: Server is running on port 3003 with HTTPS
+2024-08-28T09:47:12.976Z [INFO]: OPTIONS /generate-pdf/0191984f-980e-7227-900a-7076afc01d46/pdf 204 4ms
+2024-08-28T09:47:12.994Z [INFO]: Received theme: light, footnotes: false
+2024-08-28T09:47:13.452Z [INFO]: Fetched presentation
+2024-08-28T09:47:14.395Z [INFO]: Fetched unsorted slides
+2024-08-28T09:47:14.396Z [INFO]: Converted slides to map
+2024-08-28T09:47:14.396Z [INFO]: Sorted slides
+2024-08-28T09:47:14.407Z [ERROR]: Failed to generate PDF: ENOENT: no such file or directory, open '/Users/noahyoungs/VSCode/shiroai/headless-service/dist/tailwind.css'
+Error: ENOENT: no such file or directory, open '/Users/noahyoungs/VSCode/shiroai/headless-service/dist/tailwind.css'
+    at Object.readFileSync (node:fs:441:20)
+    at /Users/noahyoungs/VSCode/shiroai/headless-service/src/utils/generate-pdf.tsx:126:35
+    at Generator.next (<anonymous>)
+    at fulfilled (/Users/noahyoungs/VSCode/shiroai/headless-service/src/utils/generate-pdf.tsx:5:58)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+2024-08-28T09:47:14.408Z [INFO]: POST /generate-pdf/0191984f-980e-7227-900a-7076afc01d46/pdf 500 1416ms
+2024-08-28T09:52:14.687Z [INFO]: Server is running on port 3003 with HTTPS
+2024-08-28T09:52:26.507Z [INFO]: OPTIONS /generate-pdf/0191984f-980e-7227-900a-7076afc01d46/pdf 204 6ms
+2024-08-28T09:52:26.517Z [INFO]: Received theme: light, footnotes: false
+2024-08-28T09:52:26.971Z [INFO]: Fetched presentation
+2024-08-28T09:52:27.925Z [INFO]: Fetched unsorted slides
+2024-08-28T09:52:27.926Z [INFO]: Converted slides to map
+2024-08-28T09:52:27.926Z [INFO]: Sorted slides
+2024-08-28T09:52:28.776Z [ERROR]: Failed to generate PDF: RuleType is not defined
+ReferenceError: RuleType is not defined
+    at userRender (/Users/noahyoungs/VSCode/shiroai/headless-service/src/components/view-only-markdown-slide.tsx:39:39)
+    at render (/Users/noahyoungs/VSCode/shiroai/headless-service/node_modules/markdown-to-jsx/index.tsx:1100:9)
+    at patchedRender (/Users/noahyoungs/VSCode/shiroai/headless-service/node_modules/markdown-to-jsx/index.tsx:1084:12)
+    at emitter (/Users/noahyoungs/VSCode/shiroai/headless-service/node_modules/markdown-to-jsx/index.tsx:1067:25)
+    at compile (/Users/noahyoungs/VSCode/shiroai/headless-service/node_modules/markdown-to-jsx/index.tsx:1185:17)
+    at compiler (/Users/noahyoungs/VSCode/shiroai/headless-service/node_modules/markdown-to-jsx/index.tsx:1926:15)
+    at Xe (/Users/noahyoungs/VSCode/shiroai/headless-service/node_modules/markdown-to-jsx/index.tsx:1966:5)
+    at renderWithHooks (/Users/noahyoungs/VSCode/shiroai/headless-service/node_modules/react-dom/cjs/react-dom-server-legacy.node.development.js:5662:16)
+    at renderIndeterminateComponent (/Users/noahyoungs/VSCode/shiroai/headless-service/node_modules/react-dom/cjs/react-dom-server-legacy.node.development.js:5736:15)
+    at renderElement (/Users/noahyoungs/VSCode/shiroai/headless-service/node_modules/react-dom/cjs/react-dom-server-legacy.node.development.js:5961:7)
+2024-08-28T09:52:28.778Z [INFO]: POST /generate-pdf/0191984f-980e-7227-900a-7076afc01d46/pdf 500 2262ms
+2024-08-28T09:55:18.386Z [INFO]: Server is shutting down
+2024-08-28T09:55:21.953Z [INFO]: Server is running on port 3003 with HTTPS
+2024-08-28T09:55:25.463Z [INFO]: OPTIONS /generate-pdf/0191984f-980e-7227-900a-7076afc01d46/pdf 204 10ms
+2024-08-28T09:55:25.474Z [INFO]: Received theme: light, footnotes: false
+2024-08-28T09:55:25.932Z [INFO]: Fetched presentation
+2024-08-28T09:55:26.883Z [INFO]: Fetched unsorted slides
+2024-08-28T09:55:26.885Z [INFO]: Converted slides to map
+2024-08-28T09:55:26.885Z [INFO]: Sorted slides
+2024-08-28T09:55:29.240Z [INFO]: Page content set
+2024-08-28T09:55:45.360Z [INFO]: PDF generated and uploaded to S3: 0191984f-980e-7227-900a-7076afc01d46/Effective_Strategies_for_Weight_Loss.pdf
+2024-08-28T09:55:45.361Z [INFO]: POST /generate-pdf/0191984f-980e-7227-900a-7076afc01d46/pdf 200 19888ms

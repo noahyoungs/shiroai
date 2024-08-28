@@ -1,6 +1,6 @@
 // frontend/src/components/slides/view-only/view-only-markdown-slide.tsx
 "use client";
-import Markdown from "markdown-to-jsx";
+import Markdown, { RuleType } from "markdown-to-jsx";
 import { ViewOnlyTitle } from "./view-only-title";
 import { cn } from "../utils/cn";
 import React from "react";

@@ -204,7 +204,7 @@ export default function Page({
             toast(<ToastProgress progress_value={100} message="Script Generated Successfully!" />, {id: "script-gen", duration: 2000})
             setIsScriptGenerating(false);
           } else {
-            toast(<ToastProgress progress_value={progress} message={`Generating script for slide ${complete+1} of ${total}...`} />, {id: "script-gen", duration: 2000})
+            toast(<ToastProgress progress_value={progress} message={`Generating Script (Slide ${complete+1}/${total})...`} />, {id: "script-gen", duration: Infinity})
             setIsScriptGenerating(true);
           }
         }
