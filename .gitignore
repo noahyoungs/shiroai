@@ -52,6 +52,7 @@ backend/slides/icons/icon_data/icon_embeddings/*
 # headless-service
 headless-service/screenshots/
 headless-service/dist/
+headless-service/app.log
 
 # Ignore all .key files
 *key.pem
