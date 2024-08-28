@@ -353,8 +353,8 @@ async def complete(presentationID, messages, interfaceData, emit, max_turns=15, 
         for source in interfaceData.get('sources', []):
             char_count += source.get('char_count', 0)
 
-        with open('messages.json', 'w') as f:
-            json.dump(messages, f)
+        # with open('messages.json', 'w') as f:
+        #     json.dump(messages, f)
 
         completion = await client.chat.completions.create(
             model=os.getenv("CHAT_MODEL_OPENAI_ID"),
@@ -442,8 +442,8 @@ async def complete(presentationID, messages, interfaceData, emit, max_turns=15, 
 
             # recursively call complete until no tool calls
             # save messages to json
-            with open('messages.json', 'w') as f:
-                json.dump(messages, f)
+            # with open('messages.json', 'w') as f:
+            #     json.dump(messages, f)
             return await turn(messages, max_turns, turns + 1, memory=memory)
 
         else:
