@@ -1,0 +1,41 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  generate-video
+
+  SAM Template for generate-video lambda function
+
+Globals:
+  Function:
+    Timeout: 360
+
+Resources:
+  GenerateVideoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: generate_video/
+      Handler: app.lambda_handler
+      Runtime: python3.10
+      Architectures:
+        - arm64
+      Environment:
+        Variables:  # Environment variables for the Lambda function
+          DYNAMODB_TABLE_AWS_REGION: us-west-2
+          DYNAMODB_TABLE_NAME: AiPresenter2
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+                - dynamodb:GetItem
+                - dynamodb:DescribeTable
+              Resource: 
+                - arn:aws:dynamodb:us-east-1:123456789012:table/AiPresenter2  # Replace with actual DynamoDB table ARN
+
+Outputs:
+  GenerateVideoFunction:
+    Description: "Generate Video Lambda Function ARN"
+    Value: !GetAtt GenerateVideoFunction.Arn
+  GenerateVideoFunctionIamRole:
+    Description: "Implicit IAM Role created for GenerateVideoFunction"
+    Value: !GetAtt GenerateVideoFunction.Arn
