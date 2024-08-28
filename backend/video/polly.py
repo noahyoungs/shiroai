@@ -13,19 +13,7 @@ async def polly_client():
         yield client
 
 
-async def log_running_character_count(n):
-    # Asynchronously read
-    async with aiofiles.open("character_count.txt", "r") as f:
-        # read n from character_count.txt
-        count = int(await f.read())
 
-    # increment
-    count += n
-
-    # Asynchronously write
-    async with aiofiles.open("character_count.txt", "w") as f:
-        # write n to character_count.txt
-        await f.write(str(count))
 
 
 async def tts(text, gender, premium=False):
