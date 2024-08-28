@@ -66,8 +66,8 @@ async def download_html(url):
                 else:
                     # print(f"HTML downloaded successfully from {url}")
                     # save html to file
-                    with open("output.html", "w") as f:
-                        f.write(html)
+                    # with open("output.html", "w") as f:
+                    #     f.write(html)
                     return title, html, download_method
         except Exception as e:
             print(f"Failed to download HTML using aiohttp: {e}")
