@@ -9,6 +9,7 @@ import asyncio
 from slides.mermaid.tall_shapes_lines_inference import predict_ideal_lines
 
 HEADLESS_API_PATH = os.getenv('HEADLESS_API_PATH')
+HEADLESS_API_INTERNAL_KEY = os.getenv('HEADLESS_API_INTERNAL_KEY')  # Get the API key from environment variable
 SSL_VERIFY = False  # Set to True to enable SSL verification, False to disable
 
 # Create an SSL context that disables verification if SSL_VERIFY is False
@@ -76,20 +77,22 @@ def process_tall_shapes(diagram):
     
     return diagram
 
-async def get_dimensions_from_service(diagram):
+async def get_dimensions_from_headless_api(diagram):
+    headers = {'x-api-key': HEADLESS_API_INTERNAL_KEY}  # Include the API key in the headers
     async with aiohttp.ClientSession() as session:
         url = f"{HEADLESS_API_PATH}/mermaid-dimensions"
-        async with session.post(url, json={"code": diagram}, ssl=ssl_context) as response:
+        async with session.post(url, json={"code": diagram}, headers=headers, ssl=ssl_context) as response:
             response_data = await response.json()
             if response.status == 200:
                 return response_data['width'], response_data['height']
             else:
                 raise ValueError(f"Failed to get dimensions: {response_data.get('message')}")
 
-async def generate_svgs_from_service(diagram):
+async def generate_svgs_from_headless_api(diagram):
+    headers = {'x-api-key': HEADLESS_API_INTERNAL_KEY}  # Include the API key in the headers
     async with aiohttp.ClientSession() as session:
         url = f"{HEADLESS_API_PATH}/mermaid"
-        async with session.post(url, json={"code": diagram}, ssl=ssl_context) as response:
+        async with session.post(url, json={"code": diagram}, headers=headers, ssl=ssl_context) as response:
             response_data = await response.json()
             if response.status == 200:
                 return response_data['lightSvg'], response_data['darkSvg']
@@ -102,7 +105,7 @@ async def adjust_ar_with_line_breaks(diagram, target_ratio=2.4, max_iterations=1
     adjusted_diagram = diagram
     setpoint = 2  # Start with the minimum number of lines
 
-    width, height = await get_dimensions_from_service(diagram)
+    width, height = await get_dimensions_from_headless_api(diagram)
     aspect_ratio = width / height
     print(f"Initial Aspect Ratio: {aspect_ratio}")
 
@@ -117,7 +120,7 @@ async def adjust_ar_with_line_breaks(diagram, target_ratio=2.4, max_iterations=1
             new_text = break_string_into_lines(match, setpoint)
             new_diagram = new_diagram.replace(f'"{match}"', f'"{new_text}"')
 
-        width, height = await get_dimensions_from_service(new_diagram)
+        width, height = await get_dimensions_from_headless_api(new_diagram)
         new_aspect_ratio = width / height
         print(f"Iteration {iterations + 1} (Setpoint: {setpoint}): New Aspect Ratio = {new_aspect_ratio}")
 
@@ -143,10 +146,10 @@ async def adjust_ar_with_direction(diagram, target_ratio=2.4):
     diagram_td = diagram.replace(first_line, 'graph BT' if reverse else 'graph TD', 1)
     diagram_lr = diagram.replace(first_line, 'graph RL' if reverse else 'graph LR', 1)
 
-    width_td, height_td = await get_dimensions_from_service(diagram_td)
+    width_td, height_td = await get_dimensions_from_headless_api(diagram_td)
     aspect_ratio_td = width_td / height_td
 
-    width_lr, height_lr = await get_dimensions_from_service(diagram_lr)
+    width_lr, height_lr = await get_dimensions_from_headless_api(diagram_lr)
     aspect_ratio_lr = width_lr / height_lr
 
     if abs(aspect_ratio_td - target_ratio) < 0.25 or abs(aspect_ratio_lr - target_ratio) < 0.25:
@@ -184,7 +187,7 @@ async def process_diagram_to_svgs(diagram, adjust_ar=True):
     if adjust_ar:
         diagram, _ = await adjust_ar_with_direction(diagram)
     diagram = round_rectangles(diagram)
-    light_svg, dark_svg = await generate_svgs_from_service(diagram)
+    light_svg, dark_svg = await generate_svgs_from_headless_api(diagram)
     return light_svg, dark_svg
 
 
@@ -199,7 +202,7 @@ graph TD;
 
 # Function to test get_dimensions_from_service
 async def test_get_dimensions_from_service():
-    width, height = await get_dimensions_from_service(example_diagram)
+    width, height = await get_dimensions_from_headless_api(example_diagram)
     print(f"Width: {width}, Height: {height}")
 
 # Run the test function

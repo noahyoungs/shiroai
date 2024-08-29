@@ -1,4 +1,7 @@
+// frontend/src/components/slides/action-buttons/export-to-pdf-modal.tsx
 import React, { useState } from "react";
+import { Key } from "@react-types/shared";
+
 import {
   Modal,
   ModalContent,
@@ -15,27 +18,30 @@ import {
   Link,
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
-import axios from "axios";
-import { Key } from "react";
+import { exportToPDF } from "@/actions/export-to-pdf";
 
 export function ExportToPdfModal({ presentationId }: { presentationId: string }) {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [theme, setTheme] = useState<Key>("light");
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleExport = async () => {
     setIsExporting(true);
+    setError(null); // Reset error state before exporting
+
     try {
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_HEADLESS_API_PATH}/generate-pdf/${presentationId}/pdf`,
-        { theme, footnotes: false },
-      );
-      const { s3Key }  = response.data;
-      const href = `https://${process.env.NEXT_PUBLIC_CLOUDFRONT_DOMAIN}/${s3Key}`
-      setPdfUrl(href);
-    } catch (error) {
+      const result = await exportToPDF(presentationId, theme as 'dark' | 'light' | 'print', false);
+
+      if (result.success) {
+        setPdfUrl(result.href!);
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error: any) {
       console.error("Failed to export PDF:", error);
+      setError(error.message);
     } finally {
       setIsExporting(false);
     }
@@ -69,6 +75,9 @@ export function ExportToPdfModal({ presentationId }: { presentationId: string })
               </ModalHeader>
               <ModalBody>
                 <p>Export your presentation to a PDF file for download.</p>
+                {error && (
+                  <p className="text-red-500">Error: {error}</p>
+                )}
                 <Spacer y={1} />
                 <div className="flex flex-row items-center gap-3">
                   <p>Theme</p>
