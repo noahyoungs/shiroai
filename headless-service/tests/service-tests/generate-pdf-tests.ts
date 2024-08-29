@@ -13,7 +13,7 @@ const axiosInstance = axios.create({
 
 async function testGeneratePdf(presentationId: string) {
   const response = await axiosInstance.post(`/generate-pdf/${presentationId}/pdf`, {
-    theme: "dark",
+    theme: "light",
     footnotes: true
   });
   return response.data;
@@ -24,9 +24,9 @@ describe('Generate PDF Tests', () => {
   jest.setTimeout(30000);
 
   it('should generate a PDF for the given presentation ID', async () => {
-    const presentationId = '0190ca6b-c656-7a64-aa10-ad79716eca2f';
+    const presentationId = '0191984f-980e-7227-900a-7076afc01d46';
     const { s3Key } = await testGeneratePdf(presentationId);
     expect(s3Key).toBeDefined();
-    expect(s3Key).toBe('0190ca6b-c656-7a64-aa10-ad79716eca2f/The_Future_of_Electric_Vehicles.pdf');
+    expect(s3Key).toBe('0191984f-980e-7227-900a-7076afc01d46/Effective_Strategies_for_Weight_Loss.pdf');
   });
 });
