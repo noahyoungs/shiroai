@@ -7,12 +7,12 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import React from "react";
 import ReactDOMServer from "react-dom/server";
 import { Request, Response } from "express";
-import { getPresentationByID, getAllSlides } from "../utils/dynamodb";
+import { getPresentationByID, getAllSlides } from "./dynamodb";
 import { SlideComponent } from "../components/slide-component";
 import { Slide } from "../../../frontend/src/utils/slide-types";
-import logger from "../utils/logger";
-import { sanitizeFileName } from "../utils/sanitize-file-name";
-import { createSignedUrlSuffix } from "../utils/create-signed-url-suffix";
+import logger from "./logger";
+import { sanitizeFileName } from "./sanitize-file-name";
+import { createSignedUrlSuffix } from "./create-signed-url-suffix";
 
 const SAVE_TO_FILE = false;
 const DEBUG = false;

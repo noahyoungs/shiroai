@@ -31,7 +31,7 @@ tmux send-keys -t $SESSION_NAME:2 'poetry run uvicorn rest_api:app --host 0.0.0.
 
 # Create another window and start the mermaid.ink service
 tmux new-window -t $SESSION_NAME -n 'Headless API'
-tmux send-keys -t $SESSION_NAME:3 "cd $SCRIPT_DIR/headless-service" C-m
+tmux send-keys -t $SESSION_NAME:3 "cd $SCRIPT_DIR/headless-api" C-m
 tmux send-keys -t $SESSION_NAME:3 'npx ts-node src/index.ts' C-m
 
 # Attach to the tmux session and select the 'Frontend Main' window

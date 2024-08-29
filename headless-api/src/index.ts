@@ -1,5 +1,5 @@
 import 'dotenv/config'; // Load environment variables from .env file
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import https from 'https';
 import fs from 'fs';
 import path from 'path';
@@ -16,17 +16,31 @@ import markdownSplitRouter from './routes/markdown-split'; // Import the new rou
 const app = express();
 app.use(express.json());
 
+// Middleware to check for the API key
+const apiKeyMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  const apiKey = req.header('x-api-key');
+  const validApiKey = process.env.HEADLESS_API_INTERNAL_KEY;
+
+  if (apiKey === validApiKey) {
+    next(); // Proceed if the API key matches
+  } else {
+    res.status(401).json({ error: 'Unauthorized' }); // Unauthorized if the API key does not match
+  }
+};
+
 // Apply the request logger middleware
 app.use(requestLogger);
 
 // Serve static files from the 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
 
-// app.use(cors({
-//   origin: process.env.NEXT_PUBLIC_BASE_URL,
-// }));
+// Enable CORS with specified origin if needed
+app.use(cors({
+  origin: process.env.NEXT_PUBLIC_BASE_URL,
+}));
 
-app.use(cors());
+// Protect all routes with the API key middleware
+app.use(apiKeyMiddleware);
 
 // Use the routes
 app.use('/mermaid', mermaidRoutes);
@@ -34,7 +48,7 @@ app.use('/prose-class', proseClassRoutes);
 app.use('/validate-mermaid', validateMermaidRoutes);
 app.use('/mermaid-dimensions', mermaidDimensionsRoutes);
 app.use('/generate-pdf', generatePDFRouter);
-app.use('/markdown-split', markdownSplitRouter); // Use the new route
+app.use('/markdown-split', markdownSplitRouter);
 
 // Test connection route
 app.get('/test-connection', (req, res) => {
