@@ -53,11 +53,12 @@ backend/slides/icons/icon_data/icon_embeddings/*
 headless-service/screenshots/
 headless-service/dist/
 headless-service/app.log
+# testing
+headless-service/mermaid_dark.svg
+headless-service/mermaid_light.svg
 
 # Ignore all .key files
 *key.pem
 *.key
 
-# testing
-headless-service/mermaid_dark.svg
-headless-service/mermaid_light.svg
+
