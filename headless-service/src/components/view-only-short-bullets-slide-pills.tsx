@@ -1,6 +1,6 @@
 // frontend/src/components/slides/view-only/view-only-short-bullets-slide-pills.tsx
 import { ShortBulletsSlide, IconData } from "../utils/slide-types";
-import { Icon } from "@iconify/react";
+import { Icon } from '@iconify-icon/react';
 import React from "react";
 import { cn } from "../utils/cn";
 import { ViewOnlyTitle } from "./view-only-title";

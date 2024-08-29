@@ -125,6 +125,11 @@ export async function generatePDF(req: Request, res: Response) {
     const tailwindCssPath = path.join(__dirname, "../../dist/tailwind.css");
     const tailwindCssContent = fs.readFileSync(tailwindCssPath, "utf-8");
 
+    // Read the iconify-icon script
+    const iconifyIconPath = path.join(__dirname, "../../src/iconify-icon.min.js");
+    const iconifyIconContent = fs.readFileSync(iconifyIconPath, "utf-8");
+
+
     const fontCSS = `@font-face {
     font-family: 'Inter';
     font-style: normal;
@@ -161,7 +166,7 @@ export async function generatePDF(req: Request, res: Response) {
               page-break-after: always;
             }
           </style>
-          <script src="https://cdn.jsdelivr.net/npm/iconify-icon@2.1.0/dist/iconify-icon.min.js"></script>
+          <script>${iconifyIconContent}</script>
         </head>
         <body class="${themeClass}">
           ${slidesHtml}
