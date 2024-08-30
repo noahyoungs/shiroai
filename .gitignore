@@ -53,6 +53,7 @@ backend/slides/icons/icon_data/icon_embeddings/*
 headless-api/screenshots/
 headless-api/dist/
 headless-api/app.log
+
 # testing
 headless-api/mermaid_dark.svg
 headless-api/mermaid_light.svg
