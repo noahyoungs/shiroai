@@ -11,7 +11,8 @@ import proseClassRoutes from './routes/prose-class';
 import validateMermaidRoutes from './routes/validate-mermaid';
 import mermaidDimensionsRoutes from './routes/mermaid-dimensions';
 import generatePDFRouter from './routes/generate-pdf-router';
-import markdownSplitRouter from './routes/markdown-split'; // Import the new route
+import markdownSplitRouter from './routes/markdown-split';
+import generateJPGsRouter from './routes/generate-jpgs-router';
 
 const app = express();
 app.use(express.json());
@@ -49,6 +50,7 @@ app.use('/validate-mermaid', validateMermaidRoutes);
 app.use('/mermaid-dimensions', mermaidDimensionsRoutes);
 app.use('/generate-pdf', generatePDFRouter);
 app.use('/markdown-split', markdownSplitRouter);
+app.use('/generate-jpg', generateJPGsRouter);
 
 // Test connection route
 app.get('/test-connection', (req, res) => {
