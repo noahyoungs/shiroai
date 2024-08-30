@@ -3,7 +3,7 @@
 import Markdown from "markdown-to-jsx";
 import { ViewOnlyTitle } from "./view-only-title";
 import { cn } from "../../../utils/cn";
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { MarkdownSlide } from "../../../utils/slide-types";
 
 type ViewOnlyMarkdownSlideComponentProps = {
@@ -15,6 +15,17 @@ export function ViewOnlyMarkdownSlideComponent({
   slide,
   allSources,
 }: ViewOnlyMarkdownSlideComponentProps) {
+
+  const [hasTable, setHasTable] = useState(false);
+  const markdownRef = useRef<HTMLDivElement>(null);
+
+
+  useEffect(() => {
+    if (markdownRef.current) {
+      const tableElement = markdownRef.current.querySelector("table");
+      setHasTable(!!tableElement);
+    }
+  }, [slide.slide_content.content]);
 
   return (
     <div className="p-12 pb-0 flex flex-col w-full overflow-scroll flex-grow">
@@ -28,12 +39,14 @@ export function ViewOnlyMarkdownSlideComponent({
         <div
           className={cn(
             "flex justify-start w-full flex-shrink max-w-none prose dark:prose-invert",
-            slide.slide_content.prose_class || "prose-sm"
-          )}
+            hasTable ? 'justify-center' : 'justify-start', slide.slide_content.prose_class || "prose-sm"
+          )
+          }
+          ref={markdownRef}
         >
-            {typeof slide.slide_content.content === "string" ? (
-              <Markdown
-                options={{
+          {typeof slide.slide_content.content === "string" ? (
+            <Markdown
+              options={{
                 //   renderRule(next, node, renderChildren, state) {
                 //     // @ts-ignore
                 //     if (node.type === RuleType.footnoteReference) {
@@ -48,26 +61,26 @@ export function ViewOnlyMarkdownSlideComponent({
                 //     }
                 //     return next();
                 //   },
-                  wrapper: ({ children }) => (
-                    <div id="prose-container" className="px-1">
-                      {children}
-                    </div>
-                  ),
-                  forceWrapper: true,
-                }}
-              >
-                {slide.slide_content.content}
-              </Markdown>
-            ) : (
-              <div className="flex justify-center items-center h-[300px]">
-                <p className="text-center text-foreground dark:text-background">
-                  Error: Slide content is not a string <br />
-                  Slide content is {typeof slide.slide_content.content} <br />
-                  Slide content is{" "}
-                  {JSON.stringify(slide.slide_content.content)}
-                </p>
-              </div>
-            )}
+                wrapper: ({ children }) => (
+                  <div id="prose-container" className="px-1">
+                    {children}
+                  </div>
+                ),
+                forceWrapper: true,
+              }}
+            >
+              {slide.slide_content.content}
+            </Markdown>
+          ) : (
+            <div className="flex justify-center items-center h-[300px]">
+              <p className="text-center text-foreground dark:text-background">
+                Error: Slide content is not a string <br />
+                Slide content is {typeof slide.slide_content.content} <br />
+                Slide content is{" "}
+                {JSON.stringify(slide.slide_content.content)}
+              </p>
+            </div>
+          )}
         </div>
         <div className="flex-auto min-h-12"></div>
       </>
