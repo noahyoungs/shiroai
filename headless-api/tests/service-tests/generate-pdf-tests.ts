@@ -1,11 +1,19 @@
+import dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config();
 import axios from 'axios';
 
 const BASE_URL = 'https://meetshiro.com:3003';
 const IGNORE_SSL = true;
+const HEADLESS_API_INTERNAL_KEY = process.env.HEADLESS_API_INTERNAL_KEY;
 
 // Create an instance of Axios with or without SSL verification
 const axiosInstance = axios.create({
   baseURL: BASE_URL,
+  headers: {
+    'x-api-key': HEADLESS_API_INTERNAL_KEY,
+  },
   httpsAgent: new (require('https').Agent)({
     rejectUnauthorized: !IGNORE_SSL,
   }),
@@ -20,7 +28,6 @@ async function testGeneratePdf(presentationId: string) {
 }
 
 describe('Generate PDF Tests', () => {
-  // Set a 30-second timeout for the tests in this suite
   jest.setTimeout(30000);
 
   it('should generate a PDF for the given presentation ID', async () => {
