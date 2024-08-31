@@ -7,7 +7,7 @@ Description: >
 
 Globals:
   Function:
-    Timeout: 360
+    Timeout: 300
 
 Resources:
   GenerateVideoFunction:
@@ -18,19 +18,19 @@ Resources:
       Runtime: python3.10
       Architectures:
         - arm64
+      MemorySize: 3008 
       Environment:
-        Variables:  # Environment variables for the Lambda function
-          DYNAMODB_TABLE_AWS_REGION: us-west-2
-          DYNAMODB_TABLE_NAME: AiPresenter2
+        Variables: 
+          BUCKET_NAME: ai-presenter-2-sources-bucket
       Policies:
-        - Statement:
-            - Effect: Allow
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: "Allow"
               Action:
-                - dynamodb:Query
-                - dynamodb:GetItem
-                - dynamodb:DescribeTable
+                - "s3:GetObject"
+                - "s3:PutObject"
               Resource: 
-                - arn:aws:dynamodb:us-east-1:123456789012:table/AiPresenter2  # Replace with actual DynamoDB table ARN
+                - "arn:aws:s3:::ai-presenter-2-sources-bucket/*"
 
 Outputs:
   GenerateVideoFunction:

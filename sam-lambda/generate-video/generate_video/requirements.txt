@@ -1,5 +1,4 @@
-requests
 boto3
-python-dotenv
-pydantic
-uuid7
+moviepy
+numpy
+Pillow  # Required by moviepy for image handling
