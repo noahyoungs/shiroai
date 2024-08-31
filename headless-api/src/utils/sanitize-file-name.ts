@@ -1,4 +1,4 @@
-export function sanitizeFileName(input: string, maxLength = 100): string {
+export function sanitizeFileName(input: string, maxLength = 50): string {
     const invalidChars = /[<>:"/\\|?*\x00-\x1F]/g;
     const reservedNames = /^(CON|PRN|AUX|NUL|COM\d|LPT\d)(\..*)?$/i;
     let sanitized = input

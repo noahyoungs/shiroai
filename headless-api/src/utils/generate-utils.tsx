@@ -11,7 +11,7 @@ import { createSignedUrlSuffix } from "./create-signed-url-suffix";
 
 export const DEBUG = false;
 
-export async function fetchAndSortSlides(presentationId: string): Promise<{ presentation: any, sortedSlidesArray: Slide[] }> {
+export async function fetchAndSortSlides(presentationId: string, slide_attrs?: string[]): Promise<{ presentation: any, sortedSlidesArray: Slide[] }> {
   const presentation = await getPresentationByID(presentationId, ["head_slide_id", "topic"]);
   logger.info(`Fetched presentation`);
 
@@ -23,7 +23,7 @@ export async function fetchAndSortSlides(presentationId: string): Promise<{ pres
     throw new Error("No head slide found for the presentation");
   }
 
-  const unsortedSlidesArray = await getAllSlides(presentationId);
+  const unsortedSlidesArray = await getAllSlides(presentationId, slide_attrs);
   logger.info(`Fetched unsorted slides`);
 
   if (!unsortedSlidesArray.length) {
@@ -31,9 +31,12 @@ export async function fetchAndSortSlides(presentationId: string): Promise<{ pres
   }
 
   let slidesMap: { [key: string]: Slide } = {};
-  unsortedSlidesArray.forEach((slide: Slide) => {
-    slidesMap[slide.id] = slide;
+  unsortedSlidesArray.forEach((slide: Slide | undefined) => {
+    if (slide) {
+      slidesMap[slide.id] = slide;
+    }
   });
+
   logger.info(`Converted slides to map`);
 
   let sortedSlidesArray: Slide[] = [];

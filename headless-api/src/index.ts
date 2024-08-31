@@ -13,6 +13,7 @@ import mermaidDimensionsRoutes from './routes/mermaid-dimensions';
 import generatePDFRouter from './routes/generate-pdf-router';
 import markdownSplitRouter from './routes/markdown-split';
 import generateJPGsRouter from './routes/generate-jpgs-router';
+import generateVideoRouter from './routes/generate-video-router';
 
 const app = express();
 app.use(express.json());
@@ -51,6 +52,7 @@ app.use('/mermaid-dimensions', mermaidDimensionsRoutes);
 app.use('/generate-pdf', generatePDFRouter);
 app.use('/markdown-split', markdownSplitRouter);
 app.use('/generate-jpg', generateJPGsRouter);
+app.use('/generate-mp4', generateVideoRouter);
 
 // Test connection route
 app.get('/test-connection', (req, res) => {

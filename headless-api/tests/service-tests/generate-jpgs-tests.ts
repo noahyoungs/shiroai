@@ -1,3 +1,4 @@
+// headless-api/tests/service-tests/generate-jpgs-tests.ts
 import dotenv from 'dotenv';
 
 // Load environment variables from .env file
@@ -24,7 +25,7 @@ async function testGenerateJpgs(presentationId: string) {
   const response = await axiosInstance.post(`generate-jpg/${presentationId}/jpg`, {
     theme: "light",
     footnotes: true,
-    resolution: "1920x1080"
+    resolution: "1920x1080",
   });
   return response.data;
 }
@@ -39,6 +40,6 @@ describe('Generate JPGs Tests', () => {
     // Check that the response contains a valid S3 key
     expect(s3Key).toBeDefined();
     expect(typeof s3Key).toBe('string');
-    expect(s3Key).toMatch(new RegExp(`^${presentationId}/slides.zip$`));
+    expect(s3Key).toMatch(new RegExp(`^${presentationId}/export/jpg/slides.zip$`));
   });
 });

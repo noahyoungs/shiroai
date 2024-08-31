@@ -1,9 +1,9 @@
 // headless-service/src/routes/generate-pdf-router.ts
 import express from "express";
-import { generateJPGs } from "../utils/generate-jpgs";
+import { generateJPGsHandler } from "../utils/generate-jpgs";
 
 const router = express.Router();
 
-router.post("/:presentationId/jpg", generateJPGs);
+router.post("/:presentationId/jpg", generateJPGsHandler);
 
 export default router;

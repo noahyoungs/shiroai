@@ -34,6 +34,6 @@ describe('Generate PDF Tests', () => {
     const presentationId = '0191984f-980e-7227-900a-7076afc01d46';
     const { s3Key } = await testGeneratePdf(presentationId);
     expect(s3Key).toBeDefined();
-    expect(s3Key).toBe('0191984f-980e-7227-900a-7076afc01d46/Effective_Strategies_for_Weight_Loss.pdf');
+    expect(s3Key).toBe('0191984f-980e-7227-900a-7076afc01d46/export/pdf/Effective_Strategies_for_Weight_Loss.pdf');
   });
 });

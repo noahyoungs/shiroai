@@ -1,4 +1,3 @@
-// headless-api/src/utils/generate-jpgs.tsx
 import { Request, Response } from "express";
 import React from "react";
 import ReactDOMServer from "react-dom/server";
@@ -16,112 +15,140 @@ import {
   DEBUG,
 } from "./generate-utils";
 
-export async function generateJPGs(req: Request, res: Response) {
-  const { presentationId } = req.params;
-  const { theme, footnotes, resolution } = req.body;
+/**
+ * Function to generate JPGs for a presentation.
+ *
+ * @param presentationId - The ID of the presentation.
+ * @param theme - The theme for the slides (dark, light, print).
+ * @param footnotes - Whether to include footnotes for the slides.
+ * @param resolution - The desired resolution ('1920x1080', '1280x720', '2560x1440', '3840x2160').
+ * @param s3Subdirectory - The subdirectory within the S3 bucket under the presentationId where slides.zip will be stored (defaults to '').
+ */
+export async function generateJPGs(
+  presentationId: string,
+  theme: string,
+  footnotes: boolean,
+  resolution: string,
+  s3Subdirectory: string = ''
+): Promise<{ s3Key: string; manifest: { slide_id: string; image_filename: string }[] } | Error> {
   const themeClass = theme === "print" ? "nobg" : theme === "dark" ? "dark" : "";
 
   if (!["dark", "light", "print"].includes(theme)) {
-    logger.info(`Received invalid theme: ${theme}`);
-    res.status(400).send("Invalid theme, please use 'dark', 'light' or 'print'");
-    return;
+    const errorMsg = `Invalid theme: ${theme}. Please use 'dark', 'light' or 'print'`;
+    logger.info(errorMsg);
+    return new Error(errorMsg);
   }
 
-  if (!["1920x1080", "1280x720"].includes(resolution)) {
-    logger.info(`Received invalid resolution: ${resolution}`);
-    res.status(400).send("Invalid resolution, please use '1920x1080' or '1280x720'");
-    return;
+  if (!["1920x1080", "1280x720", "2560x1440", "3840x2160"].includes(resolution)) {
+    const errorMsg = `Invalid resolution: ${resolution}. Please use '1920x1080', '1280x720', '2560x1440', or '3840x2160'`;
+    logger.info(errorMsg);
+    return new Error(errorMsg);
   }
 
   const [viewportWidth, viewportHeight] = [1280, 720];
-  const [screenshotWidth, screenshotHeight] = resolution === "1920x1080" ? [1920, 1080] : [1280, 720];
+  const deviceScaleFactor = resolution === "1920x1080" ? 1.5 :
+                            resolution === "2560x1440" ? 2 :
+                            resolution === "3840x2160" ? 3 : 1;
 
   logger.info(`Received theme: ${theme}, resolution: ${resolution}, footnotes: ${footnotes}`);
 
   try {
+    logger.info(`Fetching and sorting slides for presentation ID: ${presentationId}`);
     const { presentation, sortedSlidesArray } = await fetchAndSortSlides(presentationId);
     const signedUrlSuffix = generateSignedUrlSuffix(presentationId);
 
+    logger.info(`Reading static files for presentation rendering`);
     const { tailwindCssContent, iconifyIconContent, fontCSS } = readStaticFiles();
 
+    logger.info(`Setting up the Puppeteer browser`);
     const { browser, page } = await setupBrowser();
 
     await page.setViewport({
       width: viewportWidth,
       height: viewportHeight,
-      deviceScaleFactor: 1,
+      deviceScaleFactor: deviceScaleFactor,
     });
 
     const jpegBuffers = [];
+    const manifest: { slide_id: string; image_filename: string }[] = []; // Updated manifest to be an array of objects
 
-    for (const slide of sortedSlidesArray) {
-      const slideHtml = ReactDOMServer.renderToString(
-        <div className="slide text-black dark:text-white bg-neutral-100 dark:bg-neutral-900 nobg:bg-white" style={{ width: `${viewportWidth}px`, height: `${viewportHeight}px` }}>
-          <SlideComponent slide={slide} signedUrlSuffix={signedUrlSuffix} dark={theme === "dark"} />
-        </div>
-      );
-
-      const html = `
-        <html>
-          <head>
-            <style>${fontCSS}</style>
-            <style>${tailwindCssContent}</style>
-            <style>
-              .slide {
-                width: ${viewportWidth}px;
-                height: ${viewportHeight}px;
-              }
-            </style>
-            <script>${iconifyIconContent}</script>
-          </head>
-          <body class="${themeClass}">
-            ${slideHtml}
-          </body>
-        </html>
-      `;
-
-      await page.setContent(html, {
-        waitUntil: ["load", "networkidle0"],
-        timeout: 60000,
-      });
-
-      await page.evaluate(() => {
-        return Promise.all(
-          Array.from(document.images)
-            .filter((img) => !img.complete)
-            .map(
-              (img) =>
-                new Promise((resolve) => {
-                  img.onload = img.onerror = resolve;
-                })
-            )
+    for (const [index, slide] of sortedSlidesArray.entries()) {
+      try {
+        logger.info(`Rendering slide: ${slide.title || `Slide_${index + 1}`}`);
+        const slideHtml = ReactDOMServer.renderToString(
+          <div
+            className="slide text-black dark:text-white bg-neutral-100 dark:bg-neutral-900 nobg:bg-white"
+            style={{ width: `${viewportWidth}px`, height: `${viewportHeight}px` }}
+          >
+            <SlideComponent slide={slide} signedUrlSuffix={signedUrlSuffix} dark={theme === "dark"} />
+          </div>
         );
-      });
 
-      // Take screenshot with the desired settings (choose either fullPage or clip, not both)
-      const jpegBuffer = await page.screenshot({
-        type: 'jpeg',
-        quality: 80,
-        // Remove 'clip' option to use fullPage
-        fullPage: true, 
-        omitBackground: true
-      });
+        const html = `
+          <html>
+            <head>
+              <style>${fontCSS}</style>
+              <style>${tailwindCssContent}</style>
+              <style>
+                .slide {
+                  width: ${viewportWidth}px;
+                  height: ${viewportHeight}px;
+                }
+              </style>
+              <script>${iconifyIconContent}</script>
+            </head>
+            <body class="${themeClass}">
+              ${slideHtml}
+            </body>
+          </html>
+        `;
 
-      const scaledBuffer = resolution === "1920x1080"
-        ? await scaleImage(jpegBuffer, screenshotWidth, screenshotHeight)
-        : jpegBuffer;
+        await page.setContent(html, {
+          waitUntil: ["load", "networkidle0"],
+          timeout: 60000,
+        });
 
-      jpegBuffers.push({ buffer: scaledBuffer, slide });
+        logger.info(`Waiting for all images to load for slide ${index + 1} of ${sortedSlidesArray.length}`);
+        await page.evaluate(() => {
+          return Promise.all(
+            Array.from(document.images)
+              .filter((img) => !img.complete)
+              .map(
+                (img) =>
+                  new Promise((resolve) => {
+                    img.onload = img.onerror = resolve;
+                  })
+              )
+          );
+        });
+
+        logger.info(`Taking screenshot of slide ${index + 1} of ${sortedSlidesArray.length}`);
+        const jpegBuffer = await page.screenshot({
+          type: 'jpeg',
+          quality: 80,
+          fullPage: true,
+          omitBackground: false,
+        });
+
+        jpegBuffers.push({ buffer: jpegBuffer, slide });
+
+        // Generate filename and update the manifest
+        const slideFileName = sanitizeFileName(slide.slide_title ? `${index + 1} ${slide.slide_title}` : `${index + 1}`) + '.jpg';
+        manifest.push({ slide_id: slide.id, image_filename: slideFileName }); 
+      } catch (error: any) {
+        logger.warn(`Error rendering slide ${index + 1}, omitted from manifest: ${error.message}\n${error.stack}`);
+      }
     }
 
     if (!DEBUG) {
+      logger.info(`Closing the Puppeteer browser`);
       await browser.close();
     }
 
-    // Use a stream buffer to handle zip file creation in memory
+    logger.info(`Creating zip archive for presentation ID: ${presentationId}`);
     const zipStream = new streamBuffers.WritableStreamBuffer({
-      initialSize: (100 * 1024),   // start at 100 kilobytes
-      incrementAmount: (10 * 1024) // grow by 10 kilobytes each time buffer overflows
+      initialSize: 100 * 1024,
+      incrementAmount: 10 * 1024,
     });
 
     const archive = archiver('zip', { zlib: { level: 9 } });
@@ -139,25 +166,41 @@ export async function generateJPGs(req: Request, res: Response) {
 
     await archive.finalize();
 
-    // When the zip is finalized, convert the stream buffer to a Buffer
     const zipBuffer = zipStream.getContents() as Buffer;
+    const zipFileName = `${presentationId}/${s3Subdirectory}slides.zip`;
 
-    const zipFileName = `${presentationId}/slides.zip`;
-
-    // Upload the zip buffer to S3
+    logger.info(`Uploading zip archive to S3: ${zipFileName}`);
     await uploadBufferToS3(zipBuffer, zipFileName, 'application/zip');
 
-    res.json({ s3Key: zipFileName });
+    logger.info(`Buffer uploaded to S3 successfully: ${zipFileName}`);
+    return { s3Key: zipFileName, manifest }; // Return both s3Key and manifest
 
   } catch (error: any) {
     logger.error(`Failed to generate JPEGs: ${error.message}\n${error.stack}`);
-    res.status(500).send(`Failed to generate JPEGs: ${error.message}`);
+    return new Error(`Failed to generate JPEGs: ${error.message}`);
   }
 }
 
-async function scaleImage(buffer: Buffer, width: number, height: number): Promise<Buffer> {
-  const sharp = require('sharp');
-  return sharp(buffer)
-    .resize(width, height)
-    .toBuffer();
+/**
+ * Express handler to generate JPGs for a presentation via HTTP request.
+ *
+ * @param req - The Express request object.
+ * @param res - The Express response object.
+ */
+export async function generateJPGsHandler(req: Request, res: Response) {
+  const { presentationId } = req.params;
+  const { theme, footnotes, resolution } = req.body;
+
+  try {
+    const result = await generateJPGs(presentationId, theme, footnotes, resolution, 'export/jpg/');
+
+    if (result instanceof Error) {
+      res.status(400).send(result.message);
+    } else {
+      res.json({ s3Key: result.s3Key, manifest: result.manifest }); // Send both s3Key and manifest in the response
+    }
+  } catch (error: any) {
+    logger.error(`Failed to process generateJPGsHandler: ${error.message}\n${error.stack}`);
+    res.status(500).send(`Internal Server Error: ${error.message}`);
+  }
 }

@@ -1,4 +1,5 @@
-// dynamodb.ts
+// headless-api/src/utils/dynamodb.ts
+
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import {
   GetItemCommand,
@@ -82,7 +83,7 @@ export async function getPresentationByID(
  *
  * @param {string} presentationID - The ID of the presentation.
  * @param {string[]} [attributes] - An optional array of attribute names to retrieve. If not specified, all attributes are retrieved.
- * @returns {Promise<Slide[]>} - A promise that resolves to an array of slides.
+ * @returns {PromisePartial<<Slide[]>>} - A promise that resolves to an array of slides, or partial slides if attributes are specified.
  *
  * @example
  * const slides = await getAllSlides('presentation123');
@@ -98,7 +99,7 @@ export async function getPresentationByID(
 export async function getAllSlides(
   presentationID: string,
   attributes?: string[]
-): Promise<Slide[]> {
+): Promise<Partial<Slide[]>> {
   const params: any = {
     TableName: tableName,
     KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",

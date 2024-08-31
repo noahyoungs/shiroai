@@ -124,7 +124,7 @@ export async function generatePDF(req: Request, res: Response) {
       await browser.close();
     }
 
-    const s3Key = `${presentationId}/${sanitizeFileName(
+    const s3Key = `${presentationId}/export/pdf/${sanitizeFileName(
       presentation.topic
     )}.pdf`;
     
