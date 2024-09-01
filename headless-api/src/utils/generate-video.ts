@@ -4,6 +4,10 @@ import { generateJPGs } from "./generate-jpgs";
 import { generateAudio } from "./generate-audio";
 import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
 import { Engine, VoiceId } from "@aws-sdk/client-polly";
+import { fetchAndSortSlides } from "./generate-utils";
+import { sanitizeFileName } from "./sanitize-file-name";
+
+
 import * as fs from "fs";
 import * as path from "path";
 
@@ -22,7 +26,7 @@ const savePayloadForDebugging = process.env.SAVE_PAYLOAD_FOR_DEBUGGING === 'true
 /**
  * Function to generate a video for a presentation.
  *
- * @param presentationId - The ID of the presentation.
+ * @param presentationID - The ID of the presentation.
  * @param s3Subdirectory - The subdirectory within the S3 bucket where input files (JPEGs and audio) are stored (defaults to '').
  * @param outputResolution - The desired resolution of the output video ('1920x1080', '1280x720', etc.).
  * @param theme - The theme for the slides ('light' or 'dark', defaults to 'dark').
@@ -31,27 +35,32 @@ const savePayloadForDebugging = process.env.SAVE_PAYLOAD_FOR_DEBUGGING === 'true
  * @param voiceId - The voice ID to use for Polly (e.g., 'Joanna', 'Matthew').
  */
 export async function generateVideo(
-  presentationId: string,
+  presentationID: string,
   s3Subdirectory: string,
   outputResolution: string,
   theme: string = 'dark',
   footnotes: boolean,
-  engine: string = 'standard',
-  voiceId: string = 'Joanna'
+  voice: "Ruth" | "Gregory" | "Danielle" = 'Danielle'
 ): Promise<{ videoS3Key: string; manifest?: { slide_id: string; image_filename?: string; audio_filename?: string }[] } | Error> {
-  logger.info(`Starting video generation for presentation ID: ${presentationId}`);
+  logger.info(`Starting video generation for presentation ID: ${presentationID}`);
 
   try {
-    // Convert engine and voiceId to the appropriate enums
-    const pollyEngine = engine === 'neural' ? Engine.NEURAL : Engine.STANDARD;
-    const pollyVoiceId = VoiceId[voiceId.toUpperCase() as keyof typeof VoiceId];
+    // Fetch and sort slides for the presentation
+    const {presentation, sortedSlidesArray}  = await fetchAndSortSlides(presentationID);
+
+    // Images zip file name
+    const imagesZipFileName = sanitizeFileName(presentation.topic);
+
+    // // Convert engine and voiceId to the appropriate enums
+    // const pollyEngine = engine === 'neural' ? Engine.NEURAL : Engine.STANDARD;
+    // const pollyVoiceId = VoiceId[voiceId.toUpperCase() as keyof typeof VoiceId];
 
     // Run generateJPGs and generateAudio concurrently using Promise.all
-    logger.info(`Generating JPEG images and audio files concurrently for presentation ID: ${presentationId}`);
+    logger.info(`Generating JPEG images and audio files concurrently for presentation ID: ${presentationID}`);
 
     const [generateJpgsResult, generateAudioResult] = await Promise.all([
-      generateJPGs(presentationId, theme, footnotes, outputResolution, s3Subdirectory),
-      generateAudio(presentationId, s3Subdirectory),
+      generateJPGs(presentationID, theme, footnotes, outputResolution, sortedSlidesArray, imagesZipFileName, s3Subdirectory),
+      generateAudio(presentationID, s3Subdirectory, sortedSlidesArray, voice),
     ]);
 
     // Handle errors if any of the operations failed
@@ -90,6 +99,7 @@ export async function generateVideo(
 
     // Prepare payload for AWS Lambda function with the ZIP file S3 keys
     const lambdaPayload = {
+      presentationID,
       s3Subdirectory,
       imageZipS3Key: generateJpgsResult.s3Key,  // S3 key for the ZIP file containing all slide images
       audioZipS3Key: generateAudioResult.audioS3Key, // S3 key for the ZIP file containing all slide audio
@@ -106,16 +116,21 @@ export async function generateVideo(
       logger.info(`Lambda payload saved for debugging at: ${payloadPath}`);
     }
 
-    // Invoke AWS Lambda function for video stitching synchronously
-    logger.info(`Initiating Lambda function: ${lambdaFunctionName}`);
-    const invokeCommand = new InvokeCommand({
-      FunctionName: lambdaFunctionName,
-      Payload: Buffer.from(JSON.stringify(lambdaPayload)),
-      InvocationType: "RequestResponse", // Synchronous invocation to wait for the response
-    });
+    // // Invoke AWS Lambda function for video stitching synchronously
+    // logger.info(`Initiating Lambda function: ${lambdaFunctionName}`);
+    // const invokeCommand = new InvokeCommand({
+    //   FunctionName: lambdaFunctionName,
+    //   Payload: Buffer.from(JSON.stringify(lambdaPayload)),
+    //   InvocationType: "RequestResponse", // Synchronous invocation to wait for the response
+    // });
 
-    const lambdaResponse = await lambdaClient.send(invokeCommand);
+    // const lambdaResponse = await lambdaClient.send(invokeCommand);
 
+    const lambdaResponse = {
+      StatusCode: 500,
+      Payload: undefined,
+    };
+    
     // Parse Lambda response
     const responsePayload = JSON.parse(new TextDecoder().decode(lambdaResponse.Payload));
     if (lambdaResponse.StatusCode !== 200) {
@@ -145,13 +160,37 @@ export async function generateVideo(
  */
 export async function generateVideoHandler(req: Request, res: Response) {
   const { presentationId } = req.params;
-  const { outputResolution, theme = 'dark', footnotes = false, engine = 'standard', voiceId = 'Joanna' } = req.body;
+  const { resolution, theme = 'dark', footnotes = false, voice = 'Danielle' } = req.body;
+
+  // error if resolution is not '1920x1080' or '1280x720'
+  if (resolution !== '1920x1080' && resolution !== '1280x720') {
+    res.status(400).send('Invalid resolution. Resolution must be "1920x1080" or "1280x720".');
+    return;
+  }
+
+  // error if theme is not 'light' or 'dark'
+  if (theme !== 'light' && theme !== 'dark') {
+    res.status(400).send('Invalid theme. Theme must be "light" or "dark".');
+    return;
+  }
+
+  // error if footnotes is not a boolean
+  if (typeof footnotes !== 'boolean') {
+    res.status(400).send('Invalid footnotes. Footnotes must be a boolean.');
+    return;
+  }
+
+  // error if voice is not 'Ruth', 'Gregory', or 'Danielle'
+  if (voice !== 'Ruth' && voice !== 'Gregory' && voice !== 'Danielle') {
+    res.status(400).send('Invalid voice. Voice must be "Ruth", "Gregory", or "Danielle".');
+    return;
+  }
 
   // Use a fixed S3 subdirectory for storing videos
-  const s3Subdirectory = '/export/mp4';
+  const s3Subdirectory = `/export/mp4`;
 
   try {
-    const result = await generateVideo(presentationId, s3Subdirectory, outputResolution, theme, footnotes, engine, voiceId);
+    const result = await generateVideo(presentationId, s3Subdirectory, resolution, theme, footnotes, voice);
 
     if (result instanceof Error) {
       res.status(500).send(result.message);
