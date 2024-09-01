@@ -108,7 +108,7 @@ export function AddScriptModal({ onGenerate }: AddScriptModalProps) {
                             <span className="text-small text-default-500">
                               <strong>Tone:</strong> {style.tone}
                             </span>
-                            <span className="text-small text-default-500">
+                            <span className="text-small text-default-500 text-wrap">
                               <strong>Language:</strong> {style.language}
                             </span>
                           </>
@@ -135,7 +135,7 @@ export function AddScriptModal({ onGenerate }: AddScriptModalProps) {
                   label="Max Character Length per Slide"
                   step={100}
                   maxValue={2000}
-                  minValue={100}
+                  minValue={200}
                   defaultValue={500}
                   onChangeEnd={(length: number | number[]) => {
                     if (Array.isArray(length))
