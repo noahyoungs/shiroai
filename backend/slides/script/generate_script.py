@@ -45,8 +45,11 @@ def trim_messages(messages: List[Dict[str, str]], min_length: int = 5):
 
 async def yield_scripts_for_presentation(presentation_topic: str, target_audience: str, presentation_goal: str, slides: List[Slide], topics: List[Topic], style_preset: str, custom_style: str = None, max_char_per_slide: int = 588):
     approx_max_words = max_char_per_slide // 4.7
+    approx_max_words_first_slide = max_char_per_slide // 9.4
 
-        
+    class FirstSlideResponse(BaseModel):
+        slide_script: str = Field(..., min_length=1, max_length=max_char_per_slide//2)
+
     class Response(BaseModel):
         slide_script: str = Field(..., min_length=1, max_length=max_char_per_slide)
         
@@ -80,7 +83,7 @@ Heres the content on the first slide:
 {slide_content}
 </slide_content>
 
-Each slide's script must not exceed <max_characters>{max_char_per_slide}</max_characters> characters. That's about {approx_max_words} words per slide.
+The script for the first slide needs to be extra short, usually 1-2 sentences max. That's because theres not much content on the first slide and people could get bored. The hard maximum is <max_characters>{max_char_per_slide//2}</max_characters> characters. That's about {approx_max_words_first_slide} words per slide.
 
 When writing the script for the first slide, follow these guidelines:
 1. Introduce the topic and set the stage for the presentation, paying attention to the target audience and presentation goal.
@@ -88,17 +91,13 @@ When writing the script for the first slide, follow these guidelines:
 
 Your output should be formatted as follows:
 - Respond with a single <slide_script></slide_script> tag, containing the script for the first slide.
-- Ensure the content within the <slide_script></slide_script> tag does not exceed the specified character limit ({max_char_per_slide}).
+- Ensure the content within the <slide_script></slide_script> tag does not exceed the specified character limit ({max_char_per_slide//2}).
 
 Important note: The script must be written in a way that allows the presenter to read it verbatim during the presentation. Do not include cues, annotations, or any text that should not be read aloud. The presenter is a complete airhead and needs to be told exactly what to say. If you include any text that should not be read aloud, like \"[Pause]\" the presenter will read it aloud, and it will be awkward.
 
-Additional tips for effective presentation scripting:
-- Use clear and concise language to convey ideas efficiently.
-- Incorporate rhetorical questions or thought-provoking statements to engage the audience.
-- Balance the amount of information per slide to maintain audience interest.
-- Ensure that the script flows naturally and maintains a coherent narrative throughout the presentation.
 
 Remember, the goal is to create a script that sounds natural when read verbatim and effectively communicates the presentation's key messages to the target audience.
+Also remember to keep the script for the first slide short.
 
 Response Format:
 {generate_variable_input_xml(Response)}
@@ -125,7 +124,7 @@ Here's the content for this slide:
 {slide_content}
 </slide_content>
 
-Remember, each slide's script must not exceed <max_characters>{max_char_per_slide}</max_characters> characters. That's about {approx_max_words} words per slide. If you go over the character limit, you'll need to revise the script.
+This slide's script must not exceed <max_characters>{max_char_per_slide}</max_characters> characters. That's about {approx_max_words} words per slide. If you go over the character limit, you'll need to revise the script.
 
 When writing the script, follow these guidelines:
 1. Begin with a smooth transition from the previous slide.
@@ -144,6 +143,7 @@ Additional tips for effective presentation scripting:
 - Ensure that the script flows naturally and maintains a coherent narrative throughout the presentation.
 
 Remember, the presenter is an airhead and will read aloud every single word in the script. Your goal is to create a script that sounds natural when read verbatim and effectively communicates the presentation's key messages to the target audience.
+Also remember that you need to keep the script under <max_characters>{max_char_per_slide}</max_characters>, or we're going to have you revise it.
 
 Response Format:
 {generate_variable_input_xml(Response)}
