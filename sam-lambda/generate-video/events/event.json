@@ -1,7 +1,8 @@
 {
+  "presentationID": "0191a820-edbd-7686-97c7-826543d56b76",
   "s3Subdirectory": "/export/mp4",
-  "imageZipS3Key": "0191a820-edbd-7686-97c7-826543d56b76//export/mp4slides.zip",
-  "audioZipS3Key": "0191a820-edbd-7686-97c7-826543d56b76//export/mp4audio.zip",
+  "imageZipS3Key": "0191a820-edbd-7686-97c7-826543d56b76/export/mp4/Understanding_Intermittent_Fasting__Benefits_and_R.zip",
+  "audioZipS3Key": "0191a820-edbd-7686-97c7-826543d56b76/export/mp4/audio.zip",
   "outputResolution": "1920x1080",
   "manifest": [
     {

@@ -1,4 +1,4 @@
 boto3
 moviepy
 numpy
-Pillow  # Required by moviepy for image handling
+Pillow
