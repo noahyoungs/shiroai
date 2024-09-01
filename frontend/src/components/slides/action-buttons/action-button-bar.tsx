@@ -11,7 +11,7 @@ import { max } from "lodash";
 import { cn } from "@/utils/cn";
 
 export function ActionButtonBar({
-  presentationId,
+  presentationId: presentationID,
   generateScriptNotes,
   className,
 }: {
@@ -28,8 +28,8 @@ export function ActionButtonBar({
     <div className={cn("flex flex-row gap-4", className)}>
       <AddScriptModal onGenerate={generateScriptNotes.bind(null, "script")} />
       <AddNotesModal onGenerate={generateScriptNotes.bind(null, "notes")} />
-      <GenerateVideoModal />
-      <ExportToPdfModal presentationId={presentationId} />
+      <GenerateVideoModal presentationID={presentationID} />
+      <ExportToPdfModal presentationID={presentationID} />
       <ExportToPptModal />
       <ShareModal />
     </div>
