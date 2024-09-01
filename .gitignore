@@ -59,7 +59,7 @@ headless-api/mermaid_dark.svg
 headless-api/mermaid_light.svg
 
 # Ignore all .key files
-*key.pem
+*.pem
 *.key
 
 # Sam lambda
