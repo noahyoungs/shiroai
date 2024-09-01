@@ -1,3 +1,4 @@
+// headless-api/src/utils/generate-jpgs.tsx
 import { Request, Response } from "express";
 import React from "react";
 import ReactDOMServer from "react-dom/server";
@@ -18,20 +19,37 @@ import {
 /**
  * Function to generate JPGs for a presentation.
  *
- * @param presentationId - The ID of the presentation.
+ * @param presentationID - The ID of the presentation.
  * @param theme - The theme for the slides (dark, light, print).
  * @param footnotes - Whether to include footnotes for the slides.
  * @param resolution - The desired resolution ('1920x1080', '1280x720', '2560x1440', '3840x2160').
+ * @param sortedSlidesArray - An array of sorted slides.
+ * @param zipFileName - The name to use for the zip file (replaces 'slides' in 'slides.zip').
  * @param s3Subdirectory - The subdirectory within the S3 bucket under the presentationId where slides.zip will be stored (defaults to '').
  */
 export async function generateJPGs(
-  presentationId: string,
+  presentationID: string,
   theme: string,
   footnotes: boolean,
   resolution: string,
+  sortedSlidesArray: any[],
+  zipFileName: string,
   s3Subdirectory: string = ''
 ): Promise<{ s3Key: string; manifest: { slide_id: string; image_filename: string }[] } | Error> {
   const themeClass = theme === "print" ? "nobg" : theme === "dark" ? "dark" : "";
+
+  // Ensure s3Subdirectory is in the format '/subdir/' or '/'
+  if (s3Subdirectory === '' || !s3Subdirectory) {
+    s3Subdirectory = '/';
+  } 
+
+  if (s3Subdirectory[0] !== '/') {
+    s3Subdirectory = '/' + s3Subdirectory;
+  }
+
+  if (s3Subdirectory[s3Subdirectory.length - 1] !== '/') {
+    s3Subdirectory = s3Subdirectory + '/';
+  }
 
   if (!["dark", "light", "print"].includes(theme)) {
     const errorMsg = `Invalid theme: ${theme}. Please use 'dark', 'light' or 'print'`;
@@ -53,9 +71,8 @@ export async function generateJPGs(
   logger.info(`Received theme: ${theme}, resolution: ${resolution}, footnotes: ${footnotes}`);
 
   try {
-    logger.info(`Fetching and sorting slides for presentation ID: ${presentationId}`);
-    const { presentation, sortedSlidesArray } = await fetchAndSortSlides(presentationId);
-    const signedUrlSuffix = generateSignedUrlSuffix(presentationId);
+    logger.info(`Generating signed URL suffix for presentation ID: ${presentationID}`);
+    const signedUrlSuffix = generateSignedUrlSuffix(presentationID);
 
     logger.info(`Reading static files for presentation rendering`);
     const { tailwindCssContent, iconifyIconContent, fontCSS } = readStaticFiles();
@@ -70,11 +87,11 @@ export async function generateJPGs(
     });
 
     const jpegBuffers = [];
-    const manifest: { slide_id: string; image_filename: string }[] = []; // Updated manifest to be an array of objects
+    const manifest: { slide_id: string; image_filename: string }[] = [];
 
     for (const [index, slide] of sortedSlidesArray.entries()) {
       try {
-        logger.info(`Rendering slide: ${slide.title || `Slide_${index + 1}`}`);
+        logger.info(`Rendering slide: ${slide.slide_title || `Slide_${index + 1}`}`);
         const slideHtml = ReactDOMServer.renderToString(
           <div
             className="slide text-black dark:text-white bg-neutral-100 dark:bg-neutral-900 nobg:bg-white"
@@ -132,9 +149,11 @@ export async function generateJPGs(
 
         jpegBuffers.push({ buffer: jpegBuffer, slide });
 
-        // Generate filename and update the manifest
-        const slideFileName = sanitizeFileName(slide.slide_title ? `${index + 1} ${slide.slide_title}` : `${index + 1}`) + '.jpg';
-        manifest.push({ slide_id: slide.id, image_filename: slideFileName }); 
+        // Generate consistent filename and update the manifest
+        const sanitizedTitle = sanitizeFileName(slide.slide_title ? `${index + 1} ${slide.slide_title}` : `Slide_${index + 1}`)
+        const slideFileName = `${sanitizedTitle}.jpg`;
+        manifest.push({ slide_id: slide.id, image_filename: slideFileName });
+
       } catch (error: any) {
         logger.warn(`Error rendering slide ${index + 1}, omitted from manifest: ${error.message}\n${error.stack}`);
       }
@@ -145,7 +164,7 @@ export async function generateJPGs(
       await browser.close();
     }
 
-    logger.info(`Creating zip archive for presentation ID: ${presentationId}`);
+    logger.info(`Creating zip archive for presentation ID: ${presentationID}`);
     const zipStream = new streamBuffers.WritableStreamBuffer({
       initialSize: 100 * 1024,
       incrementAmount: 10 * 1024,
@@ -160,26 +179,28 @@ export async function generateJPGs(
     archive.pipe(zipStream);
 
     jpegBuffers.forEach(({ buffer, slide }, index) => {
-      const slideFileName = sanitizeFileName(slide.title || `Slide_${index + 1}`) + '.jpg';
+      const sanitizedTitle = sanitizeFileName(slide.slide_title ? `${index + 1} ${slide.slide_title}` : `Slide_${index + 1}`);
+      const slideFileName = `${sanitizedTitle}.jpg`;
       archive.append(buffer, { name: slideFileName });
     });
 
     await archive.finalize();
 
     const zipBuffer = zipStream.getContents() as Buffer;
-    const zipFileName = `${presentationId}/${s3Subdirectory}slides.zip`;
+    const finalZipFileName = `${presentationID}${s3Subdirectory}${zipFileName}.zip`;
 
-    logger.info(`Uploading zip archive to S3: ${zipFileName}`);
-    await uploadBufferToS3(zipBuffer, zipFileName, 'application/zip');
+    logger.info(`Uploading zip archive to S3: ${finalZipFileName}`);
+    await uploadBufferToS3(zipBuffer, finalZipFileName, 'application/zip');
 
-    logger.info(`Buffer uploaded to S3 successfully: ${zipFileName}`);
-    return { s3Key: zipFileName, manifest }; // Return both s3Key and manifest
+    logger.info(`Buffer uploaded to S3 successfully: ${finalZipFileName}`);
+    return { s3Key: finalZipFileName, manifest }; // Return both s3Key and manifest
 
   } catch (error: any) {
     logger.error(`Failed to generate JPEGs: ${error.message}\n${error.stack}`);
     return new Error(`Failed to generate JPEGs: ${error.message}`);
   }
 }
+
 
 /**
  * Express handler to generate JPGs for a presentation via HTTP request.
@@ -192,7 +213,21 @@ export async function generateJPGsHandler(req: Request, res: Response) {
   const { theme, footnotes, resolution } = req.body;
 
   try {
-    const result = await generateJPGs(presentationId, theme, footnotes, resolution, 'export/jpg/');
+    logger.info(`Fetching and sorting slides for presentation ID: ${presentationId}`);
+    const { presentation, sortedSlidesArray } = await fetchAndSortSlides(presentationId);
+
+    // Generate sanitized zip file name based on presentation topic
+    const zipFileName = sanitizeFileName(presentation.topic);
+
+    const result = await generateJPGs(
+      presentationId,
+      theme,
+      footnotes,
+      resolution,
+      sortedSlidesArray,
+      zipFileName,
+      'export/jpg/'
+    );
 
     if (result instanceof Error) {
       res.status(400).send(result.message);
