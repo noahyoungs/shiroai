@@ -20,7 +20,7 @@ import {
 import { Icon } from "@iconify/react";
 import { exportToPDF } from "@/actions/export-to-pdf";
 
-export function ExportToPdfModal({ presentationId }: { presentationId: string }) {
+export function ExportToPdfModal({ presentationID }: { presentationID: string }) {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [theme, setTheme] = useState<Key>("light");
   const [isExporting, setIsExporting] = useState<boolean>(false);
@@ -32,7 +32,7 @@ export function ExportToPdfModal({ presentationId }: { presentationId: string })
     setError(null); // Reset error state before exporting
 
     try {
-      const result = await exportToPDF(presentationId, theme as 'dark' | 'light' | 'print', false);
+      const result = await exportToPDF(presentationID, theme as 'dark' | 'light' | 'print', false);
 
       if (result.success) {
         setPdfUrl(result.href!);
