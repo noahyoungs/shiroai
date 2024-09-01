@@ -11,6 +11,9 @@ s3_client = boto3.client('s3')
 def lambda_handler(event, context):
     """Lambda function handler for processing a presentation request."""
     try:
+        # Update PATH to include the ffmpeg binary from the Lambda layer
+        os.environ["PATH"] = f"/opt/bin:{os.environ['PATH']}"
+
         # Get the bucket name from environment variables
         bucket_name = os.environ['BUCKET_NAME']
 

@@ -23,19 +23,17 @@ const axiosInstance = axios.create({
 async function testGenerateVideo(presentationId: string) {
   const response = await axiosInstance.post(`/generate-mp4/${presentationId}/mp4`, {
     outputResolution: "1920x1080",
-    theme: "dark",
+    theme: "light",
     footnotes: false,
-    engine: "neural",
-    voiceId: "Joanna"
   });
   return response.data;
 }
 
 describe('Generate Video Tests', () => {
-  jest.setTimeout(5 * 60 * 1000);  // Set timeout for 5 mins
+  jest.setTimeout(15 * 60 * 1000);  // Set timeout for 15 mins
 
   it('should generate a video file (MP4) for the given presentation ID', async () => {
-    const presentationId = '0191984f-980e-7227-900a-7076afc01d46'; // Example presentation ID
+    const presentationId = '0191a820-edbd-7686-97c7-826543d56b76'; // Example presentation ID
     const { videoS3Key } = await testGenerateVideo(presentationId);
     
     // Check that the response contains a valid S3 key for the generated video

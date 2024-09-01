@@ -8,7 +8,7 @@ import { sanitizeFileName } from "./sanitize-file-name";
 import { fetchAndSortSlides } from "./generate-utils";
 
 // Initialize the Polly client
-const pollyClient = new PollyClient({});
+const pollyClient = new PollyClient({region: 'us-east-1'});
 
 // Helper function to delay execution
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -44,8 +44,8 @@ async function exponentialBackoffRetry(fn: () => Promise<any>, retries: number, 
 export async function generateAudio(
     presentationId: string,
     s3Subdirectory: string,
-    engine: Engine = Engine.STANDARD,
-    voiceId: VoiceId = VoiceId.Joanna
+    engine: Engine = Engine.LONG_FORM,
+    voiceId: VoiceId = VoiceId.Danielle
 ): Promise<{ audioS3Key: string; manifest: { slide_id: string; audio_filename: string }[] } | Error> {
     logger.info(`Starting audio generation for presentation ID: ${presentationId}`);
 
@@ -88,7 +88,7 @@ export async function generateAudio(
                 }
             });
 
-            return exponentialBackoffRetry(sendPollyCommand, 5, 100) // 5 retries with base delay of 100ms
+            return exponentialBackoffRetry(sendPollyCommand, 5, 500) // 5 retries with base delay of 500ms
                 .catch(error => {
                     logger.error(`Error generating audio for slide ${slide!.id}: ${error.message}`);
                     return null; // Resolve with null to continue processing other slides

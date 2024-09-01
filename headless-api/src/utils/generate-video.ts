@@ -4,6 +4,8 @@ import { generateJPGs } from "./generate-jpgs";
 import { generateAudio } from "./generate-audio";
 import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
 import { Engine, VoiceId } from "@aws-sdk/client-polly";
+import * as fs from "fs";
+import * as path from "path";
 
 // Configure AWS Lambda client
 const lambdaClient = new LambdaClient({ region: process.env.AWS_REGION });
@@ -13,6 +15,9 @@ const lambdaFunctionName = process.env.EXPORT_MP4_LAMBDA_NAME;
 if (!lambdaFunctionName) {
   throw new Error("EXPORT_MP4_LAMBDA_NAME environment variable is not set.");
 }
+
+// Optional flag to save lambdaPayload for debugging
+const savePayloadForDebugging = process.env.SAVE_PAYLOAD_FOR_DEBUGGING === 'true';
 
 /**
  * Function to generate a video for a presentation.
@@ -46,7 +51,7 @@ export async function generateVideo(
 
     const [generateJpgsResult, generateAudioResult] = await Promise.all([
       generateJPGs(presentationId, theme, footnotes, outputResolution, s3Subdirectory),
-      generateAudio(presentationId, s3Subdirectory, pollyEngine, pollyVoiceId),
+      generateAudio(presentationId, s3Subdirectory),
     ]);
 
     // Handle errors if any of the operations failed
@@ -93,7 +98,13 @@ export async function generateVideo(
     };
 
     logger.info(`Prepared payload for Lambda function`);
-    // logger.info(`Prepared payload for Lambda function: ${JSON.stringify(lambdaPayload)}`);
+
+    // Save lambdaPayload to a JSON file if debugging is enabled
+    if (savePayloadForDebugging) {
+      const payloadPath = path.join(__dirname, 'lambdaPayloadDebug.json');
+      fs.writeFileSync(payloadPath, JSON.stringify(lambdaPayload, null, 2));
+      logger.info(`Lambda payload saved for debugging at: ${payloadPath}`);
+    }
 
     // Invoke AWS Lambda function for video stitching synchronously
     logger.info(`Initiating Lambda function: ${lambdaFunctionName}`);

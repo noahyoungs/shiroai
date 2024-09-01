@@ -7,9 +7,19 @@ Description: >
 
 Globals:
   Function:
-    Timeout: 300
+    Timeout: 900
 
 Resources:
+  FFMpegLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: ffmpeg-layer
+      Description: Layer containing ffmpeg binary
+      ContentUri: layer/ffmpeg
+      CompatibleRuntimes:
+        - python3.10
+      LicenseInfo: "MIT"
+
   GenerateVideoFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -18,7 +28,7 @@ Resources:
       Runtime: python3.10
       Architectures:
         - arm64
-      MemorySize: 3008 
+      MemorySize: 3008
       Environment:
         Variables: 
           BUCKET_NAME: ai-presenter-2-sources-bucket
@@ -31,6 +41,8 @@ Resources:
                 - "s3:PutObject"
               Resource: 
                 - "arn:aws:s3:::ai-presenter-2-sources-bucket/*"
+      Layers:
+        - !Ref FFMpegLayer
 
 Outputs:
   GenerateVideoFunction:

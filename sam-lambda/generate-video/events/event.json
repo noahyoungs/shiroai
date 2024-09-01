@@ -1,3 +1,103 @@
 {
-  "presentation_id": "0191984f-980e-7227-900a-7076afc01d46"
+  "s3Subdirectory": "/export/mp4",
+  "imageZipS3Key": "0191a820-edbd-7686-97c7-826543d56b76//export/mp4slides.zip",
+  "audioZipS3Key": "0191a820-edbd-7686-97c7-826543d56b76//export/mp4audio.zip",
+  "outputResolution": "1920x1080",
+  "manifest": [
+    {
+      "slide_id": "066d2fae-7729-72a3-8000-630fb8fb0e3d",
+      "image_filename": "1_Understanding_Intermittent_Fasting__Benefits_and.jpg",
+      "audio_filename": "Slide_1.mp3"
+    },
+    {
+      "slide_id": "066d2faf-fcb6-73e4-8000-20ab153d0d42",
+      "image_filename": "2_Unlocking_the_Secrets_of_Intermittent_Fasting.jpg",
+      "audio_filename": "Slide_2.mp3"
+    },
+    {
+      "slide_id": "066d2fae-c260-743a-8000-b546467bf388",
+      "image_filename": "3_Intermittent_Fasting_and_Health_Benefits_(Diabet.jpg",
+      "audio_filename": "Slide_3.mp3"
+    },
+    {
+      "slide_id": "066d2fae-53db-7df8-8000-fd302b9767fd",
+      "image_filename": "4_Potential_Health_Benefits_of_Intermittent_Fastin.jpg",
+      "audio_filename": "Slide_4.mp3"
+    },
+    {
+      "slide_id": "066d2fae-4226-730e-8000-60c11a734707",
+      "image_filename": "5_Mechanisms_Behind_the_Health_Benefits_of_Intermi.jpg",
+      "audio_filename": "Slide_5.mp3"
+    },
+    {
+      "slide_id": "066d2fae-48c9-7c2c-8000-cbae9a8dcdd4",
+      "image_filename": "6_Mechanisms_Behind_the_Health_Benefits_of_Inter.).jpg",
+      "audio_filename": "Slide_6.mp3"
+    },
+    {
+      "slide_id": "066d2fae-3b02-783d-8000-a5f11b4b19dd",
+      "image_filename": "7_Comparing_Different_Intermittent_Fasting_Approac.jpg",
+      "audio_filename": "Slide_7.mp3"
+    },
+    {
+      "slide_id": "066d2fae-c763-7875-8000-40ba105dbe19",
+      "image_filename": "8_The_Impact_of_Intermittent_Fasting_on_Metabolic_.jpg",
+      "audio_filename": "Slide_8.mp3"
+    },
+    {
+      "slide_id": "066d2fae-c540-779a-8000-5b08b0e1adcb",
+      "image_filename": "9_Fasting_vs._Postprandial_Insulin_and_Lipid_Levels_in_Intermi._Postprandial_Insulin_and_Lipid_Levels_in_Intermittent_Fasting.jpg",
+      "audio_filename": "Slide_9.mp3"
+    },
+    {
+      "slide_id": "066d2fae-3aa5-7647-8000-43eeea9fe2a7",
+      "image_filename": "10_Fasting_vs._Postprandial_Insulin_and_Lipid_Levels_in_Intermi._Postprandial_Insulin_and_Lipid_Levels_in_Intermittent_Fasting.jpg",
+      "audio_filename": "Slide_10.mp3"
+    },
+    {
+      "slide_id": "066d2fae-3aaa-710e-8000-4716e5dec287",
+      "image_filename": "11_Cardiovascular_Risk_Factors.jpg",
+      "audio_filename": "Slide_11.mp3"
+    },
+    {
+      "slide_id": "066d2fae-bfe2-7cfd-8000-1ff1ef1f3f3b",
+      "image_filename": "12_Hormonal_Changes_and_Benefits_of_Intermittent_F.jpg",
+      "audio_filename": "Slide_12.mp3"
+    },
+    {
+      "slide_id": "066d2fae-32dd-7228-8000-3a171ab1678e",
+      "image_filename": "13_Hormonal_Changes_During_Intermittent_Fasting.jpg",
+      "audio_filename": "Slide_13.mp3"
+    },
+    {
+      "slide_id": "066d2fae-32f1-7d4f-8000-1ca3007d05d1",
+      "image_filename": "14_Insulin_and_HGH__The_Yin_and_Yang_of_Intermitte.jpg",
+      "audio_filename": "Slide_14.mp3"
+    },
+    {
+      "slide_id": "066d2fae-42ef-7fb0-8000-0680785d665c",
+      "image_filename": "15_Insulin_and_HGH__The_Yin_and_Yang_of_Intermit.).jpg",
+      "audio_filename": "Slide_15.mp3"
+    },
+    {
+      "slide_id": "066d2fae-638b-7f7f-8000-65201cce1ed3",
+      "image_filename": "16_Conclusion.jpg",
+      "audio_filename": "Slide_16.mp3"
+    },
+    {
+      "slide_id": "066d2fb0-1d31-7971-8000-ef74b0d5aca4",
+      "image_filename": "17_Key_Takeaways.jpg",
+      "audio_filename": "Slide_17.mp3"
+    },
+    {
+      "slide_id": "066d2fb0-1d32-72d0-8000-f1d45b8586b5",
+      "image_filename": "18_The_Impact_of_Intermittent_Fasting.jpg",
+      "audio_filename": "Slide_18.mp3"
+    },
+    {
+      "slide_id": "066d2fb0-1d32-75c3-8000-025b3cf191b2",
+      "image_filename": "19_Your_Next_Steps.jpg",
+      "audio_filename": "Slide_19.mp3"
+    }
+  ]
 }
