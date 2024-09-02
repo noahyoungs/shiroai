@@ -157,60 +157,6 @@ async def update_presentation(presentation_id, **kwargs):
         return response['Attributes']
 
 
-async def increment_presentation_attribute(presentation_id, attribute_key, increment_value):
-    """
-    Increment a numeric attribute of a presentation in the DynamoDB table.
-    If the attribute doesn't exist, it will be created with the given increment_value.
-
-    Args:
-        presentation_id (str): The ID of the presentation to update.
-        attribute_key (str): The name of the attribute to increment.
-        increment_value (int or float): The value to increment the attribute by.
-
-    Returns:
-        dict: The updated attribute value of the presentation.
-
-    Description:
-        This function increments a specified numeric attribute of a presentation in the DynamoDB table.
-        If the attribute doesn't exist, it will be created with the given increment_value.
-        It uses the DynamoDB UpdateItem API with the ADD action to increment the attribute value.
-        The function returns the updated value of the attribute.
-
-    Raises:
-        botocore.exceptions.ClientError: If an error occurs while updating the item in DynamoDB.
-        ValueError: If the increment_value is not a numeric value.
-
-    Example:
-        updated_attribute = await increment_presentation_attribute(
-            'presentation123',
-            'view_count',
-            1
-        )
-    """
-    if not isinstance(increment_value, (int, float)):
-        raise ValueError("The increment_value must be a numeric value.")
-
-    table_name = await get_table()
-
-    async with get_session().create_client('dynamodb', region_name=AWS_REGION) as client:
-        update_params = {
-            "TableName": table_name,
-            "Key": {
-                'PK': {'S': f'PRESENTATION#{presentation_id}'},
-                'SK': {'S': f'PRESENTATION#{presentation_id}'}
-            },
-            "UpdateExpression": f"SET {attribute_key} = if_not_exists({attribute_key}, :start) + :increment",
-            "ExpressionAttributeValues": {
-                ":start": {'N': '0'},
-                ":increment": {'N': str(increment_value)}
-            },
-            "ReturnValues": "UPDATED_NEW"
-        }
-
-        response = await client.update_item(**update_params)
-
-    return response['Attributes'][attribute_key]
-
 
 async def get_sources(presentation_id, attributes=None):
     table_name = await get_table()
