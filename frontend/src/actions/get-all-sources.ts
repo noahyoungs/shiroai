@@ -1,11 +1,11 @@
 "use server"
 import { getSources, getPresentationByID} from "@/utils/dynamodb";
-import { getServerSession } from 'next-auth';
+import { auth } from "@/auth"
 import { hashEmail } from '@/utils/hash-email';
 
 
 export async function retrieveSources(presentationID: string) {
-  const session = await getServerSession();
+  const session = await auth();
 
   if (!session || !session.user) {
     throw new Error("Unauthorized.");

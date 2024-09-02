@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
+import { auth } from "@/auth"
 import SideBar from "@/components/sidebar-with-gradient-background/sidebar";
 import SidebarList from "@/components/sidebar-with-gradient-background/sidebar-list";
 
@@ -9,7 +9,7 @@ type LayoutProps = {
 };
 
 async function Layout({ children }: LayoutProps) {
-    const session = await getServerSession();
+    const session = await auth();
     if (!session || !session.user) {
         redirect("/api/auth/signin");
         return <div>You must be signed in to view this page.</div>;

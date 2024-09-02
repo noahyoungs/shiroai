@@ -6,7 +6,7 @@ import {
   getSlides as dynamodbGetSlides,
   getAllSlides as dynamodbGetAllSlides,
 } from "@/utils/dynamodb";
-import { getServerSession } from "next-auth";
+import { auth } from "@/auth"
 import { hashEmail } from "@/utils/hash-email";
 import { Slide } from "@/utils/slide-types";
 import { getProseClass } from "@/actions/get-prose-class";
@@ -137,7 +137,7 @@ export async function addProseClassesAndSplitOverheight(
  * @returns A promise that resolves to true if the user is authenticated, or throws an error if the user is unauthorized.
  */
 async function authenticateUser(presentationID: string) {
-  const session = await getServerSession();
+  const session = await auth();
 
   if (!session || !session.user) {
     throw new Error("Unauthorized.");

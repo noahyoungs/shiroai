@@ -1,11 +1,11 @@
 "use server"
 import PresentationListboxWithPagination from "@/components/sidebar-with-gradient-background/presentation-listbox-with-pagination";
 import { getPresentationsByUserID } from "@/utils/dynamodb";
-import { getServerSession } from "next-auth";
+import { auth } from "@/auth"
 import { hashEmail } from '@/utils/hash-email';
 
 export default async function NavbarList() {
-  const session = await getServerSession();
+  const session = await auth();
   if (!session || !session.user || !session.user.email) {
     return <div>You must be signed in to view this page.</div>;
   }

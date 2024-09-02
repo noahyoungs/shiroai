@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import {Providers} from "./providers";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { getServerSession } from "next-auth";
+import { auth } from "@/auth"
 import { AuthProvider } from "@/components/session-provider";
 import { redirect } from "next/navigation";
 import '@mantine/dropzone/styles.css';
@@ -21,7 +21,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
 
-  const session = await getServerSession();
+  const session = await auth();
 
   return (
     <html lang="en" className="">

@@ -1,12 +1,12 @@
 // app/api/getPresentations/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getPresentationsByUserID } from '@/utils/dynamodb';
-import { getServerSession } from 'next-auth';
+import { auth } from "@/auth"
 import { hashEmail } from '@/utils/hash-email';
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession();
+    const session = await auth();
     if (!session || !session.user || !session.user.email) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
@@ -24,32 +24,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
     }
 
-    const presentationsWithHref = response.presentations.map((presentation) => {
-      let href = null;
-      switch (presentation.status) {
-        case "new":
-        case "ideate":
-          href = `/home/create/${presentation.id}/ideate`;
-          break;
-        case "research":
-          href = `/home/create/${presentation.id}/research`;
-          break;
-        case "outline":
-          href = `/home/create/${presentation.id}/outline`;
-          break;
-        case "slides":
-          href = `/home/create/${presentation.id}/slides`;
-          break;
-      }
-
-      return {
-        ...presentation,
-        href,
-      };
-    });
-
     return NextResponse.json({
-      presentations: presentationsWithHref,
+      presentations: response.presentations,
       lastEvaluatedKey: response.lastEvaluatedKey,
     });
   } catch (error) {

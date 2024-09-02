@@ -3,7 +3,7 @@
 import { createPresignedPost } from '@aws-sdk/s3-presigned-post';
 import { S3Client } from '@aws-sdk/client-s3';
 import { getPresentationByID, createSource } from '@/utils/dynamodb';
-import { getServerSession } from 'next-auth';
+import { auth } from "@/auth"
 import { hashEmail } from '@/utils/hash-email';
 
 export async function POST(request: Request) {
@@ -11,7 +11,7 @@ export async function POST(request: Request) {
 
   const extension = filename.split('.').pop();
 
-  const session = await getServerSession();
+  const session = await auth();
 
   if (!session || !session.user) {
     throw new Error("Unauthorized.");

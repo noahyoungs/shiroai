@@ -1,5 +1,5 @@
 "use server"
-import { getServerSession } from "next-auth";
+import { auth } from "@/auth"
 import { hashEmail } from '@/utils/hash-email';
 import { uuidv7 } from "uuidv7";
 import { updatePresentationByID } from "@/utils/dynamodb";
@@ -9,7 +9,7 @@ import { redirect } from 'next/navigation'
 export default async function CreatePresentation() {
   let uuid = uuidv7();
 
-  const session = await getServerSession();
+  const session = await auth();
   console.log(`Session: ${JSON.stringify(session)}`);
 
   if (!session || !session.user || !session.user.name) {

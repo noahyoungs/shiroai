@@ -4,7 +4,7 @@ import { getSignedCookies } from "@aws-sdk/cloudfront-signer";
 import { cookies } from 'next/headers';
 import { type NextRequest } from 'next/server'
 import { getPresentationByID } from '@/utils/dynamodb';
-import { getServerSession } from 'next-auth';
+import { auth } from "@/auth"
 import { hashEmail } from '@/utils/hash-email';
 
 export async function GET(req: NextRequest, { params }: { params: { presentationID: string } }) {
@@ -14,7 +14,7 @@ export async function GET(req: NextRequest, { params }: { params: { presentation
   }
 
   // Authenticate
-  const session = await getServerSession();
+  const session = await auth();
   if (!session || !session.user) {
     return new NextResponse("Not authenticated. Please log in.", { status: 401 });
   }
