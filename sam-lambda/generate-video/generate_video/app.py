@@ -1,3 +1,4 @@
+# sam-lambda/generate-video/generate_video/app.py
 import json
 import boto3
 import tempfile

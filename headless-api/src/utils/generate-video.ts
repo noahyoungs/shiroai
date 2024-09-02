@@ -1,3 +1,4 @@
+// headless-api/src/utils/generate-video.ts
 import { Request, Response } from "express";
 import logger from "./logger";
 import { generateJPGs } from "./generate-jpgs";
@@ -134,7 +135,7 @@ export async function generateVideo(
     // Parse Lambda response
     const responsePayload = JSON.parse(new TextDecoder().decode(lambdaResponse.Payload));
     if (lambdaResponse.StatusCode !== 200) {
-      throw new Error(`Lambda function failed with status code ${lambdaResponse.StatusCode}`);
+      throw new Error(`Lambda function failed with status code ${lambdaResponse.StatusCode}, message: ${responsePayload.message}`);
     }
 
     const videoS3Key = responsePayload.videoS3Key;
