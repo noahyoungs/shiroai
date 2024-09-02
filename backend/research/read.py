@@ -2,7 +2,7 @@
 from s3 import download_file_to_temp, upload_model_to_s3
 from research.read_files import parse_pdf, parse_other
 from research.read_url import parse_url
-from dynamodb import update_source, increment_presentation_attribute
+from dynamodb import update_source
 from research.summarize import summarize_source
 import aiohttp
 import tempfile 
