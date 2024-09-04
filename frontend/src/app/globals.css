@@ -212,4 +212,12 @@ a {
 }
 
 
+a.logout-button {
+  @apply text-foreground/80;
+  text-decoration: none;
+}
+a.logout-button:hover {
+  opacity: 1;
+  @apply text-foreground; 
+}
 
