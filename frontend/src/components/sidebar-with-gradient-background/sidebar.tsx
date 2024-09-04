@@ -75,10 +75,26 @@ export default function Component({
 
       <div className="mt-auto flex flex-col">
         {/* Profile */}
-        <div className="flex items-center gap-3 px-2">
-          <Avatar size="md" src={session?.user?.image || ""} />
+        {/* <div className="flex items-center gap-3 px-2">
+          <Avatar size="md" src={session?.user?.image || ""} className="flex-none"/>
           <div className="flex flex-col">
             <p className="text-small text-foreground">{session?.user?.email}</p>
+          </div>
+        </div> */}
+        <div className="flex items-center gap-3 px-2">
+          <Avatar
+            size="md"
+            src={session?.user?.image || undefined}
+            name={session?.user?.name || undefined}
+            className="flex-none"
+          />
+          <div className="flex flex-col max-w-[80%]">
+            <p className="text-small text-primary-foreground truncate">
+              {session?.user?.name || 'Not logged in'}
+            </p>
+            <p className="text-tiny text-primary-foreground/60 truncate">
+              {session?.user?.email || ""}
+            </p>
           </div>
         </div>
         <Spacer y={3} />
