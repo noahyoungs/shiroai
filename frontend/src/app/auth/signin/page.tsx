@@ -2,6 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { signIn } from 'next-auth/react';
+import { Spinner } from '@nextui-org/react';
 
 const LoginPage = () => {
   useEffect(() => {
@@ -17,7 +18,11 @@ const LoginPage = () => {
     signInUser();
   }, []);
 
-  return <div>Redirecting to Login Page...</div>;
+  return (
+    <div className="flex items-center justify-center h-screen">
+      <Spinner size="lg" color="primary"/>
+    </div>
+  )
 };
 
 export default LoginPage;
