@@ -1,7 +1,6 @@
 "use server"
 import { getSources, getPresentationByID} from "@/utils/dynamodb";
 import { auth } from "@/auth"
-import { hashEmail } from '@/utils/hash-email';
 
 
 export async function retrieveSources(presentationID: string) {
@@ -13,7 +12,7 @@ export async function retrieveSources(presentationID: string) {
 
   const presentation = await getPresentationByID(presentationID, ["user"]);
 
-  if (presentation.user !== hashEmail(session.user.email)) {
+  if (presentation.user !== session.user.id) {
     throw new Error("Unauthorized.");
   }
 

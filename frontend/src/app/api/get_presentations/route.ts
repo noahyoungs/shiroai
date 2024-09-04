@@ -2,19 +2,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPresentationsByUserID } from '@/utils/dynamodb';
 import { auth } from "@/auth"
-import { hashEmail } from '@/utils/hash-email';
 
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
-    if (!session || !session.user || !session.user.email) {
+    if (!session || !session.user || !session.user.id) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
     const { lastEvaluatedKey } = await request.json();
 
     const response = await getPresentationsByUserID(
-      hashEmail(session.user.email),
+      session.user.id,
       ["topic", "status", "time_updated"],
       10,
       lastEvaluatedKey

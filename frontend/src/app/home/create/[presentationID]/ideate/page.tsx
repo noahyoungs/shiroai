@@ -3,13 +3,11 @@
 
 import { Chat } from '@/components/chat/chat';
 import Interface from './interface';
-import { Tabs, Tab, Card, CardBody } from "@nextui-org/react";
 import { useEffect, useState, useCallback } from 'react';
 import { io } from "socket.io-client";
 import { debounce } from 'lodash';
 import { useRouter } from 'next/navigation';
 import ChatConfigureLayout from '@/components/chat-configure-layout';
-import { env } from 'process';
 
 export default function Page({ params }: { params: { presentationID: string } }) {
   const interfaceName = "ideate";

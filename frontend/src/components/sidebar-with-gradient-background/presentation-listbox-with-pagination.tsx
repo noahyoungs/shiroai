@@ -16,7 +16,7 @@ interface PresentationsResponse {
   lastEvaluatedKey: any;
 }
 
-const PresentationListboxWithPagination = ({ initialPresentations, initialLastEvaluatedKey }) => {
+const PresentationListboxWithPagination = ({ initialPresentations, initialLastEvaluatedKey }: {initialPresentations: Presentation[], initialLastEvaluatedKey: any}) => {
     const [presentations, setPresentations] = useState<Presentation[]>(initialPresentations);
     const [lastEvaluatedKey, setLastEvaluatedKey] = useState(initialLastEvaluatedKey);
     const [loading, setLoading] = useState(false);

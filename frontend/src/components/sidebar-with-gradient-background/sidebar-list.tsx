@@ -2,15 +2,14 @@
 import PresentationListboxWithPagination from "@/components/sidebar-with-gradient-background/presentation-listbox-with-pagination";
 import { getPresentationsByUserID } from "@/utils/dynamodb";
 import { auth } from "@/auth"
-import { hashEmail } from '@/utils/hash-email';
 
 export default async function NavbarList() {
   const session = await auth();
-  if (!session || !session.user || !session.user.email) {
+  if (!session || !session.user || !session.user.id) {
     return <div>You must be signed in to view this page.</div>;
   }
 
-  const initialResponse = await getPresentationsByUserID(hashEmail(session.user.email), ["topic", "status", "time_updated"], 10);
+  const initialResponse = await getPresentationsByUserID(session.user.id, ["topic", "status", "time_updated"], 10);
 
   const sortedPresentations = initialResponse.presentations?.sort((a, b) => {
     if (isNaN(a.time_updated) || isNaN(b.time_updated)) {

@@ -5,7 +5,6 @@ import { cookies } from 'next/headers';
 import { type NextRequest } from 'next/server'
 import { getPresentationByID } from '@/utils/dynamodb';
 import { auth } from "@/auth"
-import { hashEmail } from '@/utils/hash-email';
 
 export async function GET(req: NextRequest, { params }: { params: { presentationID: string } }) {
 
@@ -25,7 +24,7 @@ export async function GET(req: NextRequest, { params }: { params: { presentation
     return new NextResponse("Presentation not found", { status: 404 });
   }
 
-  if (presentation.user !== hashEmail(session.user.email)) {
+  if (presentation.user !== session.user.id) {
     return new NextResponse("You are not authorized to access this presentation", { status: 403 });
   }
 

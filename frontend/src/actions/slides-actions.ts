@@ -7,10 +7,8 @@ import {
   getAllSlides as dynamodbGetAllSlides,
 } from "@/utils/dynamodb";
 import { auth } from "@/auth"
-import { hashEmail } from "@/utils/hash-email";
 import { Slide } from "@/utils/slide-types";
 import { getProseClass } from "@/actions/get-prose-class";
-import { cleanMarkdown } from "@/actions/clean-editor-md";
 import { splitMarkdown } from "@/actions/split-markdown";
 import { uuidv7 } from "uuidv7";
 
@@ -145,7 +143,7 @@ async function authenticateUser(presentationID: string) {
 
   const presentation = await getPresentationByID(presentationID, ["user"]);
 
-  if (presentation.user !== hashEmail(session.user.email)) {
+  if (presentation.user !== session.user.id) {
     throw new Error("Unauthorized.");
   }
 

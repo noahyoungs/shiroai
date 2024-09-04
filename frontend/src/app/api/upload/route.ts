@@ -4,7 +4,6 @@ import { createPresignedPost } from '@aws-sdk/s3-presigned-post';
 import { S3Client } from '@aws-sdk/client-s3';
 import { getPresentationByID, createSource } from '@/utils/dynamodb';
 import { auth } from "@/auth"
-import { hashEmail } from '@/utils/hash-email';
 
 export async function POST(request: Request) {
   const { filename, contentType, presentationID } = await request.json();
@@ -19,7 +18,7 @@ export async function POST(request: Request) {
 
   const presentation = await getPresentationByID(presentationID, ["user"]);
 
-  if (presentation.user !== hashEmail(session.user.email)) {
+  if (presentation.user !== session.user.id) {
     throw new Error("Unauthorized.");
   }
 

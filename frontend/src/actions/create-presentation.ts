@@ -1,6 +1,5 @@
 "use server"
 import { auth } from "@/auth"
-import { hashEmail } from '@/utils/hash-email';
 import { uuidv7 } from "uuidv7";
 import { updatePresentationByID } from "@/utils/dynamodb";
 import { revalidatePath } from 'next/cache';
@@ -17,7 +16,7 @@ export default async function CreatePresentation() {
   }
 
   const presentation = {
-    user: hashEmail(session.user.email),
+    user: session.user.id,
     status: "new",
     updated_time: Math.floor(Date.now() / 1000) // Add Unix timestamp
   };
