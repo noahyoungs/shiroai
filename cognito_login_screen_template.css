@@ -1,0 +1,143 @@
+
+.logo-customizable {
+  width: 100px;
+  height: 100px;
+}
+
+.banner-customizable {
+  padding: 0px 20px 20px 0px;
+  background-color: #18181B;
+}
+
+.label-customizable {
+  margin-top: 10px;
+  margin-bottom: 5px;
+  margin-left: 10px;
+  margin-right: 10px;
+  font-weight: 400;
+  color: #ECEDEE;
+  line-height: 1.5rem;
+}
+
+.textDescription-customizable {
+  padding-top: 10px;
+  padding-bottom: 10px;
+  margin-left: 10px;
+  margin-right: 10px;
+  display: block;
+  font-size: 16px;
+  color: #ECEDEE;
+}
+
+.idpDescription-customizable {
+  padding-top: 10px;
+  padding-bottom: 10px;
+  margin-left: 10px;
+  margin-right: 10px;
+  display: block;
+  font-size: 16px;
+  color: #ECEDEE;
+}
+
+.legalText-customizable {
+  margin-left: 10px;
+  margin-right: 10px;
+  color: #A1A1A9;
+  font-size: 11px;
+}
+
+.submitButton-customizable {
+  margin-left: 10px;
+  margin-right: 10px;
+  font-size: 14px;
+  height: 40px;
+  width: 100%;
+  color: #fff;
+  background-color: #2F6DE6;
+  border-radius: 12px;
+}
+
+.submitButton-customizable:hover {
+  color: #fff;
+  background-color: #2D64D2;
+}
+
+.errorMessage-customizable {
+  margin-left: 10px;
+  margin-right: 10px;
+  padding: 5px;
+  font-size: 14px;
+  width: 100%;
+  background: #F5F5F5;
+  border: 2px solid #F54180;
+  color: #F54180;
+}
+
+.inputField-customizable {
+  margin-left: 10px;
+  margin-right: 20px;
+  margin-bottom: 5px;
+  width: 100%;
+  height: 40px;
+  color: #fff;
+  background-color: #18181B;
+  border: 1px solid #3F3F45;
+  border-radius: 12px;
+  line-height: 1.5rem;
+}
+
+.inputField-customizable:focus {
+  border: 1px solid #fff;
+  outline: 0;
+}
+
+.idpButton-customizable {
+  margin-left: 10px;
+  margin-right: 10px;
+  height: 40px;
+  width: 100%;
+  width: 100%;
+  text-align: center;
+  margin-bottom: 15px;
+  color: #fff;
+  background-color: #2F6DE6;
+  border-color: #46b8da;
+}
+
+.idpButton-customizable:hover {
+  color: #fff;
+  background-color: #2D64D2;
+}
+
+.socialButton-customizable {
+  margin-left: 10px;
+  margin-right: 10px;
+  border-radius: 12px;
+  height: 40px;
+  margin-bottom: 15px;
+  padding: 1px;
+  padding-left: 5px;
+  text-align: left;
+  width: 90%;
+}
+
+.redirect-customizable {
+  margin-left: 10px;
+  margin-right: 10px;
+  color: #A1A1A9;
+  text-align: center;
+}
+
+
+.passwordCheck-notValid-customizable {
+  color: #f31260;
+}
+
+.passwordCheck-valid-customizable {
+  color: #17c964;
+}
+
+.background-customizable {
+  background-color: #18181B;
+  border-radius: 16px;
+  }
