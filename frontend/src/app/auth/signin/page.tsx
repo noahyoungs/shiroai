@@ -20,7 +20,7 @@ const LoginPage = () => {
 
   return (
     <div className="flex items-center justify-center h-screen">
-      <Spinner size="lg" color="primary"/>
+      <Spinner size="lg" color="primary" label="Redirecting to sign in page..."/>
     </div>
   )
 };

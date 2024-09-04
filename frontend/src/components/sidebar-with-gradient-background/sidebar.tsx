@@ -1,13 +1,13 @@
 "use client";
 
 import React from "react";
-import { Avatar, Button, ScrollShadow, Spacer, Input, useDisclosure } from "@nextui-org/react";
+import { Avatar, Link, Button, ScrollShadow, Spacer, Input, useDisclosure } from "@nextui-org/react";
 import CreatePresentation from "@/actions/create-presentation";
 
 import { Icon } from "@iconify/react";
 import { AcmeLogo } from "./acme";
 import SidebarDrawer from "./sidebar-drawer";
-import { signOut, useSession } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import ThemeSwitch from "../theme-switch";
 import { cn } from "@/utils/cn";
 
@@ -76,7 +76,7 @@ export default function Component({
       <div className="mt-auto flex flex-col">
         {/* Profile */}
         <div className="flex items-center gap-3 px-2">
-          <Avatar size="sm" src={session?.user?.image || ""} />
+          <Avatar size="md" src={session?.user?.image || ""} />
           <div className="flex flex-col">
             <p className="text-small text-foreground">{session?.user?.email}</p>
           </div>
@@ -93,7 +93,9 @@ export default function Component({
           Help & Information
         </Button>
         <Button
-          className="justify-start text-foreground/80 data-[hover=true]:text-foreground"
+          href={`https://auth.meetshiro.com/logout?client_id=${encodeURIComponent(process.env.NEXT_PUBLIC_COGNITO_ID)}&logout_uri=${encodeURIComponent(`${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/signout`)}`}
+          as={Link}
+          className="justify-start logout-button"
           startContent={
             <Icon
               className="text-foreground -translate-x-0.5"
@@ -102,7 +104,6 @@ export default function Component({
             />
           }
           variant="light"
-          onClick={() => signOut()}
         >
           Log Out
         </Button>
