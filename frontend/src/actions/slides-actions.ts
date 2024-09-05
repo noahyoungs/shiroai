@@ -6,7 +6,6 @@ import {
   getSlides as dynamodbGetSlides,
   getAllSlides as dynamodbGetAllSlides,
 } from "@/utils/dynamodb";
-import { auth } from "@/auth"
 import { Slide } from "@/utils/slide-types";
 import { getProseClass } from "@/actions/get-prose-class";
 import { splitMarkdown } from "@/actions/split-markdown";
@@ -129,26 +128,6 @@ export async function addProseClassesAndSplitOverheight(
   return [slide];
 }
 
-/**
- * Authenticates the user based on the presentation ID.
- * @param presentationID - The ID of the presentation.
- * @returns A promise that resolves to true if the user is authenticated, or throws an error if the user is unauthorized.
- */
-async function authenticateUser(presentationID: string) {
-  const session = await auth();
-
-  if (!session || !session.user) {
-    throw new Error("Unauthorized.");
-  }
-
-  const presentation = await getPresentationByID(presentationID, ["user"]);
-
-  if (presentation.user !== session.user.id) {
-    throw new Error("Unauthorized.");
-  }
-
-  return true;
-}
 
 /**
  * Retrieves the sources for a presentation.
@@ -156,11 +135,6 @@ async function authenticateUser(presentationID: string) {
  * @returns A promise that resolves to an array of sources, or throws an error if the sources cannot be retrieved.
  */
 export async function getSources(presentationID: string) {
-  let auth = await authenticateUser(presentationID);
-
-  if (!auth) {
-    throw new Error("Unauthorized.");
-  }
 
   try {
     const sources = await dynamodbGetSources(presentationID);
@@ -179,11 +153,6 @@ export async function getSources(presentationID: string) {
  * @throws Error if there is a failure in retrieving the slides.
  */
 export async function getAllSlides(presentationID: string) {
-  let auth = await authenticateUser(presentationID);
-
-  if (!auth) {
-    throw new Error("Unauthorized.");
-  }
 
   let slides: Slide[];
 
@@ -206,11 +175,6 @@ export async function getSlides(
   presentationID: string,
   slideIDs: string | string[]
 ): Promise<Slide | Slide[]> {
-  let auth = await authenticateUser(presentationID);
-
-  if (!auth) {
-    throw new Error("Unauthorized.");
-  }
 
   let slides: Slide | Slide[] | null;
 
@@ -320,11 +284,6 @@ export async function updateSlides(
   presentationID: string,
   slides: Partial<Slide> | Partial<Slide>[]
 ) {
-  let auth = await authenticateUser(presentationID);
-
-  if (!auth) {
-    throw new Error("Unauthorized.");
-  }
 
   let success = await dynamodbUpdateSlides(presentationID, slides);
 
@@ -332,12 +291,6 @@ export async function updateSlides(
 }
 
 export async function getHeadSlideID(presentationID: string) {
-  let auth = await authenticateUser(presentationID);
-
-  if (!auth) {
-    throw new Error("Unauthorized.");
-  }
-
   const { head_slide_id: headSlideID } = await getPresentationByID(presentationID, [
     "head_slide_id",
   ]);

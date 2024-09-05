@@ -3,7 +3,7 @@ import PresentationListboxWithPagination from "@/components/sidebar-with-gradien
 import { getPresentationsByUserID } from "@/utils/dynamodb";
 import { auth } from "@/auth"
 
-export default async function NavbarList() {
+export default async function SidebarList() {
   const session = await auth();
   if (!session || !session.user || !session.user.id) {
     return <div>You must be signed in to view this page.</div>;
@@ -18,33 +18,9 @@ export default async function NavbarList() {
     return b.time_updated - a.time_updated;
   });
 
-  const presentationsWithHref = sortedPresentations?.map((presentation) => {
-    let href = null;
-    switch (presentation.status) {
-      case "new":
-      case "ideate":
-        href = `/home/create/${presentation.id}/ideate`;
-        break;
-      case "research":
-        href = `/home/create/${presentation.id}/research`;
-        break;
-      case "outline":
-        href = `/home/create/${presentation.id}/outline`;
-        break;
-      case "slides":
-        href = `/home/create/${presentation.id}/slides`;
-        break;
-    }
-
-    return {
-      ...presentation,
-      href,
-    };
-  });
-
   return (
     <PresentationListboxWithPagination
-      initialPresentations={presentationsWithHref}
+      initialPresentations={sortedPresentations}
       initialLastEvaluatedKey={initialResponse.lastEvaluatedKey}
     />
   );
