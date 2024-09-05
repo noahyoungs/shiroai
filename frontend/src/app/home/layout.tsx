@@ -18,7 +18,7 @@ async function Layout({ children }: LayoutProps) {
     return (
         <section style={{ height: '100vh' }}>
             <SideBar
-                nav={<SidebarList />}
+                list={<SidebarList />}
             >
                 {children}
             </SideBar>

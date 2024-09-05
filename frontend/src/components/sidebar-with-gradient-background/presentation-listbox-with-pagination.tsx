@@ -12,7 +12,7 @@ interface Presentation {
 }
 
 interface PresentationsResponse {
-  presentations: Presentation[];
+  presentations: Presentation[] | undefined;
   lastEvaluatedKey: any;
 }
 

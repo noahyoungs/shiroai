@@ -14,11 +14,11 @@ import { cn } from "@/utils/cn";
 
 export default function Component({
   children,
-  nav,
+  list,
   title = "Overview",
 }: {
   children?: React.ReactNode;
-  nav?: React.ReactNode;
+  list?: React.ReactNode;
   title?: string;
 }) {
   const { isOpen, onOpen, onClose, onOpenChange } = useDisclosure();
@@ -68,19 +68,13 @@ export default function Component({
       <ScrollShadow
         className="-mr-6 h-full max-h-full py-3 pr-6"
       >
-        {nav}
+        {list}
       </ScrollShadow>
 
       <Spacer y={8} />
 
       <div className="mt-auto flex flex-col">
         {/* Profile */}
-        {/* <div className="flex items-center gap-3 px-2">
-          <Avatar size="md" src={session?.user?.image || ""} className="flex-none"/>
-          <div className="flex flex-col">
-            <p className="text-small text-foreground">{session?.user?.email}</p>
-          </div>
-        </div> */}
         <div className="flex items-center gap-3 px-2">
           <Avatar
             size="md"
