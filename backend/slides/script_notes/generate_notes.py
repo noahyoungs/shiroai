@@ -1,5 +1,5 @@
 from slides.xml_instructor import get_basemodel_instance_from_llm
-from slides.slide_models import Slide
+from backend.database_models import Slide
 from slides.slide_to_xml import slide_content_to_xml
 from math import floor
 from pydantic import BaseModel, Field

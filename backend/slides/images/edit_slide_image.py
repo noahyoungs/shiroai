@@ -7,7 +7,7 @@ from pydantic_async_validation import AsyncValidationModelMixin, async_field_val
 from slides.xml_instructor import create_dynamic_enum_validator, generate_variable_input_xml, get_basemodel_instance_from_llm, generate_xml_from_instance
 from portkey_ai import AsyncPortkey
 from dotenv import load_dotenv
-from slides.slide_models import Image as ImageType, Slide
+from database_models import Image as ImageType, Slide
 from slides.images.generate_image import openai_style_presets, stability_style_presets, generate_image_stable_core, generate_image_dalle, generate_image_sdxl, upload_image, default_negative_prompt
 
 # initialize LLM

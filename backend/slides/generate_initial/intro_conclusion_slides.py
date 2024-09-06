@@ -3,10 +3,10 @@ from slides.xml_instructor import generate_variable_input_xml, get_basemodel_ins
 from pydantic import BaseModel, Field
 from typing import List, Literal
 from portkey_ai import AsyncPortkey
-from slides.slide_models import MarkdownSlide
+from database_models import MarkdownSlide
 from uuid_extensions import uuid7str
 from slides.clean_markdown import clean_markdown
-from slides.slide_models import Slide
+from database_models import Slide
 from slides.generate_initial.utils import get_presentation_xml
 from slides.slide_to_xml import slides_to_xml
 

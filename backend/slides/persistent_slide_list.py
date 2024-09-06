@@ -1,7 +1,7 @@
 from typing import Dict, List, Optional, Union, Callable
 import asyncio
 from dynamodb import get_presentation as get_presentation_action, get_all_slides as get_all_slides_action, get_slides as get_slides_action, update_slides as update_slides_action
-from slides.slide_models import Slide as SlideModel
+from database_models import Slide as SlideModel
 
 async def _get_head_slide_id_action(presentation_id: str) -> str:
     """

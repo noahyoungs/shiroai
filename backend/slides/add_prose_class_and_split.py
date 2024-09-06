@@ -4,7 +4,7 @@ import os
 import aiohttp
 import ssl
 import asyncio
-from slides.slide_models import *
+from database_models import *
 from uuid_extensions import uuid7str
 
 HEADLESS_API_PATH = os.getenv('HEADLESS_API_PATH')

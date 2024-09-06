@@ -3,7 +3,7 @@ import json
 import asyncio
 from portkey_ai import AsyncPortkey
 from slides.reduce_topic_research import reduce_docs
-from slides.slide_models import *
+from database_models import *
 from slides.persistent_slide_list import PersistentSlideList
 import traceback
 from slides.add_prose_class_and_split import process_slide

@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field
-from typing import List, Literal, Dict, Optional, Union, Any
+from pydantic import BaseModel, create_model, Field, ConfigDict
+from typing import List, Literal, Dict, Optional, Union, Any, get_type_hints
 import random
 from uuid_extensions import uuid7str
 
@@ -9,7 +9,54 @@ def random_layout():
 def random_image_position():
     return random.choice(['left', 'right'])
 
-class Excerpt(BaseModel):
+class Partialable(BaseModel):
+    """
+    A base class to create a partial model where all fields are optional.
+
+    This class provides a `partial()` class method that generates a new model
+    where all fields are optional. This is useful when you want to create a 
+    model that can be instantiated with a subset of fields, without requiring 
+    all fields to be provided.
+
+    **Important Note:**
+    - When using the `partial()` method to create a partial model, default values
+      defined in the original model are not applied. Instead, fields that are not 
+      provided will be set to `None`. This differs from the behavior of the 
+      original models where fields with default values are automatically populated.
+    
+    **Usage Example:**
+
+    ```python
+    class ExampleModel(Partialable):
+        name: str
+        age: Optional[int] = 30
+
+    PartialExampleModel = ExampleModel.partial()
+    
+    # Create an instance of the partial model with only the `name` field
+    instance = PartialExampleModel(name="Noah")
+
+    # Output:
+    # instance.name == "Noah"
+    # instance.age is None
+    ```
+
+    In this example, `PartialExampleModel` allows creating instances with only
+    a subset of fields. The `age` field, even though it has a default value in
+    the original model, is `None` in the partial instance because the partial model
+    does not use default values from the original model.
+    """
+
+    @classmethod
+    def partial(cls):
+        # Dynamically create a model with all fields set to Optional
+        fields = {
+            field: (Optional[typ], None) if not isinstance(typ, type(Optional)) else (typ, None)
+            for field, typ in get_type_hints(cls).items()
+        }
+        return create_model(f'Partial{cls.__name__}', **fields)
+
+class Excerpt(Partialable):
     source_id: str
     excerpt_id: str
     text: str
@@ -17,7 +64,7 @@ class Excerpt(BaseModel):
     def __repr__(self):
         return f"Excerpt(source_id={self.source_id}, excerpt_id={self.excerpt_id}, text={self.text})"
 
-class Image(BaseModel):
+class Image(Partialable):
     s3_key: Optional[str] = None
     url: Optional[str] = None
     prompt: Optional[str] = None
@@ -34,7 +81,7 @@ class Image(BaseModel):
                 f"negative_prompt={self.negative_prompt}, style={self.style}, model={self.model}, "
                 f"width={self.width}, height={self.height}, shape={self.shape}, type={self.type})")
 
-class IconData(BaseModel):
+class IconData(Partialable):
     name: str
     source: str
     detailed_name: Optional[str] = None
@@ -42,14 +89,14 @@ class IconData(BaseModel):
     def __repr__(self):
         return f"IconData(name={self.name}, source={self.source}, detailed_name={self.detailed_name})"
 
-class LLMMessage(BaseModel):
+class LLMMessage(Partialable):
     role: str
     content: str
 
     def __repr__(self):
         return f"LLMMessage(role={self.role}, content={self.content})"
-            
-class BaseSlide(BaseModel):
+
+class BaseSlide(Partialable):
     slide_title: str
     topic_id: Optional[str] = None
     id: str
@@ -66,7 +113,7 @@ class BaseSlide(BaseModel):
                 f"hidden={self.hidden}, previous={self.previous}, next={self.next}, "
                 f"generation_messages={self.generation_messages}, extra={self.extra})")
 
-class ShortBulletContent(BaseModel):
+class ShortBulletContent(Partialable):
     content: str
     source_excerpt_id: Optional[str] = None
     excerpt: Optional[Excerpt] = None
@@ -118,15 +165,13 @@ class PresentationTitleSlide(BaseSlide):
         return (f"PresentationTitleSlide(slide_type={self.slide_type}, slide_title={self.slide_title}, "
                 f"image={self.image})")
     
-class Topic(BaseModel):
+class Topic(Partialable):
     id: str = Field(default_factory=uuid7str)
     title: Optional[str] = None
     reduced_docs: Optional[Any] = None
-    
     additional_attributes: Dict[str, Any] = Field(default_factory=dict)
 
-    class Config:
-        extra = 'allow'
+    model_config = ConfigDict(extra="allow")
 
     def __repr__(self):
         return (f"Topic(id={self.id}, title={self.title}, reduced_docs={self.reduced_docs}, "

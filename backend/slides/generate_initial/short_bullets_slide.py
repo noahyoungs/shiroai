@@ -4,7 +4,7 @@ from slides.generate_initial.utils import get_id_from_suffix, get_research_xml
 from slides.xml_instructor import generate_variable_input_xml, get_basemodel_instance_from_llm, create_dynamic_enum_validator
 from slides.icons.icon_similarity_search import hybrid_icon_assignment
 from uuid_extensions import uuid7str
-from slides.slide_models import ShortBulletsSlide
+from database_models import ShortBulletsSlide
 from portkey_ai import AsyncPortkey
 
 bedrock_client = AsyncPortkey(

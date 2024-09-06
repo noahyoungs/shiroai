@@ -1,5 +1,5 @@
 from uuid_extensions import uuid7str
-from slides.slide_models import SectionHeaderSlide
+from database_models import SectionHeaderSlide
 from slides.images.generate_image import generate_and_upload_image
 
 async def get_section_header_slide(presentation_id, presentation_topic, presentation_audience, presentation_goal, subtopic_name):

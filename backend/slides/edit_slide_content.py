@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from slides.mermaid.validate_mermaid import validate_mermaid_diagram
 from dynamodb import get_slides, update_slides, get_topics
 from slides.icons.icon_similarity_search import hybrid_icon_assignment
-from slides.slide_models import Slide, Excerpt, ShortBulletContent, IconData
+from database_models import Slide, Excerpt, ShortBulletContent, IconData
 from uuid_extensions import uuid7str
 
 load_dotenv()

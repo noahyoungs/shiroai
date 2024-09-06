@@ -3,7 +3,7 @@ from typing import List
 from slides.generate_initial.utils import get_id_from_suffix, get_research_xml
 from slides.xml_instructor import generate_variable_input_xml, get_basemodel_instance_from_llm, create_dynamic_enum_validator
 from uuid_extensions import uuid7str
-from slides.slide_models import MarkdownSlide
+from database_models import MarkdownSlide
 from slides.clean_markdown import clean_markdown
 from portkey_ai import AsyncPortkey
 

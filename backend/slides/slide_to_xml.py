@@ -1,4 +1,4 @@
-from slides.slide_models import Slide, Topic
+from database_models import Slide, Topic
 from typing import List
 
 slide_type_descriptions = {

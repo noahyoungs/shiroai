@@ -1,9 +1,18 @@
-// frontend/src/utils/slide-types.ts
-export type Slide = ShortBulletsSlide | MarkdownSlide | SimpleMermaidSlide | SectionHeaderSlide | PresentationTitleSlide;
+// frontend/src/utils/db-types.ts
+
+export type Slide = 
+  | ShortBulletsSlide 
+  | MarkdownSlide 
+  | SimpleMermaidSlide 
+  | SectionHeaderSlide 
+  | PresentationTitleSlide;
 
 export interface BaseSlide {
+  user_id: string;
+  presentation_id: string;
+  slide_id: string;
+  topic_id?: string;
   slide_title: string;
-  topic_id: string;
   id: string;
   hidden?: boolean;
   previous?: string;
@@ -89,4 +98,51 @@ export interface PresentationTitleSlide extends BaseSlide {
 export interface LLMMessage {
   role: string;
   content: string;
+}
+
+// New types added
+
+export interface Topic {
+  user_id: string;
+  presentation_id: string;
+  topic_id: string;
+  title?: string;
+  reduced_docs?: any;
+  [key: string]: any;
+}
+
+export interface Source {
+  user_id: string;
+  presentation_id: string;
+  source_id: string;
+  name?: string;
+  char_count?: number;
+  s3_filepath?: string;
+  summary?: string;
+  time_updated?: number;
+  type?: string;
+  url?: string;
+  web_source?: any;
+  whole_document_path?: string;
+  [key: string]: any;
+}
+
+export interface Presentation {
+  user_id: string;
+  presentation_id: string;
+  audience?: string;
+  candidate_topics?: any;
+  current_slide_id?: string;
+  goal?: string;
+  head_slide_id?: string;
+  interface_data?: any;
+  memory?: any;
+  messages?: any;
+  outline?: any;
+  slide_generation_status?: string;
+  status?: string;
+  time_updated?: number;
+  topic?: string;
+  topic_extraction_status?: string;
+  [key: string]: any;
 }

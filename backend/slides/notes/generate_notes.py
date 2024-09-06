@@ -1,5 +1,5 @@
 from slides.xml_instructor import get_basemodel_instance_from_llm, generate_variable_input_xml
-from slides.slide_models import Slide, Topic
+from database_models import Slide, Topic
 from slides.slide_to_xml import slide_content_to_xml
 from slides.script.script_styles import generate_xml_for_style
 from pydantic import BaseModel, Field
@@ -7,7 +7,7 @@ from math import floor
 from portkey_ai import AsyncPortkey
 from typing import List
 from slides.persistent_slide_list import PersistentSlideList
-from slides.slide_models import Slide, Topic
+from database_models import Slide, Topic
 from typing import List
 from dynamodb import get_all_topics, get_presentation
 import traceback

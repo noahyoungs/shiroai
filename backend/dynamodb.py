@@ -6,7 +6,7 @@ import json
 from typing import List, Dict, Any, Union
 import asyncio
 from uuid_extensions import uuid7str
-from slides.slide_models import *
+from database_models import *
 
 load_dotenv()
 

@@ -1,4 +1,4 @@
-import { Slide } from "./slide-types";
+import { Slide } from "./db-types";
 import {
   getHeadSlideID as getHeadSlideIDAction,
   getSlides as getSlidesAction,

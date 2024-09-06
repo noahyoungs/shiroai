@@ -10,7 +10,7 @@ from dynamodb import get_presentation
 from slides.edit_slide_content import edit_slide_content
 from slides.images.edit_slide_image import edit_slide_image
 import json
-from slides.slide_models import Slide
+from database_models import Slide
 from slides.persistent_slide_list import PersistentSlideList
 import copy
 import traceback

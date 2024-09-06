@@ -15,7 +15,6 @@ fastapi-socketio = "^0.0.10"
 hkdf = "^0.0.3"
 python-jose = "^3.3.0"
 python-dotenv = "^1.0.1"
-aiobotocore = "^2.13.3"
 uuid7 = "^0.1.0"
 openai-multi-tool-use-parallel-patch = "^0.2.0"
 portkey-ai = "^1.8.3"
@@ -35,5 +34,11 @@ bertopic = "^0.16.3"
 inflection = "^0.5.1"
 pydantic-async-validation = "^0.2.0"
 cryptography = "^43.0.1"
+aiobotocore = "2.14.0"
+botocore = "1.35.7"
+boto3 = "1.35.7"
 
 [tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.2"
+
