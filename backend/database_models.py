@@ -1,3 +1,5 @@
+# backend/database_models.py
+
 from pydantic import BaseModel, create_model, Field, ConfigDict
 from typing import List, Literal, Dict, Optional, Union, Any, get_type_hints
 import random
@@ -97,9 +99,12 @@ class LLMMessage(Partialable):
         return f"LLMMessage(role={self.role}, content={self.content})"
 
 class BaseSlide(Partialable):
-    slide_title: str
+    user_id: str
+    presentation_id: str
+    slide_id: str
     topic_id: Optional[str] = None
-    id: str
+    slide_title: str
+    presentation_id: str
     hidden: Optional[bool] = False
     previous: Optional[str] = None
     next: Optional[str] = None
@@ -118,7 +123,6 @@ class ShortBulletContent(Partialable):
     source_excerpt_id: Optional[str] = None
     excerpt: Optional[Excerpt] = None
     icon: IconData
-    id: str
 
     def __repr__(self):
         return (f"ShortBulletContent(content={self.content}, source_excerpt_id={self.source_excerpt_id}, "
@@ -166,7 +170,9 @@ class PresentationTitleSlide(BaseSlide):
                 f"image={self.image})")
     
 class Topic(Partialable):
-    id: str = Field(default_factory=uuid7str)
+    user_id: str
+    presentation_id: str
+    topic_id: str = Field(default_factory=uuid7str)
     title: Optional[str] = None
     reduced_docs: Optional[Any] = None
     additional_attributes: Dict[str, Any] = Field(default_factory=dict)

@@ -2,7 +2,7 @@
 
 #### 1. Setup and Configuration
 
-- **Python (`dynamodb_interface.py`)**: Wraps `boto3` using `aiobotocore`.
+- **Python (`dynamodb_interface.py`)**: Wraps `boto3` using `aiobotocore` with Pydantic models for slides and topics.
 - **TypeScript (`dynamodb.ts_interface`)**: Wraps `@aws-sdk/client-dynamodb` (SDK v3).
 
 #### 2. DynamoDB Schema and Key Construction
@@ -58,51 +58,88 @@ When creating or updating any item (Presentation, Slide, Topic, or Source):
 ### 3.1. Get Item(s)
 
 - **Python**:
-  - Function: `get_items(item_type: str, identifiers: Union[Dict[str, str], List[Dict[str, str]]], attributes: Optional[List[str]] = None, return_type: Optional[str] = 'dict') -> Union[List[Dict], List[BaseModel]]`
+  - Function: `get_items(item_type: Literal['user', 'presentation', 'slide', 'topic', 'source'], identifiers: Union[Dict[str, str], List[Dict[str, str]]], attributes: Optional[List[str]] = None, return_type: Optional[Literal['dict', 'model']] = 'dict') -> Union[Dict, BaseModel, List[Dict], List[BaseModel]]`
     - **Parameters**:
-      - `item_type`: Type of the item (e.g., 'user', 'presentation', 'slide', 'topic', 'source').
-      - `identifiers`: Can be a single dictionary or a list of dictionaries containing necessary IDs (`user_id`, `presentation_id`, `slide_id`, `topic_id`, `source_id`).
+      - `item_type`: Type of the item ('user', 'presentation', 'slide', 'topic', 'source').
+      - `identifiers`: Can be a single dictionary or a list of dictionaries containing necessary IDs (user_id, presentation_id, etc.).
       - `attributes`: Optional list of strings specifying which attributes to fetch. If not provided, all attributes will be returned.
-      - `return_type`: Determines whether to return a Pydantic Model or dictionary ('model' or 'dict').
+      - `return_type`: Determines whether to return a Pydantic model or dictionary ('model' or 'dict'). Can only be 'dict' if the item type is not a Slide or Topic.
     - **Implementation**:
       - **Determine Input Type**: Check if `identifiers` is a single dictionary or a list.
       - **Single Item Retrieval**:
-        - Construct the primary key (PK and SK) based on `item_type` and `identifiers` if a single set of identifiers is provided.
-        - Use `GetItem` to fetch a single item.
+        - If a single set of `identifiers` is provided, construct the primary key (PK and SK) based on `item_type` and `identifiers`.
+        - Use `GetItem` to fetch the item.
       - **Multiple Items Retrieval**:
-        - Construct a list of primary keys based on `item_type` and each identifier set in `identifiers` if a list is provided.
+        - If a list of `identifiers` is provided, construct a list of primary keys based on `item_type` and each identifier set.
         - Use `BatchGetItem` to fetch multiple items.
       - **Projection Expression**: If `attributes` are provided, construct a projection expression to fetch only specified attributes.
-      - **Data Type Support**: Ensure the function handles `String`, `Number`, `Boolean`, `List` (Array), and `Map` (Object/Dict).
+        - Use `ExpressionAttributeNames` for all attribute names to handle reserved words.
+      - **Data Type Support**: Ensure the function handles String, Number, Boolean, List, and Map.
       - **Output Handling**:
-        - Convert the response to the specified format (`dict` or `model`) based on the `return_type` parameter.
-        - Return a list of results, whether it's a list of dicts, a list of models, or a list of partial models.
+        - Convert the response to the specified format (dict or model) based on `return_type`.
+        - If only one item is requested, return a single dict or model.
+        - If multiple items are requested, return a list of dicts or models.
+        - If `item_type` is 'slide' or 'topic', and `return_type` is 'model', return a Pydantic model:
+          - Use `.partial()` if attributes are provided, otherwise return a full model.
+          - Use `.construct()` to create instances of the model without validation.
+
+```python
+if isinstance(identifiers, dict):  # Single item request
+    item = get_single_item_from_dynamo()  # Fetch the single item from DynamoDB
+    if item_type == 'slide':
+        model_cls = Slide.partial() if attributes else Slide
+        return model_cls.construct(**item)
+    elif item_type == 'topic':
+        model_cls = Topic.partial() if attributes else Topic
+        return model_cls.construct(**item)
+    else:
+        return item
+else:  # Multiple items request
+    items = get_multiple_items_from_dynamo()  # Fetch multiple items from DynamoDB
+    if item_type == 'slide':
+        model_cls = Slide.partial() if attributes else Slide
+        return [model_cls.construct(**item) for item in items]
+    elif item_type == 'topic':
+        model_cls = Topic.partial() if attributes else Topic
+        return [model_cls.construct(**item) for item in items]
+    else:
+        return items
+```
 
 - **TypeScript**:
-  - Function: `getItems(itemType: string, identifiers: Record<string, string> | Record<string, string>[], attributes?: string[]): Promise<any[]>`
+  - Function: `getItems(itemType: 'user' | 'presentation' | 'slide' | 'topic' | 'source', identifiers: Record<string, string> | Record<string, string>[], attributes?: string[]): Promise<any | any[]>`
     - **Parameters**:
-      - `itemType`: Type of the item (e.g., 'user', 'presentation', 'slide', 'topic', 'source').
-      - `identifiers`: Can be a single object or an array of objects containing necessary IDs (`userID`, `presentationID`, `slideID`, `topicID`, `sourceID`).
-      - `attributes`: Optional array of strings specifying which attributes to fetch. If not provided, all attributes will be returned.
+      - `itemType`: Type of the item ('user', 'presentation', etc.).
+      - `identifiers`: Can be a single object or an array of objects containing necessary IDs (userID, presentationID, etc.).
+      - `attributes`: Optional array of strings specifying which attributes to fetch.
     - **Implementation**:
       - **Determine Input Type**: Check if `identifiers` is a single object or an array.
       - **Single Item Retrieval**:
-        - Construct the primary key (PK and SK) based on `itemType` and `identifiers` if a single set of identifiers is provided.
-        - Use `GetItemCommand` to fetch a single item.
+        - If a single set of `identifiers` is provided, construct the primary key (PK and SK).
+        - Use `GetItemCommand` to fetch the item.
       - **Multiple Items Retrieval**:
-        - Construct a list of primary keys based on `itemType` and each identifier set in `identifiers` if an array is provided.
-        - Use `BatchGetItemCommand` to fetch multiple items.
-      - **Projection Expression**: If `attributes` are provided, construct a projection expression to fetch only specified attributes.
-      - **Data Type Support**: Ensure the function handles `String`, `Number`, `Boolean`, `List` (Array), and `Map` (Object/Dict).
-      - **Output Handling**: Return a list of items, handling data conversion based on the `itemType` and fetched attributes.
+        - If an array of `identifiers` is provided, construct a list of primary keys and use `BatchGetItemCommand`.
+      - **Projection Expression**: If `attributes` are provided, construct a projection expression.
+      - **Output Handling**: Return a single item or an array based on the input.
+        - If a single item is requested, return only that item.
+        - If multiple items are requested, return the array.
 
+```typescript
+if (!Array.isArray(identifiers)) {  // Single item request
+    const item = await getSingleItemFromDynamo();  // Fetch the single item
+    return item;
+} else {  // Multiple items request
+    const items = await getMultipleItemsFromDynamo();  // Fetch multiple items
+    return items;
+}
+```
 
-**3.2. Update/Create Item(s)**
+### 3.2. Update/Create Item(s)
 
 - **Python**:
-  - Function: `update_items(item_type: str, items: Union[List[Dict], List[BaseModel]]) -> None`
+  - Function: `update_items(item_type: Literal['user', 'presentation', 'slide', 'topic', 'source'], items: Union[List[Dict], List[BaseModel]]) -> None`
     - **Parameters**:
-      - `item_type`: Type of the item (e.g., 'user', 'presentation', 'slide', 'topic', 'source').
+      - `item_type`: Type of the item (`'user'`, `'presentation'`, `'slide'`, `'topic'`, `'source'`).
       - `items`: List of dictionaries or Pydantic models, depending on the item type. For 'slides' and 'topics', models or dicts are supported; for others, only dicts.
     - **Implementation**:
       - Convert Pydantic models to dictionaries if models are provided.
@@ -112,12 +149,12 @@ When creating or updating any item (Presentation, Slide, Topic, or Source):
       - Use `TransactWriteItems` for multiple items.
       - Update `last_updated` and `GSI1SK` attributes for Presentations, Slides, Topics, and Sources.
     - **Data Type Support**:
-      - Ensure the function handles `String`, `Number`, `Boolean`, `List` (Array), and `Map` (Object/Dict).
+      - Ensure the function handles `String`, `Number`, `Boolean`, `List`, and `Map` (Dict).
 
 - **TypeScript**:
-  - Function: `updateItems(itemType: string, items: Slide[] | Topic[] | Source[] | Presentation[] | any[]): Promise<void>`
+  - Function: `updateItems(itemType: 'user' | 'presentation' | 'slide' | 'topic' | 'source', items: Slide[] | Topic[] | Source[] | Presentation[] | any[]): Promise<void>`
     - **Parameters**:
-      - `itemType`: Type of the item (e.g., 'user', 'presentation', 'slide', 'topic', 'source').
+      - `itemType`: Type of the item (`'user'`, `'presentation'`, `'slide'`, `'topic'`, `'source'`).
       - `items`: Array of objects, each containing the necessary IDs and attributes to update/create.
     - **Implementation**:
       - Construct the primary key (PK and SK) based on `itemType` and `identifiers`.
@@ -126,44 +163,38 @@ When creating or updating any item (Presentation, Slide, Topic, or Source):
       - Use `TransactWriteItemsCommand` for multiple items.
       - Update `last_updated` and `GSI1SK` attributes for Presentations, Slides, Topics, and Sources.
     - **Data Type Support**:
-      - Ensure the function handles `String`, `Number`, `Boolean`, `List` (Array), and `Map` (Object/Dict).
+      - Ensure the function handles `String`, `Number`, `Boolean`, `List` (Array), and `Map` (Object).
 
-**3.3. Delete Item(s)**
+### 3.3. Delete Item(s)
 
 - **Python**:
-  - Function: `delete_items(item_type: str, identifiers: List[Dict[str, str]]) -> None`
+  - Function: `delete_items(item_type: Literal['user', 'presentation', 'slide', 'topic', 'source'], identifiers: List[Dict[str, str]]) -> None`
     - **Parameters**:
-      - `item_type`: Type of the item (e.g., 'user', 'presentation', 'slide', 'topic', 'source').
+      - `item_type`: Type of the item (`'user'`, `'presentation'`, `'slide'`, `'topic'`, `'source'`).
       - `identifiers`: List of dictionaries containing necessary IDs for items to delete.
     - **Implementation**:
       - Construct the primary key (PK and SK) based on `item_type` and `identifiers`.
-      - Use `ExpressionAttributeNames` for all attribute names to handle reserved words.
       - Use `DeleteItem` for a single ID.
       - Use `TransactWriteItems` for multiple IDs.
-    - **Data Type Support**:
-      - Ensure the function handles `String`, `Number`, `Boolean`, `List` (Array), and `Map` (Object/Dict).
 
 - **TypeScript**:
-  - Function: `deleteItems(itemType: string, identifiers: Record<string, string>[]): Promise<void>`
+  - Function: `deleteItems(itemType: 'user' | 'presentation' | 'slide' | 'topic' | 'source', identifiers: Record<string, string>[]): Promise<void>`
     - **Parameters**:
-      - `itemType`: Type of the item (e.g., 'user', 'presentation', 'slide', 'topic', 'source').
+      - `itemType`: Type of the item (`'user'`, `'presentation'`, `'slide'`, `'topic'`, `'source'`).
       - `identifiers`: Array of objects containing necessary IDs for items to delete.
     - **Implementation**:
       - Construct the primary key (PK and SK) based on `itemType` and `identifiers`.
-      - Use `ExpressionAttributeNames` for all attribute names to handle reserved words.
       - Use `DeleteItemCommand` for a single ID.
       - Use `TransactWriteItemsCommand` for multiple IDs.
-    - **Data Type Support**:
-      - Ensure the function handles `String`, `Number`, `Boolean`, `List` (Array), and `Map` (Object/Dict).
 
-**3.4. Get All Items for a Presentation**
+### 3.4. Get All Items for a Presentation
 
 - **Python**:
-  - Function: `get_all_items_for_presentation(user_id: str, presentation_id: str, item_type: str, attributes: Optional[List[str]] = None, return_type: Optional[str] = 'dict') -> Union[List[Dict], List[BaseModel]]`
+  - Function: `get_all_items_for_presentation(user_id: str, presentation_id: str, item_type: Literal['slide', 'topic', 'source'], attributes: Optional[List[str]] = None, return_type: Optional[Literal['model'|'dict']] = 'dict') -> Union[List[Dict], List[BaseModel]]`
     - **Parameters**:
       - `user_id`: User ID.
       - `presentation_id`: Presentation ID.
-      - `item_type`: Type of the items to fetch (e.g., 'slide', 'topic', 'source').
+      - `item_type`: Type of the items to fetch (`'slide'`, `'topic'`, `'source'`).
       - `attributes`: Optional list of strings specifying which attributes to fetch. If not provided, all attributes will be returned.
       - `return_type`: If 'slides' or 'topic', this parameter determines whether to return a Pydantic Model or dictionary ('model' or 'dict').
     - **Implementation**:
@@ -174,15 +205,27 @@ When creating or updating any item (Presentation, Slide, Topic, or Source):
       - **Data Type Support**:
         - Ensure the function handles `String`, `Number`, `Boolean`, `List` (Array), and `Map` (Object/Dict).
       - **Output Handling**:
-        - If `item_type` is 'slide' or 'topic', return a Pydantic model or dictionary based on `return_type` parameter.
-        - If attributes are specified and `return_type` is 'model', return a Partial Model.
+        - Convert the response to the specified format (`dict` or `model`) based on the `return_type` parameter.
+        - If `item_type` is `slide` or `topic`, and `return_type` is `model`, return a Pydantic model:
+          - If `attributes` are provided, use `.partial()` to return a partial model.
+            - Ex. `PartialTopic = Topic.partial()`
+          - If `attributes` are not provided, return a full model.
+          - Always use the .construct() method to create an instance of the model without validation
+        ```python
+        if item_type == 'slide':
+            model_cls = Slide.partial() if attributes else Slide
+            return [model_cls.construct(**item) for item in items]
+        elif item_type == 'topic':
+            model_cls = Topic.partial() if attributes else Topic
+            return [model_cls.construct(**item) for item in items]
+        ```
 
 - **TypeScript**:
-  - Function: `getAllItemsForPresentation(userID: string, presentationID: string, itemType: string, attributes?: string[]): Promise<Slide[] | Topic[] | Source[] | Presentation[]>`
+  - Function: `getAllItemsForPresentation(userID: string, presentationID: string, itemType: 'slide' | 'topic' | 'source', attributes?: string[]): Promise<Slide[] | Topic[] | Source[] | Presentation[]>`
     - **Parameters**:
       - `userID`: User ID.
       - `presentationID`: Presentation ID.
-      - `itemType`: Type of the items to fetch (e.g., 'slide', 'topic', 'source').
+      - `itemType`: Type of the items to fetch (`'slide'`, `'topic'`, `'source'`).
       - `attributes`: Optional array of strings specifying which attributes to fetch. If not provided, all attributes will be returned.
     - **Implementation**:
       - Use `QueryCommand` to fetch all items under a given `userID` and `presentationID`.
@@ -192,51 +235,42 @@ When creating or updating any item (Presentation, Slide, Topic, or Source):
     - **Data Type Support**:
       - Ensure the function handles `String`, `Number`, `Boolean`, `List` (Array), and `Map` (Object/Dict).
 
-**3.5. Delete All Items for a Presentation**
+### 3.5. Delete All Items for a Presentation
 
 - **Python**:
-  - Function: `delete_all_items_for_presentation(user_id: str, presentation_id: str, item_type: str) -> None`
+  - Function: `delete_all_items_for_presentation(user_id: str, presentation_id: str, item_type: Literal['slide', 'topic', 'source']) -> None`
     - **Parameters**:
       - `user_id`: User ID.
       - `presentation_id`: Presentation ID.
-      - `item_type`: Type of the items to delete (e.g., 'slide', 'topic', 'source').
+      - `item_type`: Type of the items to delete (`'slide'`, `'topic'`, `'source'`).
     - **Implementation**:
       - Use `Query` to get primary keys.
-      - Use `ExpressionAttributeNames` for all attribute names to handle reserved words.
       - Use `TransactWriteItems` with Delete action.
-    - **Data Type Support**:
-      - Ensure the function handles `String`, `Number`, `Boolean`, `List` (Array), and `Map` (Object/Dict).
 
 - **TypeScript**:
-  - Function: `deleteAllItemsForPresentation(userID: string, presentationID: string, itemType: string): Promise<void>`
+  - Function: `deleteAllItemsForPresentation(userID: string, presentationID: string, itemType: 'slide' | 'topic' | 'source'): Promise<void>`
     - **Parameters**:
       - `userID`: User ID.
       - `presentationID`: Presentation ID.
-      - `itemType`: Type of the items to delete (e.g., 'slide', 'topic', 'source').
+      - `itemType`: Type of the items to delete (`'slide'`, `'topic'`, `'source'`).
     - **Implementation**:
       - Use `QueryCommand` to get primary keys.
-      - Use `ExpressionAttributeNames` for all attribute names to handle reserved words.
       - Use `TransactWriteItemsCommand` with Delete action.
-    - **Data Type Support**:
-      - Ensure the function handles `String`, `Number`, `Boolean`, `List` (Array), and `Map` (Object/Dict).
 
-**3.6. Get All Presentation Items for a User**
+### 3.6. Get All Presentation Items for a User
 
 - **Python**:
-  - Function: `get_all_presentations_for_user(user_id: str, attributes: Optional[List[str]] = None, return_type: Optional[str] = 'dict') -> Union[List[Dict], List[BaseModel]]`
+  - Function: `get_all_presentations_for_user(user_id: str, attributes: Optional[List[str]] = None -> List[Dict]`
     - **Parameters**:
       - `user_id`: User ID.
       - `attributes`: Optional list of strings specifying which attributes to fetch. If not provided, all attributes will be returned.
-      - `return_type`: If 'slides' or 'topic', this parameter determines whether to return a Pydantic Model or dictionary ('model' or 'dict').
     - **Implementation**:
       - Use `Query` with GSI to fetch items sorted by `LastUpdate`.
       - Use `ExpressionAttributeNames` for all attribute names to handle reserved words.
       - If `attributes` are provided, construct a projection expression to fetch only specified attributes.
       - **Data Type Support**:
         - Ensure the function handles `String`, `Number`, `Boolean`, `List` (Array), and `Map` (Object/Dict).
-      - **Output Handling**:
-        - If `item_type` is 'slide' or 'topic', return a Pydantic model or dictionary based on `return_type` parameter.
-        - If attributes are specified and `return_type` is 'model', return a Partial Model.
+
 
 - **TypeScript**:
   - Function: `getAllPresentationsForUser(userID: string, attributes?: string[]): Promise<Presentation[]>`
@@ -268,16 +302,11 @@ To retrieve the list of presentations for the side panel, sorted by the most rec
 
 - Write unit tests for each function to ensure they handle all data types (`String`, `Number`, `Boolean`, `List`, `Map`) and reserved words correctly.
 - Test edge cases, such as empty inputs, non-existent IDs, and different return types (dict vs. model) in Python.
+- Additional tests for verifying partial models (for slides and topics) when attributes are specified.
+- Ensure that `Pydantic.construct()` correctly handles partial models with missing attributes and full models when no attributes are specified.
 
 #### 6. Documentation
 
 - Document each function with input parameters, expected output, and examples.
 - Include setup instructions for AWS credentials and environment configuration.
-- Provide specific examples of using models and partial models in Python.
-
-#### 7. Deployment
-
-- Ensure both Python and TypeScript code are integrated into their respective environments (backend and frontend).
-- Deploy and test in a staging environment before moving to production.
-
-This comprehensive plan ensures proper key formation, consistent handling of reserved words, flexible attribute fetching, dynamic typing in Python, and efficient use of DynamoDB's capabilities for managing hierarchical and time-sorted data.
+- Provide specific documentation on handling Pydantic models for `Slide` and `Topic` types in Python, especially on the behavior of `Pydantic.construct()` and partial model creation.
