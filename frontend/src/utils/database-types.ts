@@ -1,4 +1,4 @@
-// frontend/src/utils/db-types.ts
+// frontend/src/utils/database-types.ts
 
 export type Slide = 
   | ShortBulletsSlide 
@@ -11,9 +11,9 @@ export interface BaseSlide {
   user_id: string;
   presentation_id: string;
   slide_id: string;
+  last_updated?: number;
   topic_id?: string;
   slide_title: string;
-  id: string;
   hidden?: boolean;
   previous?: string;
   next?: string;
@@ -100,12 +100,11 @@ export interface LLMMessage {
   content: string;
 }
 
-// New types added
-
 export interface Topic {
   user_id: string;
   presentation_id: string;
   topic_id: string;
+  last_updated?: number;
   title?: string;
   reduced_docs?: any;
   [key: string]: any;
@@ -115,21 +114,21 @@ export interface Source {
   user_id: string;
   presentation_id: string;
   source_id: string;
+  last_updated?: number;
   name?: string;
   char_count?: number;
   s3_filepath?: string;
   summary?: string;
-  time_updated?: number;
   type?: string;
   url?: string;
   web_source?: any;
   whole_document_path?: string;
-  [key: string]: any;
 }
 
 export interface Presentation {
   user_id: string;
   presentation_id: string;
+  last_updated?: number;
   audience?: string;
   candidate_topics?: any;
   current_slide_id?: string;
@@ -141,8 +140,13 @@ export interface Presentation {
   outline?: any;
   slide_generation_status?: string;
   status?: string;
-  time_updated?: number;
   topic?: string;
   topic_extraction_status?: string;
+}
+
+export interface User {
+  user_id: string;
+  last_updated?: number;
+  // any arbitrary user data
   [key: string]: any;
 }

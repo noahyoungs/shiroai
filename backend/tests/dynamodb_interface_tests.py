@@ -1,7 +1,6 @@
 # backend/tests/dynamodb_interface_tests.py
 
 import pytest
-import asyncio
 from uuid_extensions import uuid7str
 from dynamodb_interface import (
     get_items, update_items, delete_items, get_all_items_for_presentation,
@@ -19,16 +18,20 @@ def create_dummy_data(item_type):
             'user_id': user_id,
             'name': 'Test User',
             'email': 'test@example.com',
-            'created_at': '2023-09-01T12:00:00Z'
+            'created_at': 1000000000,
+            'good': False,
+            'foo': [{'bar': 'baz'}, {'bar': 'qux'}],
+            'random': None
+
         }
     elif item_type == 'presentation':
         return {
             'user_id': user_id,
             'presentation_id': presentation_id,
             'title': 'Test Presentation',
-            'created_at': '2023-09-01T12:00:00Z',
-            'updated_at': '2023-09-01T12:00:00Z',
-            'status': 'draft'
+            'created_at': 1000000000,
+            'status': 'draft',
+            'bad': False
         }
     elif item_type == 'slide':
         return ShortBulletsSlide(
@@ -77,6 +80,9 @@ async def test_get_items():
     await update_items('user', [user_data])
     result = await get_items('user', {'user_id': user_data['user_id']})
     assert isinstance(result, dict)
+    assert not result.get('good')
+    assert result.get('created_at') > 2
+    assert result.get('foo') == [{'bar': 'baz'}, {'bar': 'qux'}]
     assert result['name'] == 'Test User'
 
     # Test multiple items retrieval

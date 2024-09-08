@@ -1,3 +1,4 @@
+# backend/dynamodb_interface.py
 import os
 import time
 from dotenv import load_dotenv
@@ -118,20 +119,29 @@ def build_update_expression(item_dict: Dict[str, Any], item_type: str) -> Dict[s
         'ExpressionAttributeNames': expression_attribute_names
     }
 
-def extract_identifiers(pk: str, sk: str, gsi1sk: Optional[str]) -> Dict[str, Optional[Union[str, int]]]:
+def extract_identifiers(item_type: item_types_literal ,pk: str, sk: str, gsi1sk: Optional[str]) -> Dict[str, Optional[Union[str, int]]]:
+
+    # Error if invalid pk or sk
+    if not pk or not sk:
+        logger.error(f"Invalid PK ({pk}) or SK ({sk})")
+
     user_id = pk.split('#')[1] if pk.startswith('USER#') else None
 
     sk_parts = sk.split('#')
     presentation_id = sk_parts[1] if len(sk_parts) > 1 and sk_parts[0] == 'PRESENTATION' else None
     item_id = sk_parts[3] if len(sk_parts) > 3 else None
 
-    last_updated = int(gsi1sk.split('#')[1]) if gsi1sk and gsi1sk.startswith('LASTUPDATE#') else None
-
     identifiers = {
         'user_id': user_id,
         'presentation_id': presentation_id,
-        'last_updated': last_updated
     }
+
+    if not item_type=='user':
+        try:
+            identifiers['last_updated'] = int(gsi1sk.split('#')[1]) if gsi1sk and gsi1sk.startswith('LASTUPDATE#') else None
+        except Exception as e:
+            last_updated = None
+            logger.warn(f"Error extracting last_updated from GSI1SK, not adding last_updated attribute: {e}")
 
     if item_id:
         item_type = sk_parts[2].lower() if len(sk_parts) > 2 else None
@@ -209,8 +219,10 @@ async def get_items(item_type: item_types_literal,
         for key in keys_to_get:
             item = deserialized_items.get((key['PK']['S'], key['SK']['S']), None)
             if item:
-                identifiers = extract_identifiers(key['PK']['S'], key['SK']['S'], item.get('GSI1SK'))
+                identifiers = extract_identifiers(item_type, key['PK']['S'], key['SK']['S'], item.get('GSI1SK'))
                 item.update(identifiers)
+                # Don't include the attributes PK, SK, and GSI1SK in the result
+                item = {k: v for k, v in item.items() if k not in ['PK', 'SK', 'GSI1SK']}
             sorted_items.append(item)
 
         if return_type == 'model' and item_type in ['slide', 'topic']:
@@ -343,7 +355,9 @@ async def get_all_items_for_presentation(
         deserialized_items = [deserialize_item(item) for item in items]
 
         for item in deserialized_items:
-            identifiers = extract_identifiers(item['PK'], item['SK'], item.get('GSI1SK'))
+            identifiers = extract_identifiers(item_type, item['PK'], item['SK'], item.get('GSI1SK'))
+            # Don't include the attributes PK, SK, and GSI1SK in the result
+            item = {k: v for k, v in item.items() if k not in ['PK', 'SK', 'GSI1SK']}
             item.update(identifiers)
 
         if return_type == 'model' and item_type in ['slide', 'topic']:
