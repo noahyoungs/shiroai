@@ -1,5 +1,5 @@
 import React from "react";
-import { Image as ImageType } from "../../../utils/db-types";
+import { Image as ImageType } from "../../../utils/database-types";
 import { cn } from "../../../utils/cn";
 import { Image as NextUIImage } from "@nextui-org/react";
 

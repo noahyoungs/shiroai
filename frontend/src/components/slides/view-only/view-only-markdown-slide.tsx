@@ -4,7 +4,7 @@ import Markdown from "markdown-to-jsx";
 import { ViewOnlyTitle } from "./view-only-title";
 import { cn } from "../../../utils/cn";
 import React, { useEffect, useRef, useState } from "react";
-import { MarkdownSlide } from "../../../utils/db-types";
+import { MarkdownSlide } from "../../../utils/database-types";
 
 type ViewOnlyMarkdownSlideComponentProps = {
   slide: MarkdownSlide;

@@ -1,5 +1,5 @@
 // frontend/src/components/slides/view-only/view-only-short-bullets-slide-pills.tsx
-import { ShortBulletsSlide, IconData } from "../../../utils/db-types";
+import { ShortBulletsSlide, IconData } from "../../../utils/database-types";
 import { Icon } from "@iconify/react";
 import React from "react";
 import { cn } from "../../../utils/cn";
