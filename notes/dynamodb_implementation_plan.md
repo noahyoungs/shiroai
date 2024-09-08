@@ -124,15 +124,7 @@ else:  # Multiple items request
         - If a single item is requested, return only that item.
         - If multiple items are requested, return the array.
 
-```typescript
-if (!Array.isArray(identifiers)) {  // Single item request
-    const item = await getSingleItemFromDynamo();  // Fetch the single item
-    return item;
-} else {  // Multiple items request
-    const items = await getMultipleItemsFromDynamo();  // Fetch multiple items
-    return items;
-}
-```
+
 
 ### 3.2. Update/Create Item(s)
 
