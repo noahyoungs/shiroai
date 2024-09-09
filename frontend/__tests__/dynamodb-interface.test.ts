@@ -40,7 +40,7 @@ const createDummyData = (itemType: string): User | Presentation | BaseSlide | To
           {
             content: 'Test bullet point',
             icon: { name: 'test_icon', source: 'test_source' },
-            slide_id: `bullet_${uuidv7()}`,
+            id: `bullet_${uuidv7()}`,
           },
         ],
         sequential: true,
@@ -174,7 +174,7 @@ describe('DynamoDB Interface Tests', () => {
     await updateItems('presentation', [presData]);
     await updateItems('slide', [slide1, slide2]);
 
-    const results = await getAllItemsForPresentation(presData.user_id, presData.presentation_id, 'slide');
+    const results = await getAllItemsForPresentation('slide', presData.user_id, presData.presentation_id);
     expect(Array.isArray(results)).toBe(true);
     expect(results.length).toBe(2);
     expect(results[0]).toHaveProperty('slide_id');
@@ -191,7 +191,7 @@ describe('DynamoDB Interface Tests', () => {
     await updateItems('presentation', [presData]);
     await updateItems('slide', [slide1, slide2]);
 
-    const results = await getAllItemsForPresentation(presData.user_id, presData.presentation_id, 'slide', ['slide_title']);
+    const results = await getAllItemsForPresentation('slide', presData.user_id, presData.presentation_id, ['slide_title']);
     expect(Array.isArray(results)).toBe(true);
     expect(results.length).toBe(2);
     expect(results[0]).toHaveProperty('slide_title');
@@ -212,7 +212,7 @@ describe('DynamoDB Interface Tests', () => {
 
     await deleteAllItemsForPresentation(presData.user_id, presData.presentation_id, 'slide');
 
-    const results = await getAllItemsForPresentation(presData.user_id, presData.presentation_id, 'slide');
+    const results = await getAllItemsForPresentation('slide', presData.user_id, presData.presentation_id);
     expect(Array.isArray(results)).toBe(true);
     expect(results.length).toBe(0);
   });
@@ -221,7 +221,7 @@ describe('DynamoDB Interface Tests', () => {
     const presData = createDummyData('presentation') as Presentation;
     await updateItems('presentation', [presData]);
 
-    const results = await getAllItemsForPresentation(presData.user_id, presData.presentation_id, 'slide');
+    const results = await getAllItemsForPresentation('slide', presData.user_id, presData.presentation_id);
     expect(Array.isArray(results)).toBe(true);
     expect(results.length).toBe(0);
   });
