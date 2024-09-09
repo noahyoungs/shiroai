@@ -123,6 +123,7 @@ class ShortBulletContent(Partialable):
     source_excerpt_id: Optional[str] = None
     excerpt: Optional[Excerpt] = None
     icon: IconData
+    id: Optional[str] = None
 
     def __repr__(self):
         return (f"ShortBulletContent(content={self.content}, source_excerpt_id={self.source_excerpt_id}, "
