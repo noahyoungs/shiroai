@@ -11,7 +11,6 @@ export interface BaseSlide {
   user_id: string;
   presentation_id: string;
   slide_id: string;
-  last_updated?: number;
   topic_id?: string;
   slide_title: string;
   hidden?: boolean;
@@ -104,7 +103,6 @@ export interface Topic {
   user_id: string;
   presentation_id: string;
   topic_id: string;
-  last_updated?: number;
   title?: string;
   reduced_docs?: any;
   [key: string]: any;
@@ -114,7 +112,6 @@ export interface Source {
   user_id: string;
   presentation_id: string;
   source_id: string;
-  last_updated?: number;
   name?: string;
   char_count?: number;
   s3_filepath?: string;
@@ -142,11 +139,11 @@ export interface Presentation {
   status?: string;
   topic?: string;
   topic_extraction_status?: string;
+  created_time?: number;
 }
 
 export interface User {
   user_id: string;
-  last_updated?: number;
   // any arbitrary user data
   [key: string]: any;
 }

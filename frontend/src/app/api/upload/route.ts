@@ -2,7 +2,8 @@
 
 import { createPresignedPost } from '@aws-sdk/s3-presigned-post';
 import { S3Client } from '@aws-sdk/client-s3';
-import { getPresentationByID, createSource } from '@/utils/dynamodb';
+import { updateItems } from '@/utils/dynamodb-interface'; // Directly update database without auth
+import { uuidv7 } from 'uuidv7';
 import { auth } from "@/auth"
 
 export async function POST(request: Request) {
@@ -10,19 +11,21 @@ export async function POST(request: Request) {
 
   const extension = filename.split('.').pop();
 
+  // Authenticate manually here because were sending a signed URL to the client
   const session = await auth();
-
-  if (!session || !session.user) {
+  if (!session || !session.user || !session.user.id) {
     throw new Error("Unauthorized.");
   }
 
-  const presentation = await getPresentationByID(presentationID, ["user"]);
-
-  if (presentation.user !== session.user.id) {
-    throw new Error("Unauthorized.");
-  }
-
-  const sourceID = await createSource(presentationID, {s3_filepath: `${filename}`, type: extension, name:`${filename}`});
+   // Directly update database without auth
+  await updateItems('source', [{
+    user_id: session.user.id,
+    presentation_id: presentationID,
+    source_id: uuidv7(),
+    s3_filepath: `${filename}`,
+    type: extension,
+    name: `${filename}`
+  }])
 
   try {
     const client = new S3Client({ region: process.env.AWS_REGION });

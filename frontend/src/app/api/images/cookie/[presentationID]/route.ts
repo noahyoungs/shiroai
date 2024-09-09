@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import { getSignedCookies } from "@aws-sdk/cloudfront-signer";
 import { cookies } from 'next/headers';
 import { type NextRequest } from 'next/server'
-import { getPresentationByID } from '@/utils/dynamodb';
 import { auth } from "@/auth"
 
 export async function GET(req: NextRequest, { params }: { params: { presentationID: string } }) {
@@ -12,23 +11,14 @@ export async function GET(req: NextRequest, { params }: { params: { presentation
     return new NextResponse("Presentation ID is required", { status: 400 });
   }
 
-  // Authenticate
+   // Authenticate manually here because were setting signed cookies
   const session = await auth();
-  if (!session || !session.user) {
+  if (!session || !session.user || !session.user.id) {
     return new NextResponse("Not authenticated. Please log in.", { status: 401 });
   }
 
-  const presentation = await getPresentationByID(params.presentationID, ["user"]);
 
-  if (!presentation) {
-    return new NextResponse("Presentation not found", { status: 404 });
-  }
-
-  if (presentation.user !== session.user.id) {
-    return new NextResponse("You are not authorized to access this presentation", { status: 403 });
-  }
-
-
+  // TODO: Reorganize s3 bucket to group presentations by user and allow access to entire user folder
   try {
     const resource = `https://${process.env.NEXT_PUBLIC_CLOUDFRONT_DOMAIN}/${params.presentationID}*`;
     const signedCookies = getSignedCookies({

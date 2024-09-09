@@ -99,7 +99,7 @@ export default function Interface({
                   slide={currentSlide}
                   setSlide={(slide: Partial<Slide>, splitSlides = false) =>
                     slideList.updateSlides(
-                      { ...slide, id: currentSlideID },
+                      { ...slide, slide_id: currentSlideID },
                       false,
                       splitSlides
                     )

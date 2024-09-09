@@ -1,31 +1,28 @@
 "use server"
-import { auth } from "@/auth"
 import { uuidv7 } from "uuidv7";
-import { updatePresentationByID } from "@/utils/dynamodb";
+import { updateItemsWithAuth } from "@/utils/dynamodb-service";
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation'
 
 export default async function CreatePresentation() {
-  let uuid = uuidv7();
+  const uuid = uuidv7();
 
-  const session = await auth();
-  console.log(`Session: ${JSON.stringify(session)}`);
+  try {
+    const presentation = {
+      presentation_id: uuid,
+      status: "new",
+      created_time: Date.now(),
+    };
 
-  if (!session || !session.user || !session.user.name) {
-    throw new Error("Unauthorized.");
+    console.log(JSON.stringify(presentation));
+
+    await updateItemsWithAuth('presentation', [presentation]);
+
+    redirect(`/home/create/${uuid}/ideate`);
+  } catch (error) {
+    console.error("Error creating presentation:", error);
+    throw new Error("Failed to create presentation");
   }
-
-  const presentation = {
-    user: session.user.id,
-    status: "new",
-    updated_time: Math.floor(Date.now() / 1000) // Add Unix timestamp
-  };
-
-  console.log(JSON.stringify(presentation));
-
-  await updatePresentationByID(uuid, presentation);
-
-  redirect(`/home/create/${uuid}/ideate`)
 
   return uuid;
 }

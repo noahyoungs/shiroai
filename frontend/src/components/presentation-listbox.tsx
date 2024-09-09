@@ -4,14 +4,10 @@ import {
   ListboxItem
 } from "@nextui-org/react";
 
+import { Presentation } from "@/utils/database-types";
+
 type PresentationListboxProps = {
-  presentations?: {
-    id: string;
-    href?: string;
-    topic?: string;
-    status?: string;
-    time_updated: number;
-  }[];
+  presentations?: Presentation[];
 };
 
 
@@ -30,12 +26,12 @@ function PresentationListbox({ presentations }: PresentationListboxProps) {
     >
       {(presentation) => (
         <ListboxItem
-          key={presentation.id}
+          key={presentation.presentation_id}
           color={"default"}
           href={
             presentation.status && ['ideate', 'research', 'outline', 'slides'].includes(presentation.status)
-              ? `/home/create/${presentation.id}/${presentation.status}`
-              : `/home/create/${presentation.id}/ideate`
+              ? `/home/create/${presentation.presentation_id}/${presentation.status}`
+              : `/home/create/${presentation.presentation_id}/ideate`
           }
         >
           {presentation.topic || "Untitled Presentation"}

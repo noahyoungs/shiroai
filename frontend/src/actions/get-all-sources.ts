@@ -1,10 +1,10 @@
 "use server"
-import { getSources, getPresentationByID} from "@/utils/dynamodb";
+import { getAllItemsForPresentationWithAuth } from "@/utils/dynamodb-service";
 
 export async function retrieveSources(presentationID: string) {
-
   try {
-    const sources = await getSources(presentationID);
+    // Use the new getAllItemsForPresentationWithAuth function
+    const sources = await getAllItemsForPresentationWithAuth("source", presentationID);
     return sources;
   } catch (error) {
     console.error("Error retrieving sources:", error);

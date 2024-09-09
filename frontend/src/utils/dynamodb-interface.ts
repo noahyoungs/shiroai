@@ -27,10 +27,10 @@ if (!tableName) {
 logger.info("DynamoDB client initialized");
 
 // Define valid item types as a union type
-type ValidItemTypes = 'user' | 'presentation' | 'slide' | 'topic' | 'source';
+export type ValidItemTypes = 'user' | 'presentation' | 'slide' | 'topic' | 'source';
 
 // TypeScript types for identifiers
-type Identifiers<T> = T extends 'user' ? { user_id: string }
+export type Identifiers<T> = T extends 'user' ? { user_id: string }
   : T extends 'presentation' ? { user_id: string; presentation_id: string }
   : T extends 'slide' ? { user_id: string; presentation_id: string; slide_id: string }
   : T extends 'topic' ? { user_id: string; presentation_id: string; topic_id: string }
@@ -38,14 +38,14 @@ type Identifiers<T> = T extends 'user' ? { user_id: string }
   : never;
 
 // TypeScript types for item type mapping
-type DBItemMap<T> = T extends 'user' ? User
+export type DBItemMap<T> = T extends 'user' ? User
   : T extends 'presentation' ? Presentation
   : T extends 'slide' ? Slide
   : T extends 'topic' ? Topic
   : T extends 'source' ? Source
   : never;
 
-type ItemWithIdentifiers<T extends ValidItemTypes> = Identifiers<T> & Partial<Omit<DBItemMap<T>, keyof Identifiers<T>>>;
+export type ItemWithIdentifiers<T extends ValidItemTypes> = Identifiers<T> & Partial<Omit<DBItemMap<T>, keyof Identifiers<T>>>;
 
 // Utility functions
 
@@ -108,14 +108,8 @@ function throwMissingIdentifierError(missingIdentifiers: string, itemType: Valid
 }
 
 // Build GSI1SK based on presentationID and check for missing presentationID
-function buildGSI1SK(presentationID: string): string {
-  if (!presentationID) {
-    const errorMessage = 'Missing required identifier: presentation_id for building GSI1SK';
-    logger.error(errorMessage);
-    throw new Error(errorMessage);
-  }
-
-  const gsi1sk = `LASTUPDATE#${Date.now()}#PRESENTATION#${presentationID}`;
+function buildGSI1SK(): string {
+  const gsi1sk = `LASTUPDATE#${Date.now()}`;
   logger.debug(`Generated GSI1SK: ${gsi1sk}`);
   return gsi1sk;
 }
@@ -137,12 +131,16 @@ function addIdentifiersToItem(item: any, itemType: ValidItemTypes) {
     user_id: PK.split('#')[1],
   };
 
-  if (itemType !== 'user') {
+  if (itemType == 'presentation') {
     try {
-      const gsiParts = GSI1SK.split('#');
-      ids.last_updated = gsiParts[1];
+      if (GSI1SK.startsWith('LASTUPDATED#')) {
+        const gsiParts = GSI1SK.split('#');
+        ids.last_updated = gsiParts[1]; // Extract the timestamp part
+      } else {
+        throw new Error('Invalid GSI1SK format');
+      }
     } catch (error: any) {
-      logger.warn({ error, GSI1SK }, 'Error parsing GSI1SK, last_updated not added to item');
+      logger.warn({ error, GSI1SK }, 'Error parsing GSI1SK for, last_updated not added to item');
     }
   }
 
@@ -300,16 +298,9 @@ function getUpdateExpression<T extends ValidItemTypes>(
     }
   });
 
-  // Handle GSI1SK for item types other than 'user'
-  if (itemType !== 'user') {
-
-    // Type assertion to ensure presentation_id exists for these types
-    const itemWithPresentationId = item as { presentation_id: string };
-
-    if (!itemWithPresentationId.presentation_id || typeof itemWithPresentationId.presentation_id !== 'string') {
-      throw new Error(`Missing or invalid 'presentation_id' for generating GSI1SK for item type: ${itemType}`);
-    }
-    const gsi1sk = buildGSI1SK(itemWithPresentationId.presentation_id);
+  // Handle GSI1SK for presentation
+  if (itemType == 'presentation') {
+    const gsi1sk = buildGSI1SK();
     updateExpression += "#GSI1SK = :gsi1sk, ";
     expressionAttributeNames["#GSI1SK"] = "GSI1SK";
     expressionAttributeValues[":gsi1sk"] = gsi1sk;
@@ -510,30 +501,76 @@ export async function deleteItems<T extends ValidItemTypes>(
   }
 }
 
+// Define overloads for the getAllItemsForPresentation function to specify return types based on itemType
 /**
- * Get all items for a specific presentation from DynamoDB.
- *
- * This function fetches all items of a specific type (slide, topic, or source) for a given presentation.
- * It uses the user ID and presentation ID to build the partition key and scans for items with a matching sort key prefix.
- *
+ * Get all slides for a specific presentation from DynamoDB.
+ * 
  * @param {string} userID - The user ID associated with the presentation.
- * @param {string} presentationID - The presentation ID for which to fetch items.
- * @param {'slide' | 'topic' | 'source'} itemType - The type of items to fetch (slide, topic, or source).
+ * @param {string} presentationID - The presentation ID for which to fetch slides.
  * @param {string[]} [attributes] - An optional array of attribute names to fetch. If provided, only these attributes will be fetched.
- * @returns {Promise<Slide[] | Topic[] | Source[]>} - A promise that resolves with an array of items. Returns an empty array if no items are found.
+ * @returns {Promise<Slide[]>} - A promise that resolves with an array of slides.
  *
  * @throws Will throw an error if the fetch operation fails.
- *
- * Example usage:
- * ```typescript
- * const slides = await getAllItemsForPresentation('12345', '67890', 'slide');
- * const topics = await getAllItemsForPresentation('12345', '67890', 'topic', ['title', 'description']);
- * ```
  */
 export async function getAllItemsForPresentation(
+  itemType: 'slide',
   userID: string,
   presentationID: string,
+  attributes?: string[]
+): Promise<Slide[]>;
+
+/**
+ * Get all topics for a specific presentation from DynamoDB.
+ * 
+ * @param {string} userID - The user ID associated with the presentation.
+ * @param {string} presentationID - The presentation ID for which to fetch topics.
+ * @param {string[]} [attributes] - An optional array of attribute names to fetch. If provided, only these attributes will be fetched.
+ * @returns {Promise<Topic[]>} - A promise that resolves with an array of topics.
+ *
+ * @throws Will throw an error if the fetch operation fails.
+ */
+export async function getAllItemsForPresentation(
+  itemType: 'topic',
+  userID: string,
+  presentationID: string,
+  attributes?: string[]
+): Promise<Topic[]>;
+
+/**
+ * Get all sources for a specific presentation from DynamoDB.
+ * 
+ * @param {string} userID - The user ID associated with the presentation.
+ * @param {string} presentationID - The presentation ID for which to fetch sources.
+ * @param {string[]} [attributes] - An optional array of attribute names to fetch. If provided, only these attributes will be fetched.
+ * @returns {Promise<Source[]>} - A promise that resolves with an array of sources.
+ *
+ * @throws Will throw an error if the fetch operation fails.
+ */
+export async function getAllItemsForPresentation(
+  itemType: 'source',
+  userID: string,
+  presentationID: string,
+  attributes?: string[]
+): Promise<Source[]>;
+
+/**
+ * Get all items of a specific type (slide, topic, or source) for a specific presentation from DynamoDB.
+ *
+ * This function fetches all items of a specific type for a given presentation using the user ID and 
+ * presentation ID to build the partition key. It scans for items with a matching sort key prefix.
+ * 
+ * @param {'slide' | 'topic' | 'source'} itemType - The type of items to fetch (slide, topic, or source).
+ * @param {string} userID - The user ID associated with the presentation.
+ * @param {string} presentationID - The presentation ID for which to fetch items.
+ * @param {string[]} [attributes] - An optional array of attribute names to fetch. If provided, only these attributes will be fetched.
+ * @returns {Promise<Slide[] | Topic[] | Source[]>} - A promise that resolves with an array of items depending on the item type.
+ *
+ * @throws Will throw an error if the fetch operation fails.
+ */
+export async function getAllItemsForPresentation(
   itemType: 'slide' | 'topic' | 'source',
+  userID: string,
+  presentationID: string,
   attributes?: string[]
 ): Promise<Slide[] | Topic[] | Source[]> {
   logger.info(`Fetching all ${itemType}s for presentation ${presentationID}`);
@@ -569,6 +606,8 @@ export async function getAllItemsForPresentation(
     const items = response.Items?.map(item => removeKeysFromItem(addIdentifiersToItem(unmarshall(item), itemType))) || [];
 
     logger.info(`Successfully fetched ${items.length} ${itemType}s for presentation ${presentationID}`);
+
+    // TypeScript will correctly infer the return type based on itemType
     return items as Slide[] | Topic[] | Source[];
   } catch (error: any) {
     logger.error({ error }, `Error fetching ${itemType}s for presentation`);

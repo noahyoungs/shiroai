@@ -99,7 +99,7 @@ export default function SlideControls({
       throw new Error("No current slide ID found");
     }
     await slideList.updateSlides({
-      id: currentSlideID,
+      slide_id: currentSlideID,
       layout: newLayout,
     });
     setSlideUpdateTrigger((prev: number) => prev + 1); // Trigger re-render
@@ -110,7 +110,7 @@ export default function SlideControls({
       throw new Error("No current slide ID found");
     }
     await slideList.updateSlides({
-      id: currentSlideID,
+      slide_id: currentSlideID,
       sequential: newSequential,
     });
     setSlideUpdateTrigger((prev: number) => prev + 1); // Trigger re-render
@@ -134,7 +134,7 @@ export default function SlideControls({
     }
 
     await slideList.updateSlides({
-      id: currentSlideID,
+      slide_id: currentSlideID,
       slide_content: [
         ...currentSlide.slide_content,
         {
@@ -156,7 +156,7 @@ export default function SlideControls({
       throw new Error("No current slide ID found");
     }
     await slideList.updateSlides({
-      id: currentSlideID,
+      slide_id: currentSlideID,
       image_position: newPosition,
     });
     setSlideUpdateTrigger((prev: number) => prev + 1); // Trigger re-render

@@ -1,15 +1,11 @@
 "use server";
-import {
-  getSources as dynamodbGetSources,
-  getPresentationByID,
-  updateSlides as dynamodbUpdateSlides,
-  getSlides as dynamodbGetSlides,
-  getAllSlides as dynamodbGetAllSlides,
-} from "@/utils/dynamodb";
-import { Slide } from "@/utils/slide-types";
+import { getItemsWithAuth, updateItemsWithAuth, getAllItemsForPresentationWithAuth } from "@/utils/dynamodb-service";
+
+import { Slide } from "@/utils/database-types";
 import { getProseClass } from "@/actions/get-prose-class";
 import { splitMarkdown } from "@/actions/split-markdown";
 import { uuidv7 } from "uuidv7";
+import { Presentation } from "@/utils/database-types";
 
 /**
  * Adds prose classes and splits overheight slides.
@@ -24,12 +20,12 @@ export async function addProseClassesAndSplitOverheight(
   checkProseClass: boolean = true,
   recursionLimit: number = 5
 ): Promise<Slide[]> {
-  // console.log("Adding prose class for slide:", slide.id);
+  // console.log("Adding prose class for slide:", slide.slide_id);
   if (
     slide.slide_type === "markdown_slide" &&
     (!slide.slide_content?.prose_class || !checkProseClass)
   ) {
-    console.log("Processing markdown slide:", slide.id);
+    console.log("Processing markdown slide:", slide.slide_id);
 
     const processSlide = async (
       slideContent: string,
@@ -43,7 +39,7 @@ export async function addProseClassesAndSplitOverheight(
         return [
           {
             ...slide,
-            id: slideId,
+            slide_id: slideId,
             slide_content: {
               ...slide.slide_content,
               content: slideContent,
@@ -100,7 +96,7 @@ export async function addProseClassesAndSplitOverheight(
         return [
           {
             ...slide,
-            id: slideId,
+            slide_id: slideId,
             slide_content: {
               ...slide.slide_content,
               content: slideContent,
@@ -117,11 +113,11 @@ export async function addProseClassesAndSplitOverheight(
     return processSlide(
       slide.slide_content.content,
       slide.slide_title,
-      slide.id
+      slide.slide_id
     );
   } else {
     console.log(
-      // `Not processing this slide: ${slide.id}, slide type: ${slide.slide_type} prose class: ${slide.slide_content?.prose_class}, checkProseClass: ${checkProseClass}`
+      // `Not processing this slide: ${slide.slide_id}, slide type: ${slide.slide_type} prose class: ${slide.slide_content?.prose_class}, checkProseClass: ${checkProseClass}`
     );
   }
 
@@ -135,9 +131,8 @@ export async function addProseClassesAndSplitOverheight(
  * @returns A promise that resolves to an array of sources, or throws an error if the sources cannot be retrieved.
  */
 export async function getSources(presentationID: string) {
-
   try {
-    const sources = await dynamodbGetSources(presentationID);
+    const sources = await getAllItemsForPresentationWithAuth('source', presentationID );
     return sources;
   } catch (error) {
     console.error("Error retrieving sources:", error);
@@ -157,7 +152,7 @@ export async function getAllSlides(presentationID: string) {
   let slides: Slide[];
 
   try {
-    slides = await dynamodbGetAllSlides(presentationID);
+    slides = await getAllItemsForPresentationWithAuth('slide', presentationID);
   } catch (error) {
     console.error("Error retrieving slides:", error);
     throw new Error("Failed to retrieve slides");
@@ -179,14 +174,14 @@ export async function getSlides(
   let slides: Slide | Slide[] | null;
 
   try {
-    // slides = await dynamodbGetSlides(presentationID, slideIDs);
-    // Looks redundant but this is to fix the type error
     if (typeof slideIDs === "string") {
       // Single slideID case
-      slides = await dynamodbGetSlides(presentationID, slideIDs);
+      slides = await getItemsWithAuth('slide', { presentation_id: presentationID, slide_id: slideIDs }) as Slide | null;
     } else if (Array.isArray(slideIDs)) {
       // Multiple slideIDs case
-      slides = await dynamodbGetSlides(presentationID, slideIDs);
+      slides = await Promise.all(slideIDs.map(slide_id => 
+        getItemsWithAuth('slide', { presentation_id: presentationID, slide_id }) as Promise<Slide>
+      ));
     } else {
       throw new Error("Invalid slideIDs type.");
     }
@@ -202,6 +197,13 @@ export async function getSlides(
   // Make sure slides is an array
   if (!Array.isArray(slides)) {
     slides = [slides];
+  }
+
+  // If null values are found in the slides array, remove them and log a warning
+  const nullSlides = slides.filter(slide => !slide);
+  if (nullSlides.length > 0) {
+    console.warn("Null slides found:", nullSlides);
+    slides = slides.filter(slide => slide) as Slide[];
   }
 
   let updatedSlides: Slide[] = (
@@ -220,8 +222,8 @@ export async function getSlides(
             const prevSlide = processedSlides[i - 1];
             const nextSlide = processedSlides[i + 1];
 
-            currentSlide.previous = prevSlide?.id || slide.previous; // if prevSlide is undefined, use original previous
-            currentSlide.next = nextSlide?.id || slide.next; // if nextSlide is undefined, use original next
+            currentSlide.previous = prevSlide?.slide_id || slide.previous; // if prevSlide is undefined, use original previous
+            currentSlide.next = nextSlide?.slide_id || slide.next; // if nextSlide is undefined, use original next
           }
         }
 
@@ -233,7 +235,7 @@ export async function getSlides(
   // Add a slide to the end of the array to set the previous pointer of the slide after the last slide
   let nextSlide = {
     id: updatedSlides[updatedSlides.length - 1].next,
-    previous: updatedSlides[updatedSlides.length - 1].id,
+    previous: updatedSlides[updatedSlides.length - 1].slide_id,
   };
 
   let updatedSlidesWithNext: Partial<Slide>[] = [
@@ -246,21 +248,27 @@ export async function getSlides(
   // Optimize updatedSlides by only including fields that are different
   const optimizedUpdatedSlides = updatedSlidesWithNext.map(
     (updatedSlide, index): Partial<Slide> => {
-      const matchingSlide = slides!.find(
-        (slide: Slide) => slide.id === updatedSlide.id
+      // Find the matching slide in the original slides array
+      const matchingOriginalSlides = slides!.find(
+        (slide: Slide) => slide.slide_id === updatedSlide.slide_id
       );
+
+      // Always include slide_id and presentation_id
       const updatedFields: Partial<Slide> = {
-        id: updatedSlide.id,
+        slide_id: updatedSlide.slide_id,
+        presentation_id: presentationID,
       };
 
-      if (matchingSlide) {
+      if (matchingOriginalSlides) {
+        // Check if any fields are different, include them in the updatedFields
         for (const key in updatedSlide) {
-          if (updatedSlide[key] !== matchingSlide[key]) {
+          if (updatedSlide[key] !== matchingOriginalSlides[key]) {
             updatedFields[key] = updatedSlide[key];
           }
         }
       } else {
         for (const key in updatedSlide) {
+          // Include all fields if the slide is new
           updatedFields[key] = updatedSlide[key];
         }
       }
@@ -269,8 +277,8 @@ export async function getSlides(
     }
   );
 
-  // fire and forget
-  await dynamodbUpdateSlides(presentationID, optimizedUpdatedSlides);
+  await updateItemsWithAuth('slide', optimizedUpdatedSlides);
+  
   return updatedSlides;
 }
 
@@ -284,15 +292,38 @@ export async function updateSlides(
   presentationID: string,
   slides: Partial<Slide> | Partial<Slide>[]
 ) {
+  try {
+    const slidesToUpdate = Array.isArray(slides) ? slides : [slides];
 
-  let success = await dynamodbUpdateSlides(presentationID, slides);
+    // Probably not necessary because presentation_id is already included in the slides, but just in case it was changed
+    await updateItemsWithAuth('slide', slidesToUpdate.map(slide => ({
+      ...slide,
+      presentation_id: presentationID
+    })));
 
-  return success;
+    return true;
+  } catch (error) {
+    console.error("Error updating slides:", error);
+    return false;
+  }
 }
 
-export async function getHeadSlideID(presentationID: string) {
-  const { head_slide_id: headSlideID } = await getPresentationByID(presentationID, [
-    "head_slide_id",
-  ]);
-  return headSlideID;
+
+export async function getHeadSlideID(presentationID: string): Promise<string> {
+  try {
+    const presentation = await getItemsWithAuth('presentation', { presentation_id: presentationID }, ["head_slide_id"]) as Partial<Presentation> | null; // Only one id means only one presentation returend
+
+    if (!presentation) {
+      throw new Error("Presentation not found");
+    }
+
+    if (!presentation.head_slide_id) {
+      throw new Error("Head slide ID not found in presentation");
+    }
+
+    return presentation.head_slide_id;
+  } catch (error) {
+    console.error("Error retrieving head slide ID:", error);
+    throw new Error("Failed to retrieve head slide ID");
+  }
 }

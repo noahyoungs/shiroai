@@ -11,8 +11,8 @@ export class PersistentSlideList {
   private presentationID: string;
   private headID: string;
   private slides: { [key: string]: Slide };
-  private updatePushingSlideStatus: (id: string, status: string) => void;
-  private updateErrors: (id: string, error: string) => void;
+  private updatePushingSlideStatus: (slide_id: string, status: string) => void;
+  private updateErrors: (slide_id: string, error: string) => void;
   private sendInterfaceUpdate: (slideIDs: string | string[]) => void;
   length: number;
 
@@ -48,7 +48,7 @@ export class PersistentSlideList {
       if (slides) {
         // Add slides to the local list
         slides.forEach((data: Slide) => {
-          this.slides[data.id] = data;
+          this.slides[data.slide_id] = data;
           this.length++;
         });
       }
@@ -106,10 +106,10 @@ export class PersistentSlideList {
 
       // set slides in local list
       fetchedSlides.forEach((data: Slide) => {
-        if (!this.slides[data.id]) {
+        if (!this.slides[data.slide_id]) {
           this.length++;
         }
-        this.slides[data.id] = data;
+        this.slides[data.slide_id] = data;
       });
 
       return fetchedSlides;
@@ -151,10 +151,10 @@ export class PersistentSlideList {
       }
 
       slides.forEach((slide: Partial<Slide>) => {
-        if (!slide.id) {
+        if (!slide.slide_id) {
           throw new Error("Slide id is required");
         }
-        this.updatePushingSlideStatus(slide.id!, "updating_prose_class");
+        this.updatePushingSlideStatus(slide.slide_id!, "updating_prose_class");
       });
 
       // Update prose class and split slides regardless of whether prose class is present
@@ -163,7 +163,7 @@ export class PersistentSlideList {
         let splitSlides: Slide[] = (
           await Promise.all(
             slides.map(async (slide: Slide) => {
-              console.log("slide before split", slide.id);
+              console.log("slide before split", slide.slide_id);
               let processedSlides = await addProseClassesAndSplitOverheight(
                 slide,
                 false
@@ -177,11 +177,11 @@ export class PersistentSlideList {
                   const prevSlide = processedSlides[i - 1];
                   const nextSlide = processedSlides[i + 1];
 
-                  currentSlide.previous = prevSlide?.id || slide.previous; // if prevSlide is undefined, use original previous
+                  currentSlide.previous = prevSlide?.slide_id || slide.previous; // if prevSlide is undefined, use original previous
                   console.log(
-                    `i: ${i}, nextSlide: ${nextSlide?.id} slide.next: ${slide.next}`
+                    `i: ${i}, nextSlide: ${nextSlide?.slide_id} slide.next: ${slide.next}`
                   );
-                  currentSlide.next = nextSlide?.id || slide.next; // if nextSlide is undefined, use original next
+                  currentSlide.next = nextSlide?.slide_id || slide.next; // if nextSlide is undefined, use original next
                 }
               }
 
@@ -193,7 +193,7 @@ export class PersistentSlideList {
         // Add a slide containing the next id of the last slide with a previous pointer to the last slide
         let nextSlide = {
           id: splitSlides[splitSlides.length - 1].next,
-          previous: splitSlides[splitSlides.length - 1].id,
+          previous: splitSlides[splitSlides.length - 1].slide_id,
         };
 
         let splitSlidesWithNext: Partial<Slide>[] = [
@@ -207,16 +207,16 @@ export class PersistentSlideList {
       }
 
       slides.forEach((slide: Partial<Slide>) => {
-        this.updatePushingSlideStatus(slide.id!, "uploading");
+        this.updatePushingSlideStatus(slide.slide_id!, "uploading");
       });
 
       // Update the slides in the local list
       slides.forEach((slide: Partial<Slide>, index: number) => {
-        if (!slide.id) {
+        if (!slide.slide_id) {
           console.log("split slides with next", slides);
           throw new Error(`Slide id is required for slide at index ${index}`);
         }
-        const slideId = slide.id;
+        const slideId = slide.slide_id;
 
         if (this.slides[slideId]) {
           const existingSlide = this.slides[slideId];
@@ -232,44 +232,44 @@ export class PersistentSlideList {
       if (waitForDB) {
         // Array of slides
         slides.forEach((slide: Partial<Slide>) => {
-          this.updatePushingSlideStatus(slide.id!, "uploading");
+          this.updatePushingSlideStatus(slide.slide_id!, "uploading");
         });
         await updateSlidesAction(this.presentationID, slides);
         slides.forEach((slide: Partial<Slide>) => {
-          this.updatePushingSlideStatus(slide.id!, "uploaded");
+          this.updatePushingSlideStatus(slide.slide_id!, "uploaded");
         });
         this.sendInterfaceUpdate(
-          slides.map((slide: Partial<Slide>) => slide.id)
+          slides.map((slide: Partial<Slide>) => slide.slide_id)
         );
       } else {
         slides.forEach((slide: Partial<Slide>) => {
-          this.updatePushingSlideStatus(slide.id!, "uploading");
+          this.updatePushingSlideStatus(slide.slide_id!, "uploading");
         });
 
         updateSlidesAction(this.presentationID, slides)
           .catch((error) => {
             slides.forEach((slide: Partial<Slide>) => {
-              this.updatePushingSlideStatus(slide.id!, "errored");
+              this.updatePushingSlideStatus(slide.slide_id!, "errored");
               this.updateErrors(
-                slide.id!,
+                slide.slide_id!,
                 `Error updating slide: ${(error as Error).message}`
               );
             });
           })
           .then(() => {
             slides.forEach((slide: Partial<Slide>) => {
-              this.updatePushingSlideStatus(slide.id!, "uploaded");
+              this.updatePushingSlideStatus(slide.slide_id!, "uploaded");
             });
             this.sendInterfaceUpdate(
-              slides.map((slide: Partial<Slide>) => slide.id)
+              slides.map((slide: Partial<Slide>) => slide.slide_id)
             );
           });
       }
     } catch (error) {
       slides.forEach((slide: Partial<Slide>) => {
-        this.updatePushingSlideStatus(slide.id!, "errored");
+        this.updatePushingSlideStatus(slide.slide_id!, "errored");
         this.updateErrors(
-          slide.id!,
+          slide.slide_id!,
           `Error updating slide: ${(error as Error).message}`
         );
       });
@@ -286,7 +286,7 @@ export class PersistentSlideList {
     try {
       const previousSlide = this.slides[previousSlideId];
       const nextSlideId = previousSlide.next;
-      const newSlideId = newSlide.id;
+      const newSlideId = newSlide.slide_id;
 
       this.slides[newSlideId] = newSlide;
       this.length++;
@@ -297,43 +297,43 @@ export class PersistentSlideList {
       }
 
       const slidesToUpdate: Partial<Slide>[] = [
-        { id: previousSlide.id, next: newSlideId },
-        { previous: previousSlide.id, next: nextSlideId, ...newSlide },
+        { slide_id: previousSlide.slide_id, next: newSlideId },
+        { previous: previousSlide.slide_id, next: nextSlideId, ...newSlide },
       ];
       if (nextSlideId) {
-        slidesToUpdate.push({ id: nextSlideId, previous: newSlideId });
+        slidesToUpdate.push({ slide_id: nextSlideId, previous: newSlideId });
       }
 
       if (waitForDB) {
-        this.updatePushingSlideStatus(newSlide.id, "uploading");
+        this.updatePushingSlideStatus(newSlide.slide_id, "uploading");
         await updateSlidesAction(this.presentationID, slidesToUpdate);
-        this.updatePushingSlideStatus(newSlide.id, "uploaded");
-        this.sendInterfaceUpdate(newSlide.id);
+        this.updatePushingSlideStatus(newSlide.slide_id, "uploaded");
+        this.sendInterfaceUpdate(newSlide.slide_id);
       } else {
-        this.updatePushingSlideStatus(newSlide.id, "uploading");
+        this.updatePushingSlideStatus(newSlide.slide_id, "uploading");
         updateSlidesAction(this.presentationID, slidesToUpdate)
           .catch((error) => {
             this.updateErrors(
-              newSlide.id,
+              newSlide.slide_id,
               `Error adding slide after ${previousSlideId}: ${
                 (error as Error).message
               }`
             );
-            this.updatePushingSlideStatus(newSlide.id, "errored");
+            this.updatePushingSlideStatus(newSlide.slide_id, "errored");
           })
           .then(() => {
-            this.updatePushingSlideStatus(newSlide.id, "uploaded");
-            this.sendInterfaceUpdate(newSlide.id);
+            this.updatePushingSlideStatus(newSlide.slide_id, "uploaded");
+            this.sendInterfaceUpdate(newSlide.slide_id);
           });
       }
     } catch (error) {
       this.updateErrors(
-        newSlide.id,
+        newSlide.slide_id,
         `Error adding slide after ${previousSlideId}: ${
           (error as Error).message
         }`
       );
-      this.updatePushingSlideStatus(newSlide.id, "errored");
+      this.updatePushingSlideStatus(newSlide.slide_id, "errored");
     }
   }
 
@@ -389,14 +389,14 @@ export class PersistentSlideList {
         this.slides[nextSlideId].previous = previousSlideId;
       }
 
-      const slidesToUpdate: Partial<Slide>[] = [{ id: slideID, hidden: true }];
+      const slidesToUpdate: Partial<Slide>[] = [{ slide_id: slideID, hidden: true }];
 
       if (previousSlideId) {
-        slidesToUpdate.push({ id: previousSlideId, next: nextSlideId });
+        slidesToUpdate.push({ slide_id: previousSlideId, next: nextSlideId });
       }
 
       if (nextSlideId) {
-        slidesToUpdate.push({ id: nextSlideId, previous: previousSlideId });
+        slidesToUpdate.push({ slide_id: nextSlideId, previous: previousSlideId });
       }
 
       if (waitForDB) {
@@ -410,10 +410,10 @@ export class PersistentSlideList {
           .catch((error) => {
             slidesToUpdate.forEach((slide) => {
               this.updateErrors(
-                slide.id!,
+                slide.slide_id!,
                 `Error hiding slide: ${(error as Error).message}`
               );
-              this.updatePushingSlideStatus(slide.id!, "errored");
+              this.updatePushingSlideStatus(slide.slide_id!, "errored");
             });
           })
           .then(() => {

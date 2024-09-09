@@ -29,7 +29,7 @@ export const ScriptSpeakerNotesTabs = ({
   const updateSlideScript = useCallback(
     debounce((value) => {
       if (currentSlideID) {
-        slideList.updateSlides({ script: value, id: currentSlideID }, false);
+        slideList.updateSlides({ script: value, slide_id: currentSlideID }, false);
       }
     }, 300),
     [currentSlideID, slideList]
@@ -39,7 +39,7 @@ export const ScriptSpeakerNotesTabs = ({
     debounce((value) => {
       if (currentSlideID) {
         slideList.updateSlides(
-          { speaker_notes: value, id: currentSlideID },
+          { speaker_notes: value, slide_id: currentSlideID },
           false
         );
       }
