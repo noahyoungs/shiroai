@@ -79,10 +79,10 @@ def build_keys(item_type: str, identifiers: Dict[str, str]) -> Dict[str, Dict[st
     sk = build_sk(item_type, identifiers)
     return {'PK': {'S': pk}, 'SK': {'S': sk}}
 
-def build_gsi1sk(presentation_id: str) -> str:
-    timestamp = int(time.time())
-    log_debug(f"Building GSI1SK with timestamp {timestamp} for presentation_id {presentation_id}")
-    return f"LASTUPDATE#{timestamp}#PRESENTATION#{presentation_id}"
+def build_gsi1sk() -> str:
+    timestamp = int(time.time() * 1000)
+    log_debug(f"Building GSI1SK with timestamp {timestamp}")
+    return f"LASTUPDATE#{timestamp}"
 
 def prepare_projection_expression(attributes: List[str]) -> Dict[str, Any]:
     if attributes:
@@ -106,10 +106,9 @@ def build_update_expression(item_dict: Dict[str, Any], item_type: str) -> Dict[s
             expression_attribute_values[f':{key}'] = serializer.serialize(value)
             expression_attribute_names[f'#{key}'] = key
 
-    if item_type in ['presentation', 'slide', 'topic', 'source']:
-        timestamp = int(time.time())
+    if item_type == 'presentation':
         update_expression_parts.append('#GSI1SK = :GSI1SK')
-        expression_attribute_values[':GSI1SK'] = {'S': build_gsi1sk(item_dict['presentation_id'])}
+        expression_attribute_values[':GSI1SK'] = {'S': build_gsi1sk()}
         expression_attribute_names['#GSI1SK'] = 'GSI1SK'
 
     update_expression = 'SET ' + ', '.join(update_expression_parts)
@@ -136,13 +135,15 @@ def extract_identifiers(item_type: item_types_literal ,pk: str, sk: str, gsi1sk:
         'presentation_id': presentation_id,
     }
 
-    if not item_type=='user':
+    if item_type=='presentation':
         try:
-            identifiers['last_updated'] = int(gsi1sk.split('#')[1]) if gsi1sk and gsi1sk.startswith('LASTUPDATE#') else None
+            if gsi1sk and gsi1sk.startswith('LASTUPDATED#'):
+                identifiers['last_updated'] = int(gsi1sk.split('#')[1])
+            else:
+                identifiers['last_updated'] = None
         except Exception as e:
-            last_updated = None
-            logger.warn(f"Error extracting last_updated from GSI1SK, not adding last_updated attribute: {e}")
-
+            identifiers['last_updated'] = None
+            logger.warn(f"Error extracting last_updated from GSI1SK of presentation, not adding last_updated attribute: {e}")
     if item_id:
         item_type = sk_parts[2].lower() if len(sk_parts) > 2 else None
         if item_type:
