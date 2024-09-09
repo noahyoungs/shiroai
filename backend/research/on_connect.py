@@ -6,24 +6,24 @@ import asyncio
 
 interface = "research"
 
-async def initialize(presentationID):
+async def initialize(presentation_id):
     # get interface keys
     interface_keys = global_prompts_config.interface_keys_for_interface[interface]
     memory = {}
 
-    presentation_task = get_presentation(presentationID, ['messages', 'status', 'topic', 'audience', 'goal', 'memory'])
-    sources_task = get_sources(presentationID)
+    presentation_task = get_presentation(presentation_id, ['messages', 'status', 'topic', 'audience', 'goal', 'memory'])
+    sources_task = get_sources(presentation_id)
 
     presentation, sources = await asyncio.gather(presentation_task, sources_task)
 
     # Check if 'messages' exists in the presentation and is not None
     if 'messages' in presentation and presentation['messages'] is not None:
         # If so, parse it from JSON
-        print(f"Loading existing messages for presentation {presentationID}")
+        print(f"Loading existing messages for presentation {presentation_id}")
         messages = json.loads(presentation['messages'])
     else:
         # Otherwise, use the default list directly
-        print(f"No existing messages for presentation {presentationID}")
+        print(f"No existing messages for presentation {presentation_id}")
         messages = global_prompts_config.initial_messages.copy()
 
     if 'memory' in presentation and presentation['memory'] is not None:
@@ -37,11 +37,11 @@ async def initialize(presentationID):
         # Preset system and assistant message for interface change
         messages += global_prompts_config.get_interface_changed_messages(interface)
 
-    interfaceData = {
+    interface_data = {
         'sources': sources or [],
     }
 
     # print(f"Interface keys: {interface_keys}")
-    # print(f"Interface data: {interfaceData}")
+    # print(f"Interface data: {interface_data}")
 
-    return messages, interfaceData, memory
+    return messages, interface_data, memory

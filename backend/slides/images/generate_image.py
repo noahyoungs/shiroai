@@ -370,7 +370,7 @@ Remember to follow the instructions for creating a good prompt and to provide a 
 
     return template, messages
 
-async def upload_image(image_data, presentationID):
+async def upload_image(image_data, presentation_id):
     """Uploads the image and its thumbnail to S3 and returns the S3 key."""
     print("Uploading image...")
     
@@ -383,7 +383,7 @@ async def upload_image(image_data, presentationID):
     image_bytes = image_bytes_io.getvalue()
 
     # Generate the S3 key
-    s3_key = f"{presentationID}/backgrounds/{uuid7str()}.webp"
+    s3_key = f"{presentation_id}/backgrounds/{uuid7str()}.webp"
 
     # Create and upload the thumbnail
     thumbnail_size = THUMBNAIL_SIZE_FULL if image.width > image.height else THUMBNAIL_SIZE_SQUARE
@@ -404,7 +404,7 @@ async def upload_image(image_data, presentationID):
     return s3_key
 
     
-async def generate_upload_update_by_prompt(presentationID, prompt, shape, style_preset=None, model_type="sdxl", negative_prompt=None):
+async def generate_upload_update_by_prompt(presentation_id, prompt, shape, style_preset=None, model_type="sdxl", negative_prompt=None):
     
     revised_prompt = None
     
@@ -420,7 +420,7 @@ async def generate_upload_update_by_prompt(presentationID, prompt, shape, style_
     else:
         raise Exception("Invalid model type")
     
-    s3_key = await upload_image(image_data, presentationID)
+    s3_key = await upload_image(image_data, presentation_id)
 
     image = Image.open(BytesIO(image_data))
     width, height = image.size
@@ -437,7 +437,7 @@ async def generate_upload_update_by_prompt(presentationID, prompt, shape, style_
     return image_data
     
 
-async def generate_and_upload_image(presentationID, presentation_topic, presentation_audience, presentation_goal, section_topic=None, shape="square", model_type="sdxl"):
+async def generate_and_upload_image(presentation_id, presentation_topic, presentation_audience, presentation_goal, section_topic=None, shape="square", model_type="sdxl"):
     template, messages = await get_prompt(presentation_topic, presentation_audience, presentation_goal, section_topic, model_type)
     
     if template.style == "default":
@@ -455,7 +455,7 @@ async def generate_and_upload_image(presentationID, presentation_topic, presenta
     else:
         raise Exception("Invalid model type")
     
-    s3_key = await upload_image(image_data, presentationID)
+    s3_key = await upload_image(image_data, presentation_id)
 
     image = Image.open(BytesIO(image_data))
     width, height = image.size
@@ -475,22 +475,22 @@ async def generate_and_upload_image(presentationID, presentation_topic, presenta
 
 # test function
 async def test():
-    # presentationID = "1"
+    # presentation_id = "1"
     # presentation_topic = "Joe Biden's Career and Achievements"
     # # section_topic = "Economic Policies"
     # section_topic = None
     # shape = "full"
     # model_type = "dalle"  # Change to "core" or "sdxl" to test different models
-    # image_data = await generate_and_upload_image(presentationID, presentation_topic, section_topic, shape, model_type)
+    # image_data = await generate_and_upload_image(presentation_id, presentation_topic, section_topic, shape, model_type)
     # print(image_data)
     
-    presentationID = "1"
+    presentation_id = "1"
     prompt = "A lighthouse on a cliff"
     shape = "square"
     style_preset = "natural"
     model_type = "dalle"
     
-    image = await generate_upload_update_by_prompt(presentationID, prompt, shape, style_preset, model_type)
+    image = await generate_upload_update_by_prompt(presentation_id, prompt, shape, style_preset, model_type)
     print(image)
     
 

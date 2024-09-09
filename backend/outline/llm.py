@@ -10,21 +10,21 @@ import json
 import os
 
 
-async def getCurrentSubtopicListMessage(interfaceData, presentationID):
-    if not isinstance(interfaceData['all_topics'], list):
-        presentation = await get_presentation(presentationID, ['candidate_topics', 'topic_extraction_status'])
+async def getCurrentSubtopicListMessage(interface_data, presentation_id):
+    if not isinstance(interface_data['all_topics'], list):
+        presentation = await get_presentation(presentation_id, ['candidate_topics', 'topic_extraction_status'])
         if 'candidate_topics' in presentation and presentation.get('candidate_topics') is not None:
             topics = json.loads(presentation['candidate_topics'])
         if topics:
-            interfaceData['all_topics'] = topics
-            print("WARNING: all_topics not found in interfaceData. Fetching from dynamodb.")
+            interface_data['all_topics'] = topics
+            print("WARNING: all_topics not found in interface_data. Fetching from dynamodb.")
         else:
             raise ValueError("all_topics must be a list")
-    if not isinstance(interfaceData['outline'], list):
+    if not isinstance(interface_data['outline'], list):
         raise ValueError("outline must be a list")
     
-    included_topics = [(next((d for d in interfaceData['all_topics'] if d['id'] == subtopic['id']), None)) for subtopic in interfaceData['outline'] if subtopic['included']]
-    excluded_topics = [(next((d for d in interfaceData['all_topics'] if d['id'] == subtopic['id']), None)) for subtopic in interfaceData['outline'] if not subtopic['included']]
+    included_topics = [(next((d for d in interface_data['all_topics'] if d['id'] == subtopic['id']), None)) for subtopic in interface_data['outline'] if subtopic['included']]
+    excluded_topics = [(next((d for d in interface_data['all_topics'] if d['id'] == subtopic['id']), None)) for subtopic in interface_data['outline'] if not subtopic['included']]
     
     included_lists = []
     excluded_lists = []
@@ -107,11 +107,11 @@ def pydantic_to_dict(obj):
         return obj
     
 
-async def complete(presentationID, messages, interfaceData, max_turns=5, emitter=None, memory=None):
+async def complete(presentation_id, messages, interface_data, max_turns=5, emitter=None, memory=None):
     current_turn = 0
     new_messages = []
     
-    async def new_turn(presentationID, messages, interfaceData, current_turn, max_turns=5, emitter=None, memory=None):
+    async def new_turn(presentation_id, messages, interface_data, current_turn, max_turns=5, emitter=None, memory=None):
     
         class ProceedToNextStepException(Exception):
                 pass
@@ -137,8 +137,8 @@ async def complete(presentationID, messages, interfaceData, max_turns=5, emitter
             
         #     # errors raised here are considered the model's mistake
         #     async def run(self):
-        #         nonlocal memory, interfaceData
-        #         source = next((s for s in interfaceData.get('excluded_topics', None) if s.get("id", "").endswith(self.topic_id)), None)
+        #         nonlocal memory, interface_data
+        #         source = next((s for s in interface_data.get('excluded_topics', None) if s.get("id", "").endswith(self.topic_id)), None)
         #         if not source:
         #             raise ValueError(f"Topic with ID {id} is not in the exlcuded topics list. You can only include topics that are in the excluded topics list.")
         #         return source["id"] # the whole id
@@ -146,15 +146,15 @@ async def complete(presentationID, messages, interfaceData, max_turns=5, emitter
         #     # errors raised here are not caught
         #     # second param is the output of the run function
         #     async def post_run(self, id):
-        #         nonlocal memory, interfaceData
+        #         nonlocal memory, interface_data
         #         # move the topic to the included topics list
-        #         topic_to_move = next((d for d in interfaceData['excluded_topics'] if d['id'] == id), None)
+        #         topic_to_move = next((d for d in interface_data['excluded_topics'] if d['id'] == id), None)
         #         if topic_to_move:
-        #             interfaceData['included_topics'].append(topic_to_move)
-        #             interfaceData['excluded_topics'].remove(topic_to_move)             
+        #             interface_data['included_topics'].append(topic_to_move)
+        #             interface_data['excluded_topics'].remove(topic_to_move)             
         #         else:
         #             raise ValueError(f"Topic with ID {id} not found in the excluded topics list even though it was validated in the run function.")   
-        #         # post_messages = [getCurrentTopicListMessage(interfaceData)]
+        #         # post_messages = [getCurrentTopicListMessage(interface_data)]
         #         return f"Success: Successfully moved topic {self.topic_id} to included topics"
             
         # class ExcludeTopic(OpenAISchema):
@@ -167,7 +167,7 @@ async def complete(presentationID, messages, interfaceData, max_turns=5, emitter
             
         #     # errors raised here are considered the model's mistake
         #     async def run(self):
-        #         source = next((s for s in interfaceData.get('included_topics', None) if s.get("id", "").endswith(self.topic_id)), None)
+        #         source = next((s for s in interface_data.get('included_topics', None) if s.get("id", "").endswith(self.topic_id)), None)
         #         if not source:
         #             raise ValueError(f"Topic with ID {id} is not in the included topics list. You can only exclude topics that are in the included topics list.")
         #         return source["id"]
@@ -175,15 +175,15 @@ async def complete(presentationID, messages, interfaceData, max_turns=5, emitter
         #     # errors raised here are not caught
         #     # second param is the output of the run function
         #     async def post_run(self, id):
-        #         nonlocal memory, interfaceData
+        #         nonlocal memory, interface_data
         #         # move the topic to the excluded topics list
-        #         topic_to_move = next((d for d in interfaceData['included_topics'] if d['id'] == id), None)
+        #         topic_to_move = next((d for d in interface_data['included_topics'] if d['id'] == id), None)
         #         if topic_to_move:
-        #             interfaceData['excluded_topics'].append(topic_to_move)
-        #             interfaceData['included_topics'].remove(topic_to_move)
+        #             interface_data['excluded_topics'].append(topic_to_move)
+        #             interface_data['included_topics'].remove(topic_to_move)
         #         else:
         #             raise ValueError(f"Topic with ID {id} not found in the included topics list even though it was validated in the run function.")
-        #         # post_messages = [getCurrentTopicListMessage(interfaceData)]
+        #         # post_messages = [getCurrentTopicListMessage(interface_data)]
         #         return f"Success: Successfully moved topic {self.topic_id} to excluded topics"
             
         class SetIncludedSubtopics(OpenAISchema):
@@ -196,10 +196,10 @@ async def complete(presentationID, messages, interfaceData, max_turns=5, emitter
             
             # errors raised here are considered the model's mistake
             async def run(self):
-                nonlocal memory, interfaceData
+                nonlocal memory, interface_data
                 # Check that all the id prefixes match an id in the outline
                 unmatched_prefixes = [prefix for prefix in self.ids_in_new_order
-                      if not any(prefix == subtopic['id'][-8:] for subtopic in interfaceData['outline'])]
+                      if not any(prefix == subtopic['id'][-8:] for subtopic in interface_data['outline'])]
 
                 if unmatched_prefixes:
                     raise ValueError(f"Error: The following ID prefixes do not match any subtopic in the outline: {', '.join(unmatched_prefixes)}")
@@ -209,12 +209,12 @@ async def complete(presentationID, messages, interfaceData, max_turns=5, emitter
             # errors raised here are not caught
             # second param is the output of the run function
             async def post_run(self, new_order):
-                nonlocal memory, interfaceData
+                nonlocal memory, interface_data
 
                 new_outline = []
 
                 # Create a dictionary to map id prefixes to their corresponding subtopics
-                subtopic_dict = {subtopic['id'][-8:]: subtopic for subtopic in interfaceData['outline']}
+                subtopic_dict = {subtopic['id'][-8:]: subtopic for subtopic in interface_data['outline']}
 
                 # Iterate over the id prefixes in new_order and add the corresponding topics to new_included_topics
                 for prefix in new_order:
@@ -224,15 +224,15 @@ async def complete(presentationID, messages, interfaceData, max_turns=5, emitter
                         print(f"Warning: ID prefix '{prefix}' not found in subtopics.")
 
                 # Add the remaining subtopics
-                for subtopic in interfaceData['outline']:
+                for subtopic in interface_data['outline']:
                     if subtopic['id'][-8:] not in new_order:
                         new_outline.append(dict(subtopic, included=False))
                 
                 print(f"New Outline kength: {len(new_outline)}")
-                interfaceData['outline'] = new_outline
-                print(f"Interfacedata new outline length: {len(interfaceData['outline'])}")
+                interface_data['outline'] = new_outline
+                print(f"interface_data new outline length: {len(interface_data['outline'])}")
 
-                await emitter('interface_update', interfaceData)
+                await emitter('interface_update', interface_data)
 
 
                 return "Success: Successfully set the included subtopics list."
@@ -277,7 +277,7 @@ async def complete(presentationID, messages, interfaceData, max_turns=5, emitter
             return tool_result
         
         # Update the model on the current source list
-        messages.append( await getCurrentSubtopicListMessage(interfaceData, presentationID))
+        messages.append( await getCurrentSubtopicListMessage(interface_data, presentation_id))
         
         completion = await client.chat.completions.create(
             model=os.getenv("CHAT_MODEL_OPENAI_ID"),
@@ -321,7 +321,7 @@ async def complete(presentationID, messages, interfaceData, max_turns=5, emitter
                 try: 
                     # tool_result = await execute_tool(tool_call, [IncludeTopic, ExcludeTopic, ReorderIncludedTopics, ProceedToNextStep])
                     tool_result = await execute_tool(tool_call, [SetIncludedSubtopics, ProceedToNextStep])
-                    print(f"Line 344 Interface Data all_topics length: {len(interfaceData['all_topics'])}")
+                    print(f"Line 344 Interface Data all_topics length: {len(interface_data['all_topics'])}")
                     print(f"Tool Result: {tool_result}")
                 except ProceedToNextStepException:
                     return messages, [{"role": "system", "content": "Proceeding to the next step..."}], True
@@ -335,7 +335,7 @@ async def complete(presentationID, messages, interfaceData, max_turns=5, emitter
                     })
             
             # recursively call complete until no tool calls
-            return await new_turn(presentationID, messages, interfaceData, current_turn + 1, max_turns, emitter=emitter, memory=memory)
+            return await new_turn(presentation_id, messages, interface_data, current_turn + 1, max_turns, emitter=emitter, memory=memory)
         else:
             assert completion.choices[0].message.content
             responseMessage = {'role':'assistant', 'content': completion.choices[0].message.content}
@@ -343,7 +343,7 @@ async def complete(presentationID, messages, interfaceData, max_turns=5, emitter
             messages.append(responseMessage)
             return messages, new_messages, False
         
-    return await new_turn(presentationID, messages, interfaceData, current_turn, max_turns, emitter=emitter, memory=memory)
+    return await new_turn(presentation_id, messages, interface_data, current_turn, max_turns, emitter=emitter, memory=memory)
         
         
                     

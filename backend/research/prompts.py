@@ -101,13 +101,13 @@
 
 #     return function_objects
 
-def getCurrentSourceListMessage(interfaceData):
-    if not isinstance(interfaceData['sources'], list):
+def getCurrentSourceListMessage(interface_data):
+    if not isinstance(interface_data['sources'], list):
         raise ValueError("Sources must be a list")
     
     # sort sources by id
-    if isinstance(interfaceData['sources'], list) and len(interfaceData['sources']) > 0:
-        sorted_sources = sorted(interfaceData['sources'], key=lambda x: x['id'])
+    if isinstance(interface_data['sources'], list) and len(interface_data['sources']) > 0:
+        sorted_sources = sorted(interface_data['sources'], key=lambda x: x['id'])
     else:
         sorted_sources = []
 

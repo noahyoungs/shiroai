@@ -138,14 +138,14 @@ def process_topics(chunk_strings, embeddings, portkey_trace=None):
     document_info = topic_model.get_document_info(chunk_strings)
     return topic_info, document_info
     
-async def _label_documents_and_extract_topics(presentationID):
-    print(f"Labeling documents and extracting topics for presentation {presentationID}")
+async def _label_documents_and_extract_topics(presentation_id):
+    print(f"Labeling documents and extracting topics for presentation {presentation_id}")
     
     portkey_trace = None 
     
     # get presentation and sources concurrently
-    presentation_task = get_presentation(presentationID, ['topic', 'audience', 'goal'])
-    sources_task = get_sources(presentationID)
+    presentation_task = get_presentation(presentation_id, ['topic', 'audience', 'goal'])
+    sources_task = get_sources(presentation_id)
     
     presentation, sources = await asyncio.gather(presentation_task, sources_task)
 
@@ -403,26 +403,26 @@ async def _label_documents_and_extract_topics(presentationID):
     # topics is now filled with topics and their relevance ratings and reasonings (list of dicts)
     
     # upload docs_with_topics to S3
-    docs_with_topics_s3_key = f"{presentationID}/all_sources_chunked_docs_with_topics.json"
+    docs_with_topics_s3_key = f"{presentation_id}/all_sources_chunked_docs_with_topics.json"
 
     # upload embeddings to S3
-    embeddings_s3_key = f"{presentationID}/all_sources_chunked_embeddings.npy"
+    embeddings_s3_key = f"{presentation_id}/all_sources_chunked_embeddings.npy"
 
     # Execute all uploads concurrently using asyncio.gather
     await asyncio.gather(
         upload_model_list_to_s3(docs_with_topics, docs_with_topics_s3_key),
         upload_np_array_to_s3(embeddings, embeddings_s3_key),
-        update_presentation(presentationID, candidate_topics=json.dumps(topics))
+        update_presentation(presentation_id, candidate_topics=json.dumps(topics))
     )
     
-    print(f"Finished labeling documents and extracting topics for presentation {presentationID}")
+    print(f"Finished labeling documents and extracting topics for presentation {presentation_id}")
     return topics
     
 # test function
-async def label_documents_extract_topics(presentationID):
+async def label_documents_extract_topics(presentation_id):
     loop = asyncio.get_running_loop()
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        topics = await loop.run_in_executor(executor, asyncio.run, _label_documents_and_extract_topics(presentationID))
+        topics = await loop.run_in_executor(executor, asyncio.run, _label_documents_and_extract_topics(presentation_id))
     return topics
     
     

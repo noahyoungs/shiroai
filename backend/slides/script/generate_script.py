@@ -194,7 +194,7 @@ async def generate_all_scripts(psl: PersistentSlideList, interface_data: Any, em
             'id': slide.id,
             'script': script
         })  
-        # update status in interfaceData for progress bar
+        # update status in interface_data for progress bar
         interface_data["script"]["status"] = f"{i+1}/{len(slides_l)}"
         # emit interface update with new status
         await emitter(data=interface_data)

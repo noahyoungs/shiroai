@@ -459,14 +459,14 @@ async def summarize_documents(documents):
     return summary
 
 
-async def summarize_source(source, presentationID, document=None, callback=None):
+async def summarize_source(source, presentation_id, document=None, callback=None):
     """
    Summarize a source file based on its type and update the source with the generated summary.
 
    Args:
        source (dict): A dictionary representing the source file to be summarized.
            The dictionary must contain an 'id' field and a 'type' field indicating the file type.
-       presentationID (str): The ID of the presentation associated with the source file.
+       presentation_id (str): The ID of the presentation associated with the source file.
        document (Optional[Document]): A Document object representing the loaded source file.
            This argument is required for non-tabular source files.
        callback (Optional[callable]): An optional asynchronous callback function to be executed
@@ -504,14 +504,14 @@ async def summarize_source(source, presentationID, document=None, callback=None)
         raise ValueError("Source must have an 'id' field.")
 
     if source["type"] in ["csv", "xls", "xlsx", "tsv"]:
-        s3_path = f"{presentationID}/{source['s3_filepath']}"
+        s3_path = f"{presentation_id}/{source['s3_filepath']}"
         summary = await summarize_tabular_file(s3_path)
     else:
         if document is None:
             raise ValueError("Document must be provided for non-tabular sources.")
         summary = await summarize_documents([document])
     
-    await update_source(presentationID, source["id"], summary=summary)
+    await update_source(presentation_id, source["id"], summary=summary)
     
     print("Finished summarizing one source.")
     # run callback

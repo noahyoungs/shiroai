@@ -6,20 +6,20 @@ import asyncio
 
 interface = "outline"
 
-async def initialize(presentationID):
+async def initialize(presentation_id):
     # get interface keys
     memory = {}
 
-    presentation = await get_presentation(presentationID, ['messages', 'status', 'topic', 'outline', 'audience', 'goal', 'candidate_topics'])
+    presentation = await get_presentation(presentation_id, ['messages', 'status', 'topic', 'outline', 'audience', 'goal', 'candidate_topics'])
 
     # Check if 'messages' exists in the presentation and is not None
     if 'messages' in presentation and presentation['messages'] is not None:
         # If so, parse it from JSON
-        print(f"Loading existing messages for presentation {presentationID}")
+        print(f"Loading existing messages for presentation {presentation_id}")
         messages = json.loads(presentation['messages'])
     else:
         # Otherwise, use the default list directly
-        print(f"No existing messages for presentation {presentationID}")
+        print(f"No existing messages for presentation {presentation_id}")
         messages = global_prompts_config.initial_messages.copy()
 
     if 'memory' in presentation and presentation['memory'] is not None:
@@ -50,7 +50,7 @@ async def initialize(presentationID):
         summary_message = { 'role':'system', 'content':f"Remember, you are working on a presentation with these parameters:\n\nPresentation Topic:\n{presentation['topic']}\n\nTarget Audience:\n{presentation['audience']}\n\nPresentation Goal:\n{presentation['goal']}"}
         messages.append(summary_message)
     
-    interfaceData = {
+    interface_data = {
         'all_topics': all_topics,
         'outline': outline,
         # 'included_topics': [{'id': 'id1', 'name': 'Topic 1', 'randomattr':'foo'}, {'id': 'id2', 'name': 'Topic 2'}, {'id': 'id3', 'name': 'Topic 3'}],
@@ -60,7 +60,7 @@ async def initialize(presentationID):
     
 
     # print(f"Interface keys: {interface_keys}")
-    # print(f"onconnect Interface data: {interfaceData}")
+    # print(f"onconnect Interface data: {interface_data}")
     
 
-    return messages, interfaceData, memory
+    return messages, interface_data, memory

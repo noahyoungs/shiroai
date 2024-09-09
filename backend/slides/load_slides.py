@@ -47,7 +47,7 @@ async def vectorize_docs(docs, embeddings=None):
     return docs 
 
 async def load_slides(presentation_id, messages, memory, emitter):
-    # in slides interface, interfaceData is not used, client fetches data directly from dynamodb. Memory is used to store slide_list on this side. interface_update sio emit is used to send a push message to client.
+    # in slides interface, interface_data is not used, client fetches data directly from dynamodb. Memory is used to store slide_list on this side. interface_update sio emit is used to send a push message to client.
     newMessages = []
 
     # first check if candidate topics are already in dynamodb

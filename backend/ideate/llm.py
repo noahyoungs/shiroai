@@ -26,34 +26,27 @@ async def ask_perplexity(question):
 async def get_completion(
     messages,
     interface,
-    interfaceData,
+    interface_data,
     updateInterface,
     user=None,
-    presentationID=None,
+    presentation_id=None,
     memory=None,
     newMessages=[],
     ):
     newMessages=newMessages.copy()
     
-    # print(f"User: {user}")
-    metadata = {
-        "interface": interface,
-        "feature": "chat",
-    }
-    if presentationID is not None:
-        metadata["presentationID"] = presentationID
     
     # Check if all interface fields are truthy
-    complete = all(interfaceData.values())
+    complete = all(interface_data.values())
 
-    messages.append(ideate_prompts.getInterfaceUpdateSystemMessage(interface, interfaceData))
+    messages.append(ideate_prompts.getInterfaceUpdateSystemMessage(interface, interface_data))
     
     if complete:
         if not memory.get("ideate_confirmation_message_sent", False):
             messages.append(ideate_prompts.ideate_confirmation_message)
             memory["ideate_confirmation_message_sent"] = True
     else:
-        attributes_not_set = [key for key, value in interfaceData.items() if not value]
+        attributes_not_set = [key for key, value in interface_data.items() if not value]
         messages.append({"role":"system", "content": f"You still need to set the following attributes: {', '.join(attributes_not_set)}"})
         
     # openai
@@ -118,8 +111,8 @@ async def get_completion(
                 if key not in get_interface_keys(interface):
                     raise ValueError(f"Invalid key: {key}")
                 value = json.loads(tool_call.function.arguments).get(key, "")
-                interfaceData[key] = value
-                await updateInterface(interfaceData)
+                interface_data[key] = value
+                await updateInterface(interface_data)
 
                 result = f"Success: Set {key} to `{value}`"
                 messages.append({"role": "function", "tool_call_id": completion.choices[0].message.tool_calls[0].id, "name": completion.choices[0].message.tool_calls[0].function.name, "content": result})
@@ -128,10 +121,10 @@ async def get_completion(
             messages, newMessages, complete = await get_completion(
                 messages,
                 interface,
-                interfaceData,
+                interface_data,
                 updateInterface,
                 user=user,
-                presentationID=presentationID,
+                presentation_id=presentation_id,
                 memory=memory,
                 newMessages=newMessages,
             )

@@ -5,12 +5,12 @@ from dynamodb import get_presentation, update_presentation
 import json
 import asyncio
 
-async def load_topics(presentationID, messages, interfaceData, memory, emitter):
+async def load_topics(presentation_id, messages, interface_data, memory, emitter):
     print("RELOADING")
     newMessages = []
     
     # first check if candidate topics are already in dynamodb
-    presentation = await get_presentation(presentationID, ['candidate_topics', 'topic_extraction_status'])
+    presentation = await get_presentation(presentation_id, ['candidate_topics', 'topic_extraction_status'])
     
     if 'candidate_topics' in presentation and presentation.get('candidate_topics') is not None:
         topics = json.loads(presentation['candidate_topics'])
@@ -19,11 +19,11 @@ async def load_topics(presentationID, messages, interfaceData, memory, emitter):
         # keep polling until the topic extraction is done
         while 'candidate_topics' not in presentation or presentation.get('candidate_topics') is None:
             await asyncio.sleep(5)
-            presentation = await get_presentation(presentationID, ['candidate_topics', 'topic_extraction_status'])
+            presentation = await get_presentation(presentation_id, ['candidate_topics', 'topic_extraction_status'])
     else:
         # get the list of topics from the topic extraction pipeline
-        await update_presentation(presentationID, topic_extraction_status='invoked')
-        topics = await label_documents_extract_topics(presentationID)
+        await update_presentation(presentation_id, topic_extraction_status='invoked')
+        topics = await label_documents_extract_topics(presentation_id)
     
     # raise error if topics is anything but a list with length > 0
     if not isinstance(topics, list) or len(topics) == 0:
@@ -54,14 +54,14 @@ async def load_topics(presentationID, messages, interfaceData, memory, emitter):
     if len(topics) == 0 or len(outline) == 0:
         raise ValueError("No topics found")
     
-    interfaceData = {
+    interface_data = {
         'all_topics': topics,
         'outline': outline,
     }
     newMessages += [message for message in global_prompts_config.get_interface_changed_messages("outline") if message['role'] == 'assistant']
     messages += global_prompts_config.get_interface_changed_messages("outline")
         
-    await emitter('interface_update', interfaceData)
+    await emitter('interface_update', interface_data)
     for message in newMessages:
         await emitter('message', message)
             

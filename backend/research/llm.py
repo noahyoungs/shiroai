@@ -37,22 +37,22 @@ def pydantic_to_dict(obj):
 # %%
 
 
-async def complete(presentationID, messages, interfaceData, emit, max_turns=15, memory=None):
+async def complete(presentation_id, messages, interface_data, emit, max_turns=15, memory=None):
 
     # helper functions for emitting messages
     async def emit_interface_update(updateOnly=False):
-        nonlocal interfaceData, presentationID
-        interfaceData = await interface_update(presentationID, interfaceData, {'action': 'refresh'})
+        nonlocal interface_data, presentation_id
+        interface_data = await interface_update(presentation_id, interface_data, {'action': 'refresh'})
         if not updateOnly:
-            await emit('interface_update', interfaceData)
-        return interfaceData
+            await emit('interface_update', interface_data)
+        return interface_data
 
     async def emit_delete_interface_update(ids):
-        nonlocal interfaceData, presentationID
+        nonlocal interface_data, presentation_id
         for id in ids:
-            interfaceData = await interface_update(presentationID, interfaceData, {'action': 'delete', 'id': id})
-        await emit('interface_update', interfaceData)
-        return interfaceData
+            interface_data = await interface_update(presentation_id, interface_data, {'action': 'delete', 'id': id})
+        await emit('interface_update', interface_data)
+        return interface_data
 
     async def emit_web_search(message):
         print("Emitting web search results")
@@ -91,14 +91,14 @@ async def complete(presentationID, messages, interfaceData, emit, max_turns=15, 
 
         # errors raised here are considered the model's mistake
         async def run(self):
-            nonlocal interfaceData
+            nonlocal interface_data
             results = await search_brave(self.query, 15)
             if not results:
                 raise ValueError(
                     "No relevant sources found. Please try a different search query.")
             # filter out sources that are already in the source list, limit to 8 results
             results = [result for result in results if result['url'] not in [
-                source.get('url') for source in interfaceData.get('sources', [])]][:8]
+                source.get('url') for source in interface_data.get('sources', [])]][:8]
             if not results:
                 raise ValueError(
                     "Every search result from this query is already in the source list. Please try a different search query.")
@@ -107,7 +107,7 @@ async def complete(presentationID, messages, interfaceData, emit, max_turns=15, 
         # errors raised here are not caght
         # second param is the output of the run function
         async def post_run(self, search_results):
-            nonlocal memory, interfaceData, presentationID
+            nonlocal memory, interface_data, presentation_id
             post_messages = [{'role': 'system', 'content': "You must now use the `AddSourcesByID` function to pick only the best web sources from the web search results. Pick the best sources that are most relevant to the presentation. If the user provided any guidance on what sources you should or shouldn't include, make sure to follow that guidance."}]
             # add id to each search result
             search_results = [{**result, 'id': uuid7str()}
@@ -143,10 +143,10 @@ async def complete(presentationID, messages, interfaceData, emit, max_turns=15, 
 
         # errors raised here are considered the model's mistake
         async def run(self):
-            nonlocal memory, interfaceData
+            nonlocal memory, interface_data
             full_length_ids = []
             for id in self.ids:
-                source = next((s for s in interfaceData.get(
+                source = next((s for s in interface_data.get(
                     'sources', None) if s.get("id", "").endswith(id)), None)
                 if source:
                     full_length_ids.append(source.get("id"))
@@ -159,10 +159,10 @@ async def complete(presentationID, messages, interfaceData, emit, max_turns=15, 
         # errors raised here are not caught
         # second param is the output of the run function
         async def post_run(self, full_length_ids):
-            nonlocal memory, interfaceData
+            nonlocal memory, interface_data
             # await interface updata to get latest source list for next completiom
             await emit_delete_interface_update(full_length_ids)
-            post_messages = [getCurrentSourceListMessage(interfaceData)]
+            post_messages = [getCurrentSourceListMessage(interface_data)]
             return f"Success: Successfully removed sources with IDs {', '.join(self.ids)} from the list of sources.", post_messages
 
     class AddSourcesByID(OpenAISchema):
@@ -175,13 +175,13 @@ async def complete(presentationID, messages, interfaceData, emit, max_turns=15, 
 
         # errors raised here are considered the model's mistake
         async def run(self):
-            nonlocal memory, interfaceData
+            nonlocal memory, interface_data
             source_dicts = []
             for id in self.ids:
                 source_dict = next(
                     (d for d in memory['search_results'] if d.get("id", "").endswith(id)), None)
                 if source_dict:
-                    if source_dict.get('url') in [source.get('url') for source in interfaceData.get('sources', [])]:
+                    if source_dict.get('url') in [source.get('url') for source in interface_data.get('sources', [])]:
                         raise ValueError(
                             f"Source with ID {id} is already in the source list (possibly under a differend ID). Please provide a different source.")
                     source_dicts.append(source_dict)
@@ -195,7 +195,7 @@ async def complete(presentationID, messages, interfaceData, emit, max_turns=15, 
         # errors raised here are not caught
         # second param is the output of the run function
         async def post_run(self, web_sources):
-            nonlocal memory, interfaceData
+            nonlocal memory, interface_data
 
             additional_sources = []
             if len(web_sources) == 0:
@@ -235,7 +235,7 @@ async def complete(presentationID, messages, interfaceData, emit, max_turns=15, 
 
             # for some reason this call is popping ids off of additional sources so im making a copy because im too lazy to fix issue
             additional_sources_copy = deepcopy(additional_sources)
-            await batch_update_sources(presentationID, additional_sources_copy)
+            await batch_update_sources(presentation_id, additional_sources_copy)
 
             # await interface updata to get latest source list for next completiom
             await emit_interface_update()
@@ -246,21 +246,21 @@ async def complete(presentationID, messages, interfaceData, emit, max_turns=15, 
             for source in additional_sources:
                 # create a task for reading and add it to the list
                 reading_task = asyncio.create_task(read_and_summarize_source(
-                    source, presentationID, emit_interface_update))
+                    source, presentation_id, emit_interface_update))
                 reading_tasks.append(reading_task)
 
             # wait for all reading tasks to complete
             await asyncio.gather(*reading_tasks)
 
-            # here the interface should already be updated by the callbacks but we need to update interfaceData here to get the character count
+            # here the interface should already be updated by the callbacks but we need to update interface_data here to get the character count
             await emit_interface_update(updateOnly=True)
 
             # get new source list message after adding sources
-            post_messages = [getCurrentSourceListMessage(interfaceData)]
+            post_messages = [getCurrentSourceListMessage(interface_data)]
 
             # System messages that go after each time model adds sources
             char_count = 0
-            for source in interfaceData.get('sources', []):
+            for source in interface_data.get('sources', []):
                 char_count += source.get('char_count', 0)
             percentage = round((char_count/50000)*100)
 
@@ -273,12 +273,12 @@ async def complete(presentationID, messages, interfaceData, emit, max_turns=15, 
 
             if percentage > 100:
                 print("Percentage of research completed 241: ", percentage)
-                if all(source.get('type', '') != 'web' for source in interfaceData.get('sources', [])):
+                if all(source.get('type', '') != 'web' for source in interface_data.get('sources', [])):
                     post_messages.append(user_files_only_proceed_message)
                 else:
                     post_messages.append(proceed_message)
             else:
-                if not len(interfaceData.get('sources', [])) == 0:
+                if not len(interface_data.get('sources', [])) == 0:
                     post_messages.append(char_count_status_message)
 
             return f"Success: Successfully added source(s) {added_source_ids} to the list of sources.", post_messages
@@ -323,11 +323,11 @@ async def complete(presentationID, messages, interfaceData, emit, max_turns=15, 
 
         return tool_result, post_messages
 
-    interfaceData = await emit_interface_update(updateOnly=True)
+    interface_data = await emit_interface_update(updateOnly=True)
 
     # Update the model on sources in case user added sources
     char_count = 0
-    for source in interfaceData.get('sources', []):
+    for source in interface_data.get('sources', []):
         char_count += source.get('char_count', 0)
     percentage = round((char_count/50000)*100)
     print("Percentage of research completed 294: ", percentage)
@@ -340,17 +340,17 @@ async def complete(presentationID, messages, interfaceData, emit, max_turns=15, 
     if percentage > 100:
         messages.append(proceed_message)
     else:
-        if not len(interfaceData.get('sources', [])) == 0:
+        if not len(interface_data.get('sources', [])) == 0:
             messages.append(char_count_status_message)
 
     # update LLM on current sources because the user may have added sources
-    messages.append(getCurrentSourceListMessage(interfaceData))
+    messages.append(getCurrentSourceListMessage(interface_data))
 
     # print(messages)
     async def turn(messages, max_turns, turns=0, memory=None):
-        # print(f"Turn {turns}, Sources: {interfaceData['sources']}, Memory: {memory}")
+        # print(f"Turn {turns}, Sources: {interface_data['sources']}, Memory: {memory}")
         char_count = 0
-        for source in interfaceData.get('sources', []):
+        for source in interface_data.get('sources', []):
             char_count += source.get('char_count', 0)
 
         # with open('messages.json', 'w') as f:
@@ -383,7 +383,7 @@ async def complete(presentationID, messages, interfaceData, emit, max_turns=15, 
                 [{
                     "type": "function",
                     "function": dict(RemoveSourcesFromListByID.openai_schema),
-                }] if interfaceData.get('sources', []) else []
+                }] if interface_data.get('sources', []) else []
             ),
             tool_choice=("auto" if turns < max_turns else "none"),
         )

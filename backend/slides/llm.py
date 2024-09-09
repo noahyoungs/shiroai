@@ -74,7 +74,7 @@ def pydantic_to_dict(obj):
         return obj
     
 
-async def complete(presentationID, messages, emitter, memory, interface_data, max_turns=5):
+async def complete(presentation_id, messages, emitter, memory, interface_data, max_turns=5):
     print(f"Completing slides interface message, slide id: {interface_data['current_slide_id']}")
     
     slide_list: PersistentSlideList = memory['slide_list']
@@ -86,7 +86,7 @@ async def complete(presentationID, messages, emitter, memory, interface_data, ma
     current_turn = 0
     new_messages = []
     
-    async def new_turn(presentationID, messages, interface_data, current_turn, max_turns=5, emitter=None, memory=None):
+    async def new_turn(presentation_id, messages, interface_data, current_turn, max_turns=5, emitter=None, memory=None):
     
         class ProceedToNextStepException(Exception):
             pass
@@ -119,7 +119,7 @@ async def complete(presentationID, messages, emitter, memory, interface_data, ma
                 nonlocal current_slide
                 try:
                     # edit the current slide
-                    current_slide, message = await edit_slide_content(presentationID, copy.deepcopy(current_slide), slide_list.update_slides, self.edit_instructions)
+                    current_slide, message = await edit_slide_content(presentation_id, copy.deepcopy(current_slide), slide_list.update_slides, self.edit_instructions)
                     # add agent message to messages
                     messages.append({'role': 'meta_content_editor', 'content': message})
                     # emit agent message
@@ -138,7 +138,7 @@ async def complete(presentationID, messages, emitter, memory, interface_data, ma
                 nonlocal current_slide
                 try:
                     # edit the current slide
-                    current_slide, message = await edit_slide_image(presentationID, copy.deepcopy(current_slide), slide_list.update_slides, self.edit_instructions)
+                    current_slide, message = await edit_slide_image(presentation_id, copy.deepcopy(current_slide), slide_list.update_slides, self.edit_instructions)
                     # add agent message to messages
                     messages.append({'role': 'meta_image_editor', 'content': message})
                     # emit agent message
@@ -271,7 +271,7 @@ async def complete(presentationID, messages, emitter, memory, interface_data, ma
                     })
             
             # recursively call complete until no tool calls
-            return await new_turn(presentationID, messages, interface_data, current_turn + 1, max_turns, emitter=emitter, memory=memory)
+            return await new_turn(presentation_id, messages, interface_data, current_turn + 1, max_turns, emitter=emitter, memory=memory)
         else:
             if not completion.choices[0].message.content:
                 raise Exception("No message content found in completion and no tool calls either.")
@@ -280,7 +280,7 @@ async def complete(presentationID, messages, emitter, memory, interface_data, ma
             messages.append(responseMessage)
             return messages, new_messages, False
         
-    return await new_turn(presentationID, messages, interface_data, current_turn, max_turns, emitter=emitter, memory=memory)
+    return await new_turn(presentation_id, messages, interface_data, current_turn, max_turns, emitter=emitter, memory=memory)
         
         
                     

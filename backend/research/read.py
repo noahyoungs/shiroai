@@ -10,14 +10,14 @@ import asyncio
 
 tabluar_file_types = ['xlsx', 'xls', 'csv', 'tsv']
 
-async def read_source(source, presentationID):
+async def read_source(source, presentation_id):
     """
     Read and process a source file based on its type.
 
     Args:
         source (dict): A dictionary representing the source file to be read.
                        The dictionary must contain an 'id' field and a 'type' field indicating the file type.
-        presentationID (str): The ID of the presentation associated with the source file.
+        presentation_id (str): The ID of the presentation associated with the source file.
 
     Returns:
         tuple: A tuple containing two elements:
@@ -51,9 +51,9 @@ async def read_source(source, presentationID):
                             temp_file.write(await response.read())
                             temp_file.seek(0)
                             document = parse_pdf(temp_file.name, source['id'])
-                            object_key = f"{presentationID}/{source['id']}_whole_document.json"
+                            object_key = f"{presentation_id}/{source['id']}_whole_document.json"
                             await upload_model_to_s3(document, object_key)
-                            await update_source(presentationID, source["id"], whole_document_path=object_key)
+                            await update_source(presentation_id, source["id"], whole_document_path=object_key)
                             temp_file.close()
                             return document, len(document.page_content)
                     else:
@@ -71,9 +71,9 @@ async def read_source(source, presentationID):
                 document = None
     
             if document:
-                object_key = f"{presentationID}/{source['id']}_whole_document.json"
+                object_key = f"{presentation_id}/{source['id']}_whole_document.json"
                 await upload_model_to_s3(document, object_key)
-                await update_source(presentationID, source["id"], whole_document_path=object_key)
+                await update_source(presentation_id, source["id"], whole_document_path=object_key)
                 return document, len(document.page_content)
             else:
                 return None, 0
@@ -82,26 +82,26 @@ async def read_source(source, presentationID):
         raise ValueError(f"Unsupported file type: {source['type']}")
 
     else:
-        s3_filepath = f"{presentationID}/{source['s3_filepath']}"
+        s3_filepath = f"{presentation_id}/{source['s3_filepath']}"
         with await download_file_to_temp(s3_filepath) as temp_file:
             if source['type'] == 'pdf':
                 document = parse_pdf(temp_file.name, source['id'])
             else:
                 document = parse_other(temp_file.name, source["id"])
-            object_key = f"{presentationID}/{source['id']}_whole_document.json"
+            object_key = f"{presentation_id}/{source['id']}_whole_document.json"
             await upload_model_to_s3(document, object_key)
-            await update_source(presentationID, source["id"], whole_document_path=object_key)
+            await update_source(presentation_id, source["id"], whole_document_path=object_key)
             return document, len(document.page_content)
     
 
-async def read_and_summarize_source(source, presentationID, callback):
+async def read_and_summarize_source(source, presentation_id, callback):
     """
     Read, process, and summarize a source file based on its type.
 
     Args:
         source (dict): A dictionary representing the source file to be read and summarized.
             The dictionary must contain an 'id' field and a 'type' field indicating the file type.
-        presentationID (str): The ID of the presentation associated with the source file.
+        presentation_id (str): The ID of the presentation associated with the source file.
         callback (callable): An asynchronous callback function to be executed after the source is summarized.
 
     Returns:
@@ -135,22 +135,22 @@ async def read_and_summarize_source(source, presentationID, callback):
     if source.get("type", None) in tabluar_file_types:
         # tabular file
         temp_summary = "Shiro is summarizing this tabular file..."
-        await update_source(presentationID, source["id"], summary=temp_summary, char_count=1)
+        await update_source(presentation_id, source["id"], summary=temp_summary, char_count=1)
         # pass the callback to summarize_source using create_task
-        asyncio.create_task(summarize_source(source, presentationID, None, callback))
+        asyncio.create_task(summarize_source(source, presentation_id, None, callback))
         callback()
         return 1
     else:
         # unstructured file or web source
-        document, char_count = await read_source(source, presentationID)
+        document, char_count = await read_source(source, presentation_id)
         if document:
             temp_summary = f"Shiro read {char_count} characters and is summarizing the source..."
-            await update_source(presentationID, source["id"], summary=temp_summary, char_count=char_count)
+            await update_source(presentation_id, source["id"], summary=temp_summary, char_count=char_count)
             # pass the callback to summarize_source using create_task
-            asyncio.create_task(summarize_source(source, presentationID, document, callback))
+            asyncio.create_task(summarize_source(source, presentation_id, document, callback))
         else:
             temp_summary = "Shiro could not read enough text from this source, so it will be ignored."
-            await update_source(presentationID, source["id"], summary=temp_summary, char_count=0)
+            await update_source(presentation_id, source["id"], summary=temp_summary, char_count=0)
         callback()
         return char_count
             

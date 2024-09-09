@@ -48,13 +48,13 @@ async def initialize(presentation_id, emitter):
         summary_message = {'role': 'system', 'content': f"Remember, you are working on a presentation with these parameters:\n\nPresentation Topic:\n{presentation['topic']}\n\nTarget Audience:\n{presentation['audience']}\n\nPresentation Goal:\n{presentation['goal']}"}
         messages.append(summary_message)
 
-    interfaceData = {
+    interface_data = {
         'slides_created': slides_created
     }
     
     if presentation.get('current_slide_id'):
-        interfaceData['current_slide_id'] = presentation['current_slide_id']
+        interface_data['current_slide_id'] = presentation['current_slide_id']
         
-    print(f"Initalized slides interface with interface data: {interfaceData}")
+    print(f"Initalized slides interface with interface data: {interface_data}")
 
-    return messages, interfaceData, memory
+    return messages, interface_data, memory

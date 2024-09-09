@@ -6,8 +6,8 @@ interface = "slides"
 from dynamodb import update_presentation
 
 
-# interfaceData is not used in slides
-async def save_progress(presentationID, messages, interface_data, memory):
+# interface_data is not used in slides
+async def save_progress(presentation_id, messages, interface_data, memory):
     attributes = {}
     attributes["status"] = interface
     
@@ -25,7 +25,7 @@ async def save_progress(presentationID, messages, interface_data, memory):
     if interface_data.get("current_slide_id"):
         attributes["current_slide_id"] = interface_data["current_slide_id"]
     
-    await update_presentation(presentationID, **attributes)
+    await update_presentation(presentation_id, **attributes)
     
     # print(f"Saving progress, presentation attributes: {attributes}
     

@@ -15,16 +15,16 @@ AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
 AWS_REGION = os.environ.get('AWS_REGION', 'us-west-2')  # Replace with your desired region
 
 
-async def get_files(presentationID):
+async def get_files(presentation_id):
    """
    Retrieve a list of files in a specific presentation folder from an S3 bucket.
 
    This function retrieves the list of files stored in a specific presentation folder
-   within an S3 bucket. It uses the provided `presentationID` to construct the folder
+   within an S3 bucket. It uses the provided `presentation_id` to construct the folder
    prefix and makes an asynchronous request to the S3 API using the AWS SDK for Python (Boto3).
 
    Args:
-       presentationID (str): The ID of the presentation folder.
+       presentation_id (str): The ID of the presentation folder.
 
    Returns:
        list: A list of file names (strings) found in the specified presentation folder.
@@ -43,7 +43,7 @@ async def get_files(presentationID):
        else:
            print("No files found in the presentation folder.")
    """
-   prefix = f"{presentationID}/"
+   prefix = f"{presentation_id}/"
 
    try:
        session = get_session()
@@ -63,20 +63,20 @@ async def get_files(presentationID):
 
            return files
    except Exception as e:
-       print(f"Error listing files in {presentationID} folder: {str(e)}")
+       print(f"Error listing files in {presentation_id} folder: {str(e)}")
        return []
 
-async def delete_file(presentationID, filename):
+async def delete_file(presentation_id, filename):
    """
    Delete a specific file from a presentation folder in an S3 bucket.
 
    This function deletes a file with the specified `filename` from the presentation folder
-   identified by `presentationID` in an S3 bucket. It constructs the object key using the
-   `presentationID` and `filename`, and makes an asynchronous request to the S3 API using
+   identified by `presentation_id` in an S3 bucket. It constructs the object key using the
+   `presentation_id` and `filename`, and makes an asynchronous request to the S3 API using
    the AWS SDK for Python (Boto3) to delete the object.
 
    Args:
-       presentationID (str): The ID of the presentation folder.
+       presentation_id (str): The ID of the presentation folder.
        filename (str): The name of the file to be deleted.
 
    Returns:
@@ -93,7 +93,7 @@ async def delete_file(presentationID, filename):
        else:
            print("Failed to delete the file.")
    """
-   object_key = f"{presentationID}/{filename}"
+   object_key = f"{presentation_id}/{filename}"
 
    try:
        session = get_session()
@@ -105,13 +105,13 @@ async def delete_file(presentationID, filename):
            status_code = response['ResponseMetadata']['HTTPStatusCode']
 
            if status_code == 204:
-               print(f"File '{filename}' deleted successfully from {presentationID} folder.")
+               print(f"File '{filename}' deleted successfully from {presentation_id} folder.")
                return True
            else:
-               print(f"Failed to delete file '{filename}' from {presentationID} folder. Status code: {status_code}")
+               print(f"Failed to delete file '{filename}' from {presentation_id} folder. Status code: {status_code}")
                return False
    except Exception as e:
-       print(f"Error deleting file '{filename}' from {presentationID} folder: {str(e)}")
+       print(f"Error deleting file '{filename}' from {presentation_id} folder: {str(e)}")
        return False
    
 async def get_object(file_path):
@@ -598,19 +598,19 @@ class User(BaseModel):
    
 
 async def main():
-   presentationID = "example_presentation"
-   files = await get_files(presentationID)
-   print(f"Files in {presentationID} folder: {files}")
+   presentation_id = "example_presentation"
+   files = await get_files(presentation_id)
+   print(f"Files in {presentation_id} folder: {files}")
 
    filename = "example_file.txt"
-   result = await delete_file(presentationID, filename)
-   print(f"Deletion of file '{filename}' from {presentationID} folder: {result}")
+   result = await delete_file(presentation_id, filename)
+   print(f"Deletion of file '{filename}' from {presentation_id} folder: {result}")
    
    # Create a User model instance
    user = User(name="John Doe", age=25, email="john@example.com")
    
    # Upload the User model to S3
-   object_key = f"{presentationID}/user.json"
+   object_key = f"{presentation_id}/user.json"
    upload_result = await upload_model_to_s3(user, object_key)
    print(f"Upload of User model to S3 with key '{object_key}': {upload_result}")
 

@@ -101,7 +101,7 @@ async def test_get_items():
     assert 'name' in result
     assert 'user_id' in result # identifier should always be included
     assert result.get('user_id') is not None
-    assert result.get('last_updated') is None # last update should not be included because its a user
+    assert result.get('last_updated') is None # last update should not be included because its not a presentation
     assert 'email' not in result
 
     # Test slide with specific attributes
@@ -111,7 +111,7 @@ async def test_get_items():
     assert isinstance(result, dict)
     assert result.get('slide_title') == "Test Slide"
     assert result.get('slide_id') == slide_data['slide_id'] # identifier should always be included
-    assert result.get('last_updated') is not None  # last update should be included because its not a user
+    assert result.get('last_updated') is None  # last update should not included because its not a presentation
     assert result.get('slide_content') is None # slide content should not be included
 
 

@@ -11,15 +11,15 @@ def capitalize_first_letter(word):
     return word[0].upper() + word[1:]
 
     
-def getInterfaceUpdateSystemMessage(interface, interfaceData):
+def getInterfaceUpdateSystemMessage(interface, interface_data):
     print(f"Getting system message for interface: {interface}")
-    if len(interface_keys_for_interface[interface]) != len(interfaceData):
-        raise ValueError(f"Interface data does not match interface values\n Interface: {interface_keys_for_interface[interface]}\nInterface Data: {interfaceData}")
+    if len(interface_keys_for_interface[interface]) != len(interface_data):
+        raise ValueError(f"Interface data does not match interface values\n Interface: {interface_keys_for_interface[interface]}\nInterface Data: {interface_data}")
     for key in interface_keys_for_interface[interface]:
-        if key not in interfaceData:
+        if key not in interface_data:
             raise ValueError(f"Interface data missing key: {key}")
     content = "Here are the current parameters displayed to the user in the configuration screen. You must keep these parameters updated as the conversation progresses. Use the set_topic, set_audience, and set_goal function tools with JSON arguments to make sure these parameters are kept up with the conversation:\n"
-    for key, value in interfaceData.items():
+    for key, value in interface_data.items():
         if value == "":
             value = "<Empty>"
         capitalized_key = capitalize_first_letter(key)

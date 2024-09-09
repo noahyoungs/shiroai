@@ -25,29 +25,29 @@ def merge_lists(list1, list2):
     return merged_list
 
 
-async def interface_update(presentationID, interfaceData, data):
-    # make a deepcopy of interfaceData
-    interfaceData = deepcopy(interfaceData)
-    # print(f"Updating interface for presentation {presentationID} with interface data: {interfaceData} and data: {data}")
-    oldsources = interfaceData.get('sources', [])
+async def interface_update(presentation_id, interface_data, data):
+    # make a deepcopy of interface_data
+    interface_data = deepcopy(interface_data)
+    # print(f"Updating interface for presentation {presentation_id} with interface data: {interface_data} and data: {data}")
+    oldsources = interface_data.get('sources', [])
     if data['action'] == 'refresh' or data['action'] == 'refresh_upload':
-        sources = await get_sources(presentationID)
+        sources = await get_sources(presentation_id)
         sources = merge_lists(oldsources, sources)
     elif data['action'] == 'delete':
-        sources = await get_sources(presentationID)
+        sources = await get_sources(presentation_id)
         sources = merge_lists(oldsources, sources)
         source_to_delete = next((s for s in sources if s['id'] == data['id']), None)
         if source_to_delete.get('type', 'file') != 'web':
             await asyncio.gather(
-                delete_file(presentationID, source_to_delete.get('s3_filepath', '')),
-                delete_file(presentationID, source_to_delete.get('whole_document_path', '')),
-                delete_source(presentationID, source_to_delete['id'])
+                delete_file(presentation_id, source_to_delete.get('s3_filepath', '')),
+                delete_file(presentation_id, source_to_delete.get('whole_document_path', '')),
+                delete_source(presentation_id, source_to_delete['id'])
             )
-            sources = await get_sources(presentationID)
+            sources = await get_sources(presentation_id)
             # print("EMPTY SOURCES INTERFACE UPDATE AFTER DELETE FILE")
         else:
-            await delete_source(presentationID, source_to_delete['id'])
-            sources = await get_sources(presentationID)
+            await delete_source(presentation_id, source_to_delete['id'])
+            sources = await get_sources(presentation_id)
             if not sources:
                 pass
                 # print("EMPTY SOURCES INTERFACE UPDATE AFTER DELETE WEB")

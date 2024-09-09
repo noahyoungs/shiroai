@@ -3,10 +3,10 @@ import asyncio
 from auth.verify_jwt import verify_token_get_user_id
 from dynamodb import get_presentation
 
-async def authorize(presentationID, jwt):
+async def authorize(presentation_id, jwt):
     async def get_db_user():
         try:
-            presentation = await get_presentation(presentationID, ['user'])
+            presentation = await get_presentation(presentation_id, ['user'])
             if presentation:
                 user = presentation['user']
                 print(user)
@@ -14,7 +14,7 @@ async def authorize(presentationID, jwt):
             else:
                 return None
         except TypeError:
-            print(f"Presentation not found for ID: {presentationID}")
+            print(f"Presentation not found for ID: {presentation_id}")
             return None
 
     async def try_verify_jwt():
