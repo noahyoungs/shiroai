@@ -2,26 +2,12 @@
 from io import BytesIO
 from PIL import Image
 from typing import Awaitable, List, Literal, Optional, Callable, Tuple, Union, Dict
-from pydantic import BaseModel, Field
-from pydantic_async_validation import AsyncValidationModelMixin, async_field_validator
-from slides.xml_instructor import create_dynamic_enum_validator, generate_variable_input_xml, get_basemodel_instance_from_llm, generate_xml_from_instance
-from portkey_ai import AsyncPortkey
-from dotenv import load_dotenv
+from pydantic import BaseModel
+from slides.xml_instructor import generate_variable_input_xml, get_basemodel_instance_from_llm, generate_xml_from_instance
 from database_models import Image as ImageType, Slide
 from slides.images.generate_image import openai_style_presets, stability_style_presets, generate_image_stable_core, generate_image_dalle, generate_image_sdxl, upload_image, default_negative_prompt
+from llm_clients import content_gen_client, content_gen_model
 
-# initialize LLM
-bedrock_client = AsyncPortkey(
-    virtual_key="aldeo-portkey-b-5cf75f",
-    config={"cache": {"mode": "simple"}},
-)
-
-anthropic_client = AsyncPortkey(
-    virtual_key="anthropic-b4a29a",
-    config={"cache": {"mode": "simple"}},
-)
-
-claude_haiku = "anthropic.claude-3-haiku-20240307-v1:0"
 
 async def get_new_prompt(instruction, old_messages, old_prompt, old_style="default", old_negative_prompt=None, model_type="sdxl"):
         
@@ -101,9 +87,9 @@ Please respond in the following format:
     messages = old_messages + [{"role": "user", "content": prompt}]
 
     template, messages = await get_basemodel_instance_from_llm(
-        client=bedrock_client,
+        client=content_gen_client,
         pydantic_model_class=DalleGenerationTemplate if model_type == "dalle" else StabilityGenerationTemplate,
-        model=claude_haiku,
+        model=content_gen_model,
         temperature=1.0,
         temperature_multiplier=1.1,
         max_temperature=2,

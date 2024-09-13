@@ -8,6 +8,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { io } from "socket.io-client";
 import { useRouter } from 'next/navigation';
 import ChatConfigureLayout from '@/components/chat-configure-layout';
+import { Source } from '@/utils/database-types';
 
 
 export default function Page({ params }: { params: { presentationID: string } }) {
@@ -23,7 +24,7 @@ export default function Page({ params }: { params: { presentationID: string } })
   const [blockInterface, setBlockInterface] = useState<boolean>(true);
 
   // Interface states
-  const [sources, setSources] = useState<any[]>([]);
+  const [sources, setSources] = useState<Source[]>([]);
   const [progress, setProgress] = useState<number>(0);
   const [sourcesLoading, setSourcesLoading] = useState(false);
 
@@ -116,9 +117,9 @@ export default function Page({ params }: { params: { presentationID: string } })
     }
   }, [socket]);
 
-  const deleteSource = useCallback((id: string) => {
+  const deleteSource = useCallback((source_id: string) => {
     if (socket) {
-      socket.emit("interface_update", {action: "delete", id: id});
+      socket.emit("interface_update", {action: "delete", id: source_id});
       setSourcesLoading(true);
     }
   }, [socket]);

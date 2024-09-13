@@ -5,20 +5,16 @@ import path from 'path';
 export const globalLogger: Logger =
   process.env["NODE_ENV"] === "production"
     ? // JSON in production
-      pino({ level: "warn" })
+    pino({ level: "warn" })
     : // Pretty print in development
-      pino({
-        transport: {
-          target: "pino-pretty",
-          options: {
-            colorize: true,
-            singleLine: true,
-            ignore: 'pid,hostname',
-            // messageFormat: '[{file}] - {msg}',
-          },
-        },
-        level: "debug",
-      });
+    pino({
+      // transport: {
+      //   target: 'pino-pretty',
+      //   options: {
+      //     colorize: true
+      //   }
+      // }
+    });
 
 export const getChildLogger = (url: string) => {
   const __filename = fileURLToPath(url);

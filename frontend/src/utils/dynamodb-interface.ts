@@ -131,7 +131,7 @@ function addIdentifiersToItem(item: any, itemType: ValidItemTypes) {
     user_id: PK.split('#')[1],
   };
 
-  if (itemType == 'presentation') {
+  if (itemType === 'presentation') {
     try {
       if (GSI1SK.startsWith('LASTUPDATED#')) {
         const gsiParts = GSI1SK.split('#');
@@ -145,10 +145,42 @@ function addIdentifiersToItem(item: any, itemType: ValidItemTypes) {
   }
 
   const skParts = SK.split('#');
-  if (itemType === 'presentation') ids.presentation_id = skParts[1];
-  if (itemType === 'slide') ids.slide_id = skParts[5];
-  if (itemType === 'topic') ids.topic_id = skParts[5];
-  if (itemType === 'source') ids.source_id = skParts[5];
+  
+  // Extract presentation_id for all item types except 'user'
+  if (itemType !== 'user') {
+    if (skParts.length < 2) {
+      const errorMessage = `SK format is invalid for item type ${itemType}: ${SK}`;
+      logger.error(errorMessage);
+      throw new Error(errorMessage);
+    }
+    ids.presentation_id = skParts[1];
+  }
+
+  // Extract specific IDs based on item type
+  if (itemType === 'presentation') {
+    // Already handled above
+  } else if (itemType === 'slide') {
+    if (skParts.length < 4) {
+      const errorMessage = `SK format is invalid for slide: ${SK}`;
+      logger.error(errorMessage);
+      throw new Error(errorMessage);
+    }
+    ids.slide_id = skParts[3];
+  } else if (itemType === 'topic') {
+    if (skParts.length < 4) {
+      const errorMessage = `SK format is invalid for topic: ${SK}`;
+      logger.error(errorMessage);
+      throw new Error(errorMessage);
+    }
+    ids.topic_id = skParts[3];
+  } else if (itemType === 'source') {
+    if (skParts.length < 4) {
+      const errorMessage = `SK format is invalid for source: ${SK}`;
+      logger.error(errorMessage);
+      throw new Error(errorMessage);
+    }
+    ids.source_id = skParts[3];
+  }
 
   logger.debug(`Identifiers added to item: ${JSON.stringify(ids)}`);
   return { ...item, ...ids };
@@ -621,9 +653,9 @@ export async function getAllItemsForPresentation(
  * This function deletes all items of a specific type (slide, topic, or source) for a given presentation.
  * It first queries the items by their partition and sort keys, then deletes them in batches.
  *
+ * @param {'slide' | 'topic' | 'source'} itemType - The type of items to delete (slide, topic, or source).
  * @param {string} userID - The user ID associated with the presentation.
  * @param {string} presentationID - The presentation ID for which to delete items.
- * @param {'slide' | 'topic' | 'source'} itemType - The type of items to delete (slide, topic, or source).
  * @returns {Promise<void>} - A promise that resolves when all items are deleted. If there are no items, the function completes without error.
  *
  * @throws Will throw an error if the delete operation fails.
@@ -634,9 +666,9 @@ export async function getAllItemsForPresentation(
  * ```
  */
 export async function deleteAllItemsForPresentation(
+  itemType: 'slide' | 'topic' | 'source',
   userID: string,
   presentationID: string,
-  itemType: 'slide' | 'topic' | 'source'
 ): Promise<void> {
   logger.info(`Deleting all ${itemType}s for presentation ${presentationID}`);
 

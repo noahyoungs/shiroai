@@ -3,8 +3,7 @@ import asyncio
 
 interface = "outline"
 
-from dynamodb import update_presentation
-
+from dynamodb_service import update_items_with_user
 
 async def save_progress(presentation_id, messages, interface_data, memory):
     attributes = {}
@@ -26,6 +25,6 @@ async def save_progress(presentation_id, messages, interface_data, memory):
         else:
             print("No topics to save")
     
-    await update_presentation(presentation_id, **attributes)
+    await update_items_with_user('presentation', [{**attributes, 'presentation_id': presentation_id}])
         
     return

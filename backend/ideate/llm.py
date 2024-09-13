@@ -3,8 +3,7 @@ import asyncio
 import json
 import ideate.prompts as ideate_prompts
 from ideate.config import interface_fields, get_interface_keys
-from init_llm import client, groq_client, perplexity_client
-from portkey_ai import AsyncPortkey
+from llm_clients import chat_client, perplexity_client
 import traceback
 import tokentrim as tt
 # from dotenv import load_dotenv
@@ -50,7 +49,7 @@ async def get_completion(
         messages.append({"role":"system", "content": f"You still need to set the following attributes: {', '.join(attributes_not_set)}"})
         
     # openai
-    completion = await client.chat.completions.create(
+    completion = await chat_client.chat.completions.create(
         # filter out messages where role starts with "meta"
         messages=tt.trim(
             messages=[message for message in messages if not message["role"].startswith("meta")],

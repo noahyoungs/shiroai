@@ -1,17 +1,23 @@
+# /ideate/on_connect.py
 import global_prompts_config
-from dynamodb import get_presentation
+# from dynamodb_interface import get_items
+from dynamodb_service import get_items_with_user
 import json
 from global_prompts_config import interface_keys_for_interface
 
 interface = "ideate"
 
-async def initialize(presentation_id):
+async def initialize(user_id, presentation_id):
     # get interface keys
     interface_keys = global_prompts_config.interface_keys_for_interface[interface]
     
     memory = {}
     
-    presentation = await get_presentation(presentation_id, ['messages', 'status', 'memory'] + interface_keys)
+    presentation = await get_items_with_user('presentation', {'presentation_id': presentation_id}, ['messages', 'status', 'memory'] + interface_keys, consistent_read=True)
+
+    # If the presentation does not exist, return an error message
+    if not presentation:
+        raise RuntimeError('The presentation you\'re trying to edit was not found, please try creating a new presentation.')
 
     # Check if 'messages' exists in the presentation and is not None
     if 'messages' in presentation and presentation['messages'] is not None:

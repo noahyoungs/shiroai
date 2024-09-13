@@ -1,43 +1,33 @@
-import asyncio
-
+import http.cookies
 from auth.verify_jwt import verify_token_get_user_id
-from dynamodb import get_presentation
+import os 
 
-async def authorize(presentation_id, jwt):
-    async def get_db_user():
-        try:
-            presentation = await get_presentation(presentation_id, ['user'])
-            if presentation:
-                user = presentation['user']
-                print(user)
-                return user
-            else:
-                return None
-        except TypeError:
-            print(f"Presentation not found for ID: {presentation_id}")
-            return None
+async def authorize(cookie_str, handle_refusal=None):
+    
+    session_token_name = os.environ.get("SESSION_TOKEN_NAME")
 
-    async def try_verify_jwt():
-        try:
-            return await verify_token_get_user_id(jwt)
-        except Exception as e:
-            print('Error verifying token:', e)
-            return None
+    # Load cookies from the incoming request
+    cookies = http.cookies.SimpleCookie()
+    cookies.load(cookie_str)
 
-    db_user, token_user_id = await asyncio.gather(get_db_user(), try_verify_jwt())
+    # Check if the session token cookie is present
+    if cookies.get(session_token_name) is None:
+        if handle_refusal:
+            await handle_refusal(401, "Authorization error: Access token not found. (Cookie not found) Please try logging out and logging back in.")
+        return None
 
-    if db_user is None:
-        print("Invalid presentation ID (from db)")
-        return False, False, None
+    accessToken = cookies.get(session_token_name).value
 
-    if token_user_id:
-        if token_user_id == db_user:
-            print("Access granted")
-            return True, True, db_user
-        else:
-            print("Access denied")
-            return False, True, None
-    else:
-        print("Invalid token")
-        return False, False, None
+    if not accessToken:
+        if handle_refusal:
+            await handle_refusal(400, "Authorization error: Access token not found. (No cookie value) Please try logging out and logging back in.")
+        return None
 
+    # Validate access token and get user ID
+    try:
+        user_id = await verify_token_get_user_id(accessToken)
+        return user_id
+    except Exception as e:
+        if handle_refusal:
+            await handle_refusal(403, f"Authorization error: {e} (Access token invalid) Please try logging out and logging back in.")
+        return None

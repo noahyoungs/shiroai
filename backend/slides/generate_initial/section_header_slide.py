@@ -7,7 +7,8 @@ async def get_section_header_slide(presentation_id, presentation_topic, presenta
 
     return SectionHeaderSlide(
         slide_title=subtopic_name,
-        id=uuid7str(),
+        presentation_id=presentation_id,
+        slide_id=uuid7str(),
         generation_messages=messages,
         slide_type='section_header_slide',
         image=image_data,

@@ -1,16 +1,16 @@
 from outline.label_documents_and_extract_topics import label_documents_extract_topics
-from uuid_extensions import uuid7str
 import global_prompts_config
-from dynamodb import get_presentation, update_presentation
+from dynamodb_service import get_items_with_user, update_items_with_user
 import json
 import asyncio
 
-async def load_topics(presentation_id, messages, interface_data, memory, emitter):
+async def load_topics(user_id, presentation_id, messages, interface_data, memory, emitter):
     print("RELOADING")
     newMessages = []
     
     # first check if candidate topics are already in dynamodb
-    presentation = await get_presentation(presentation_id, ['candidate_topics', 'topic_extraction_status'])
+    # presentation = await get_presentation(presentation_id, ['candidate_topics', 'topic_extraction_status'])
+    presentation = await get_items_with_user('presentation', {'presentation_id': presentation_id}, ['candidate_topics', 'topic_extraction_status'])
     
     if 'candidate_topics' in presentation and presentation.get('candidate_topics') is not None:
         topics = json.loads(presentation['candidate_topics'])
@@ -19,11 +19,13 @@ async def load_topics(presentation_id, messages, interface_data, memory, emitter
         # keep polling until the topic extraction is done
         while 'candidate_topics' not in presentation or presentation.get('candidate_topics') is None:
             await asyncio.sleep(5)
-            presentation = await get_presentation(presentation_id, ['candidate_topics', 'topic_extraction_status'])
+            # presentation = await get_presentation(presentation_id, ['candidate_topics', 'topic_extraction_status'])
+            presentation = await get_items_with_user('presentation', {'presentation_id': presentation_id}, ['candidate_topics', 'topic_extraction_status'])
     else:
         # get the list of topics from the topic extraction pipeline
-        await update_presentation(presentation_id, topic_extraction_status='invoked')
-        topics = await label_documents_extract_topics(presentation_id)
+        # await update_presentation(presentation_id, topic_extraction_status='invoked')
+        await update_items_with_user('presentation', [{'presentation_id': presentation_id, 'topic_extraction_status': 'invoked'}])
+        topics = await label_documents_extract_topics(user_id, presentation_id)
     
     # raise error if topics is anything but a list with length > 0
     if not isinstance(topics, list) or len(topics) == 0:
@@ -46,7 +48,7 @@ async def load_topics(presentation_id, messages, interface_data, memory, emitter
             topic['included'] = False
     
     # outline is a list containing topic ids and included only
-    outline = [{'id': topic['id'], 'included': topic['included']} for topic in topics]
+    outline = [{'topic_id': topic['topic_id'], 'included': topic['included']} for topic in topics]
     
     # error if either all topics or outline is None or empty
     if topics is None or outline is None:

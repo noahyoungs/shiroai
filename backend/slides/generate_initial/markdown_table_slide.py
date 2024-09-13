@@ -5,20 +5,10 @@ from slides.xml_instructor import generate_variable_input_xml, get_basemodel_ins
 from uuid_extensions import uuid7str
 from database_models import MarkdownSlide
 from slides.clean_markdown import clean_markdown
-from portkey_ai import AsyncPortkey
+from llm_clients import content_gen_client, content_gen_model
 
-bedrock_client = AsyncPortkey(
-    virtual_key="aldeo-portkey-b-5cf75f",
-    config={"cache": {"mode": "simple"},
-                "retry": {
-            "attempts": 3,
-            "on_status_codes": [429, 500, 502, 503, 504, 424],
-            }},
-)
 
-claude_haiku = "anthropic.claude-3-haiku-20240307-v1:0"
-
-async def get_markdown_table_slide(presentation_xml, subtopic_xml, reduced_docs, slide_idea, excerpt_ids):
+async def get_markdown_table_slide(presentation_id, presentation_xml, subtopic_xml, reduced_docs, slide_idea, excerpt_ids):
     id_suffixes = [id[-8:] for id in excerpt_ids]
     research_xml = get_research_xml(reduced_docs)
 
@@ -68,11 +58,11 @@ Remember you must cite an <excerpt_id></excerpt_id> as a source for every fact i
     messages = [{'role': 'user', 'content': prompt}]
 
     markdown_table_slide, messages = await get_basemodel_instance_from_llm(
-        client=bedrock_client,
+        client=content_gen_client,
         pydantic_model_class=CompletionMarkdownTableSlide,
         max_iterations=5,
         dynamic_val_params={"valid_ids": id_suffixes},
-        model=claude_haiku,
+        model=content_gen_model,
         max_tokens=2000,
         messages=messages,
         temperature=0.5,
@@ -84,9 +74,9 @@ Remember you must cite an <excerpt_id></excerpt_id> as a source for every fact i
         excerpt_id = get_id_from_suffix(
             excerpt_ids, old_footnote['excerpt_id'])
         source_excerpt = next(
-            (doc['page_content'] for doc in reduced_docs if doc['metadata']['id'] == excerpt_id), None)
-        source_id = next((doc['metadata']['source']['id']
-                         for doc in reduced_docs if doc['metadata']['id'] == excerpt_id), None)
+            (doc['page_content'] for doc in reduced_docs if doc['metadata']['document_id'] == excerpt_id), None)
+        source_id = next((doc['metadata']['source']['source_id']
+                         for doc in reduced_docs if doc['metadata']['document_id'] == excerpt_id), None)
         new_footnotes[old_footnote['marker']] = {
             'excerpt_id': excerpt_id,
             'source_id': source_id,
@@ -99,8 +89,9 @@ Remember you must cite an <excerpt_id></excerpt_id> as a source for every fact i
     }
 
     return MarkdownSlide(
+        presentation_id=presentation_id,
         slide_title=slide_idea['slide_title'],
-        id=uuid7str(),
+        slide_id=uuid7str(),
         generation_messages=messages,
         slide_type='markdown_slide',
         slide_content=slide_content

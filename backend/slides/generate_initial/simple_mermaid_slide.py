@@ -8,20 +8,10 @@ from slides.mermaid.validate_mermaid import validate_mermaid_diagram
 from slides.mermaid.mermaid_to_svg import process_diagram_to_svgs
 from slides.mermaid.mermaid_prompt import get_messages
 from pydantic_async_validation import async_field_validator, AsyncValidationModelMixin
-from portkey_ai import AsyncPortkey
+from llm_clients import content_gen_client, content_gen_model
 
-bedrock_client = AsyncPortkey(
-    virtual_key="aldeo-portkey-b-5cf75f",
-    config={"cache": {"mode": "simple"},
-                "retry": {
-            "attempts": 3,
-            "on_status_codes": [429, 500, 502, 503, 504, 424],
-            }},
-)
 
-claude_haiku = "anthropic.claude-3-haiku-20240307-v1:0"
-
-async def get_simple_mermaid_slide(presentation_xml, subtopic_xml, reduced_docs, slide_idea, excerpt_ids):
+async def get_simple_mermaid_slide(presentation_id, presentation_xml, subtopic_xml, reduced_docs, slide_idea, excerpt_ids):
     id_suffixes = [id[-8:] for id in excerpt_ids]
     research_xml = get_research_xml(reduced_docs)
 
@@ -47,10 +37,10 @@ async def get_simple_mermaid_slide(presentation_xml, subtopic_xml, reduced_docs,
                             subtopic_xml=subtopic_xml, slide_title_xml=f"<slide_title>{slide_idea['slide_title']}</slide_title>")
 
     simple_mermaid_slide, messages = await get_basemodel_instance_from_llm(
-        client=bedrock_client,
+        client=content_gen_client,
         pydantic_model_class=CompletionMermaidSlide,
         max_iterations=5,
-        model=claude_haiku,
+        model=content_gen_model,
         max_tokens=2000,
         messages=messages,
         temperature=1,
@@ -65,9 +55,9 @@ async def get_simple_mermaid_slide(presentation_xml, subtopic_xml, reduced_docs,
         source_excerpt_id = get_id_from_suffix(
             excerpt_ids, excerpt_id['excerpt_id'])
         source_excerpt = next(
-            (doc['page_content'] for doc in reduced_docs if doc['metadata']['id'] == source_excerpt_id), None)
-        source_id = next((doc['metadata']['source']['id']
-                         for doc in reduced_docs if doc['metadata']['id'] == source_excerpt_id), None)
+            (doc['page_content'] for doc in reduced_docs if doc['metadata']['document_id'] == source_excerpt_id), None)
+        source_id = next((doc['metadata']['source']['source_id']
+                         for doc in reduced_docs if doc['metadata']['document_id'] == source_excerpt_id), None)
         diagram_excerpts.append({
             'excerpt_id': source_excerpt_id,
             'source_id': source_id,
@@ -77,8 +67,9 @@ async def get_simple_mermaid_slide(presentation_xml, subtopic_xml, reduced_docs,
     light_svg, dark_svg = await process_diagram_to_svgs(simple_mermaid_slide.mermaid_diagram)
 
     return SimpleMermaidSlide(
+        presentation_id=presentation_id,
         slide_title=slide_idea['slide_title'],
-        id=uuid7str(),
+        slide_id=uuid7str(),
         generation_messages=messages[-2:],
         slide_type='simple_mermaid_slide',
         slide_content={

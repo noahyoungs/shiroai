@@ -115,7 +115,7 @@ export default function Interface({
                                                     </div>
                                                 )}
                                                 {includedTopics.map((topic: any, index) => (
-                                                    <Draggable key={topic.id} draggableId={topic.id} index={index}>
+                                                    <Draggable key={topic.topic_id} draggableId={topic.topic_id} index={index}>
                                                         {(provided) => (
                                                             <TopicCard
                                                                 topic={topic}
@@ -150,7 +150,7 @@ export default function Interface({
                                                     </div>
                                                 )}
                                                 {excludedTopics.map((topic: any, index) => (
-                                                    <Draggable key={topic.id} draggableId={topic.id} index={index}>
+                                                    <Draggable key={topic.topic_id} draggableId={topic.topic_id} index={index}>
                                                         {(provided) => (
                                                             <TopicCard
                                                                 topic={topic}

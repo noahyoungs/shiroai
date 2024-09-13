@@ -7,7 +7,8 @@ async def get_presentation_title_slide(presentation_id, presentation_topic, pres
     
     return [PresentationTitleSlide(
         slide_title=presentation_topic,
-        id=uuid7str(),
+        presentation_id=presentation_id,
+        slide_id=uuid7str(),
         generation_messages=messages,
         slide_type='presentation_title_slide',
         image=image_data

@@ -1,10 +1,6 @@
 def get_messages(presentation_topic, audience, goal, subtopic_label, keywords, documents):
     return [
         {
-            "role": """system""",
-            "content": """""",
-        },
-        {
             "role": """user""",
             "content": """Your task is to evaluate the relevance of a potential subtopic for inclusion in a presentation, based on the presentation's main topic, target audience, and goal.
 

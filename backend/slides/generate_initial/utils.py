@@ -1,7 +1,7 @@
 from slides.format import format_topic_xml
 
 def get_excerpt_ids(reduced_docs):
-    excerpt_ids = [doc['metadata']['id'] for doc in reduced_docs]
+    excerpt_ids = [doc['metadata']['document_id'] for doc in reduced_docs]
     return excerpt_ids
 
 def get_id_from_suffix(excerpt_ids, suffix):

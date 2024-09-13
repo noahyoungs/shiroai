@@ -1,4 +1,7 @@
-export const getIcon = (filename: string) => {
+export const getIcon = (filename: string | undefined) => {
+    if (!filename) {
+      return 'tabler:file-unknown'
+    }
     // strip extension
     let extension = null;
     try {
@@ -30,6 +33,7 @@ export const getIcon = (filename: string) => {
       case 'pptx':
         return 'tabler:file-chart';
       default:
+        return 'tabler:file-unknown';
         
     }
   }

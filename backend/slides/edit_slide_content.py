@@ -6,28 +6,20 @@ from pydantic_async_validation import AsyncValidationModelMixin, async_field_val
 from slides.clean_markdown import clean_markdown
 from slides.mermaid.mermaid_to_svg import process_diagram_to_svgs
 from slides.xml_instructor import create_dynamic_enum_validator, generate_variable_input_xml, get_basemodel_instance_from_llm, generate_xml_from_instance
-from portkey_ai import AsyncPortkey
 from dotenv import load_dotenv
 from slides.mermaid.validate_mermaid import validate_mermaid_diagram
-from dynamodb import get_slides, update_slides, get_topics
+from dynamodb_service import get_items_with_user
 from slides.icons.icon_similarity_search import hybrid_icon_assignment
 from database_models import Slide, Excerpt, ShortBulletContent, IconData
 from uuid_extensions import uuid7str
+from llm_clients import content_gen_client, content_gen_model
 
 load_dotenv()
 
-# initialize LLM
-bedrock_client = AsyncPortkey(
-    virtual_key="aldeo-portkey-b-5cf75f",
-    # config={"cache": {"mode": "simple"}},
-)
-
-llama3_8b = "llama3-8b-8192"
-claude_haiku = "anthropic.claude-3-haiku-20240307-v1:0"
 
 
 def get_excerpt_ids(reduced_docs):
-    excerpt_ids = [doc['metadata']['id'] for doc in reduced_docs]
+    excerpt_ids = [doc['metadata']['document_id'] for doc in reduced_docs]
     return excerpt_ids
 
 
@@ -109,11 +101,11 @@ Remember, if the <user_request></user_request> conflicts with any <system_requir
     messages.append({'role': 'user', 'content': prompt})
 
     short_bullets_slide, new_messages = await get_basemodel_instance_from_llm(
-        client=bedrock_client,
+        client=content_gen_client,
         pydantic_model_class=ShortBulletsSlide,
         max_iterations=5,
         force_start_with_first_tag=False,
-        model=claude_haiku,
+        model=content_gen_model,
         max_tokens=2000,
         messages=messages,
         dynamic_val_params={"valid_ids": id_suffixes},
@@ -215,11 +207,11 @@ Remember, there should be up to date footnote references in the format [^1], [^2
     messages.append({'role': 'user', 'content': prompt})
 
     markdown_slide, new_messages = await get_basemodel_instance_from_llm(
-        client=bedrock_client,
+        client=content_gen_client,
         pydantic_model_class=MarkdownSlide,
         max_iterations=5,
         force_start_with_first_tag=False,
-        model=claude_haiku,
+        model=content_gen_model,
         max_tokens=2000,
         messages=messages,
         dynamic_val_params={"valid_ids": id_suffixes} if not no_footnotes else {},
@@ -291,11 +283,11 @@ Respond in the following format:
         messages = []
     messages.append({'role': 'user', 'content': prompt})
     markdown_slide, new_messages = await get_basemodel_instance_from_llm(
-        client=bedrock_client,
+        client=content_gen_client,
         pydantic_model_class=Response,
         max_iterations=5,
         force_start_with_first_tag=False,
-        model=claude_haiku,
+        model=content_gen_model,
         max_tokens=2000,
         messages=messages,
         temperature=1.0,
@@ -324,7 +316,8 @@ async def edit_slide_content(
     excerpt_ids = None
     if current_slide.topic_id:
         # Get reduced docs
-        reduced_docs = (await get_topics(presentation_id, current_slide.topic_id, ['reduced_docs'])).reduced_docs
+        # reduced_docs = (await get_topics(presentation_id, current_slide.topic_id, ['reduced_docs'])).reduced_docs
+        reduced_docs = (await get_items_with_user('topic', [{'presentation_id': presentation_id, 'topic_id': current_slide.topic_id}], ['reduced_docs'], 'model')).reduced_docs
         if not reduced_docs:
             raise RuntimeError("No reduced docs found for the topic")
 
@@ -358,11 +351,11 @@ async def edit_slide_content(
                 )
                 # get excerpt text
                 source_excerpt = next(
-                    (doc['page_content'] for doc in reduced_docs if doc['metadata']['id'] == source_excerpt_id), None
+                    (doc['page_content'] for doc in reduced_docs if doc['metadata']['document_id'] == source_excerpt_id), None
                 )
                 # get source id
                 source_id = next(
-                    (doc['metadata']['source']['id'] for doc in reduced_docs if doc['metadata']['id'] == source_excerpt_id), None
+                    (doc['metadata']['source']['source_id'] for doc in reduced_docs if doc['metadata']['document_id'] == source_excerpt_id), None
                 )
 
                 bullet_points_list.append(ShortBulletContent(
@@ -406,9 +399,9 @@ async def edit_slide_content(
                 excerpt_id = get_id_from_suffix(
                     excerpt_ids, old_footnote['excerpt_id'])
                 source_excerpt = next(
-                    (doc['page_content'] for doc in reduced_docs if doc['metadata']['id'] == excerpt_id), None)
+                    (doc['page_content'] for doc in reduced_docs if doc['metadata']['document_id'] == excerpt_id), None)
                 source_id = next(
-                    (doc['metadata']['source']['id'] for doc in reduced_docs if doc['metadata']['id'] == excerpt_id), None)
+                    (doc['metadata']['source']['source_id'] for doc in reduced_docs if doc['metadata']['document_id'] == excerpt_id), None)
                 new_footnotes[old_footnote['marker']] = {
                     'excerpt_id': excerpt_id,
                     'source_id': source_id,
@@ -438,9 +431,9 @@ async def edit_slide_content(
                 source_excerpt_id = get_id_from_suffix(
                     excerpt_ids, excerpt_id['excerpt_id'])
                 source_excerpt = next(
-                    (doc['page_content'] for doc in reduced_docs if doc['metadata']['id'] == source_excerpt_id), None)
+                    (doc['page_content'] for doc in reduced_docs if doc['metadata']['document_id'] == source_excerpt_id), None)
                 source_id = next(
-                    (doc['metadata']['source']['id'] for doc in reduced_docs if doc['metadata']['id'] == source_excerpt_id), None)
+                    (doc['metadata']['source']['source_id'] for doc in reduced_docs if doc['metadata']['document_id'] == source_excerpt_id), None)
                 diagram_excerpts.append(Excerpt(
                     excerpt_id=source_excerpt_id,
                     source_id=source_id,

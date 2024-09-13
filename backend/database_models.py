@@ -99,9 +99,9 @@ class LLMMessage(Partialable):
         return f"LLMMessage(role={self.role}, content={self.content})"
 
 class BaseSlide(Partialable):
-    user_id: str
-    presentation_id: str
+    user_id: Optional[str] = None # This is required in the database but the dynamodb_service will fill it in
     slide_id: str
+    presentation_id: str
     topic_id: Optional[str] = None
     slide_title: str
     presentation_id: str
@@ -114,7 +114,7 @@ class BaseSlide(Partialable):
     extra: Dict[str, Any] = Field(default_factory=dict)
 
     def __repr__(self):
-        return (f"BaseSlide(slide_title={self.slide_title}, topic_id={self.topic_id}, id={self.id}, "
+        return (f"BaseSlide(slide_title={self.slide_title}, topic_id={self.topic_id}, id={self.slide_id}, "
                 f"hidden={self.hidden}, previous={self.previous}, next={self.next}, "
                 f"generation_messages={self.generation_messages}, extra={self.extra})")
 
@@ -171,7 +171,7 @@ class PresentationTitleSlide(BaseSlide):
                 f"image={self.image})")
     
 class Topic(Partialable):
-    user_id: str
+    user_id: Optional[str] = None # This is required in the database but the dynamodb_service will fill it in
     presentation_id: str
     topic_id: str = Field(default_factory=uuid7str)
     title: Optional[str] = None
@@ -181,7 +181,7 @@ class Topic(Partialable):
     model_config = ConfigDict(extra="allow")
 
     def __repr__(self):
-        return (f"Topic(id={self.id}, title={self.title}, reduced_docs={self.reduced_docs}, "
+        return (f"Topic(id={self.topic_id}, title={self.title}, reduced_docs={self.reduced_docs}, "
                 f"additional_attributes={self.additional_attributes})")
 
 Slide = Union[ShortBulletsSlide, MarkdownSlide, SimpleMermaidSlide, SectionHeaderSlide, PresentationTitleSlide]

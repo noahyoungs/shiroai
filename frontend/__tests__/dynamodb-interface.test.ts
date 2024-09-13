@@ -210,7 +210,7 @@ describe('DynamoDB Interface Tests', () => {
     await updateItems('presentation', [presData]);
     await updateItems('slide', [slide1, slide2]);
 
-    await deleteAllItemsForPresentation(presData.user_id, presData.presentation_id, 'slide');
+    await deleteAllItemsForPresentation('slide', presData.user_id, presData.presentation_id);
 
     const results = await getAllItemsForPresentation('slide', presData.user_id, presData.presentation_id);
     expect(Array.isArray(results)).toBe(true);

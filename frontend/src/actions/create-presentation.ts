@@ -18,11 +18,11 @@ export default async function CreatePresentation() {
 
     await updateItemsWithAuth('presentation', [presentation]);
 
-    redirect(`/home/create/${uuid}/ideate`);
   } catch (error) {
     console.error("Error creating presentation:", error);
     throw new Error("Failed to create presentation");
   }
+  redirect(`/home/create/${uuid}/ideate`);
 
   return uuid;
 }

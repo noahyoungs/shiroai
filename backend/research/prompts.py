@@ -107,7 +107,7 @@ def getCurrentSourceListMessage(interface_data):
     
     # sort sources by id
     if isinstance(interface_data['sources'], list) and len(interface_data['sources']) > 0:
-        sorted_sources = sorted(interface_data['sources'], key=lambda x: x['id'])
+        sorted_sources = sorted(interface_data['sources'], key=lambda x: x['source_id'])
     else:
         sorted_sources = []
 
@@ -116,7 +116,7 @@ def getCurrentSourceListMessage(interface_data):
         string += "<Empty>\n\n"
     for i, source in enumerate(sorted_sources):
         string += f"Source {i + 1}:\n"
-        string += f"ID: {str(source['id'])[-8:]}\n"
+        string += f"ID: {str(source['source_id'])[-8:]}\n"
         string += f"Name: {source.get('name', 'Unknown')}\n"
         if 'url' in source:
             string += f"URL: {source['url']}\n"

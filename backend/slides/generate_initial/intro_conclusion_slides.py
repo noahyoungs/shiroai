@@ -2,25 +2,14 @@ import math
 from slides.xml_instructor import generate_variable_input_xml, get_basemodel_instance_from_llm
 from pydantic import BaseModel, Field
 from typing import List, Literal
-from portkey_ai import AsyncPortkey
 from database_models import MarkdownSlide
 from uuid_extensions import uuid7str
 from slides.clean_markdown import clean_markdown
 from database_models import Slide
 from slides.generate_initial.utils import get_presentation_xml
 from slides.slide_to_xml import slides_to_xml
+from llm_clients import content_gen_client, content_gen_model
 
-
-bedrock_client = AsyncPortkey(
-    virtual_key="aldeo-portkey-b-5cf75f",
-    config={"cache": {"mode": "simple"},
-                "retry": {
-            "attempts": 3,
-            "on_status_codes": [429, 500, 502, 503, 504, 424],
-            }},
-)
-
-claude_haiku = "anthropic.claude-3-haiku-20240307-v1:0"
 
 def determine_slides(content_slides):
     # Calculate the min and max number of slides based on cube root
@@ -41,7 +30,7 @@ def get_range_string(min_slides, max_slides):
     return f"{min_slides}-{max_slides}"
 
 
-async def get_intro_or_conclusion_slides(presentation_topic, presentation_audience, presentation_goal, slides, slide_type):
+async def get_intro_or_conclusion_slides(presentation_id, presentation_topic, presentation_audience, presentation_goal, slides, slide_type):
     
     presentation_xml = get_presentation_xml(presentation_topic, presentation_audience, presentation_goal)
 
@@ -245,10 +234,10 @@ Your conclusion slide should seamlessly follow the content slides provided, crea
     messages = [{'role': 'user', 'content': target_prompt}]
 
     section_slides_list, messages = await get_basemodel_instance_from_llm(
-        client=bedrock_client,
+        client=content_gen_client,
         pydantic_model_class=target_slides_class,
         max_iterations=5,
-        model=claude_haiku,
+        model=content_gen_model,
         max_tokens=2000,
         temperature_multiplier=1.2,
         messages=messages,
@@ -256,7 +245,8 @@ Your conclusion slide should seamlessly follow the content slides provided, crea
 
     return [
         MarkdownSlide(
-            id=uuid7str(),
+            presentation_id=presentation_id,
+            slide_id=uuid7str(),
             slide_type="markdown_slide",
             slide_title=slide.slide_title,
             slide_content={

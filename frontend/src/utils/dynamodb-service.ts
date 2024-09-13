@@ -8,17 +8,17 @@ import { auth } from "@/auth";
  * Function to fetch authenticated user ID from the session
  */
 export async function getAuthenticatedUserId(): Promise<string> {
-    // Fetch the session data using the auth function
-    const session = await auth();
+  // Fetch the session data using the auth function
+  const session = await auth();
 
-    // Check if the user object and user id are available in the session
-    if (!session || !session.user || !session.user.id) {
-        // Throw an error if the user is not authenticated
-        throw new Error("User is not authenticated. Database calls should not be made.");
-    }
+  // Check if the user object and user id are available in the session
+  if (!session || !session.user || !session.user.id) {
+    // Throw an error if the user is not authenticated
+    throw new Error("User is not authenticated. Database calls should not be made.");
+  }
 
-    // Return the user id from the session
-    return session.user.id;
+  // Return the user id from the session
+  return session.user.id;
 }
 
 /**
@@ -57,19 +57,19 @@ export async function getAuthenticatedUserId(): Promise<string> {
  * ```
  */
 export async function getItemsWithAuth<T extends dynamoDBInterface.ValidItemTypes>(
-    itemType: T,
-    identifiers: Omit<dynamoDBInterface.Identifiers<T>, "user_id"> | Omit<dynamoDBInterface.Identifiers<T>, "user_id">[],
-    attributes?: string[]
+  itemType: T,
+  identifiers: Omit<dynamoDBInterface.Identifiers<T>, "user_id"> | Omit<dynamoDBInterface.Identifiers<T>, "user_id">[],
+  attributes?: string[]
 ) {
-    const userId = await getAuthenticatedUserId();
+  const userId = await getAuthenticatedUserId();
 
-    // Add the user_id to the identifiers and cast them to the appropriate type
-    const enrichedIdentifiers = Array.isArray(identifiers)
-        ? (identifiers.map(id => ({ ...id, user_id: userId })) as dynamoDBInterface.Identifiers<T>[])
-        : ({ ...identifiers, user_id: userId } as dynamoDBInterface.Identifiers<T>);
+  // Add the user_id to the identifiers and cast them to the appropriate type
+  const enrichedIdentifiers = Array.isArray(identifiers)
+    ? (identifiers.map(id => ({ ...id, user_id: userId })) as dynamoDBInterface.Identifiers<T>[])
+    : ({ ...identifiers, user_id: userId } as dynamoDBInterface.Identifiers<T>);
 
-    // Call the original function with the enriched identifiers
-    return dynamoDBInterface.getItems(itemType, enrichedIdentifiers, attributes);
+  // Call the original function with the enriched identifiers
+  return dynamoDBInterface.getItems(itemType, enrichedIdentifiers, attributes);
 }
 
 /**
@@ -113,22 +113,22 @@ export async function updateItemsWithAuth<T extends dynamoDBInterface.ValidItemT
 
   // Check each item to ensure the user_id matches or is missing (optional user_id)
   const enrichedItems = items.map(item => {
-      // Type guard to check if user_id exists on the item
-      if ('user_id' in item) {
-          // If user_id is included, validate it matches the authenticated user
-          if (item.user_id && item.user_id !== userId) {
-              throw new Error(`Mismatched user_id. Authenticated user ID does not match the provided user_id.`);
-          }
-
-          // If user_id matches or is missing, proceed with the item
-          return { ...item };  // user_id is already in the item, no need to add
-      } else {
-          // If user_id is not present, add the authenticated user_id
-          return {
-              ...item,
-              user_id: userId,
-          };
+    // Type guard to check if user_id exists on the item
+    if ('user_id' in item) {
+      // If user_id is included, validate it matches the authenticated user
+      if (item.user_id && item.user_id !== userId) {
+        throw new Error(`Mismatched user_id. Authenticated user ID does not match the provided user_id.`);
       }
+
+      // If user_id matches or is missing, proceed with the item
+      return { ...item };  // user_id is already in the item, no need to add
+    } else {
+      // If user_id is not present, add the authenticated user_id
+      return {
+        ...item,
+        user_id: userId,
+      };
+    }
   }) as dynamoDBInterface.ItemWithIdentifiers<T>[];
 
   // Proceed with the update using the enriched items
@@ -162,16 +162,16 @@ export async function updateItemsWithAuth<T extends dynamoDBInterface.ValidItemT
  * ```
  */
 export async function deleteItemsWithAuth<T extends dynamoDBInterface.ValidItemTypes>(
-    itemType: T,
-    identifiers: Omit<dynamoDBInterface.Identifiers<T>, "user_id">[]
+  itemType: T,
+  identifiers: Omit<dynamoDBInterface.Identifiers<T>, "user_id">[]
 ): Promise<void> {
-    const userId = await getAuthenticatedUserId();
+  const userId = await getAuthenticatedUserId();
 
-    // Add the user_id to the identifiers and cast them to the appropriate type
-    const enrichedIdentifiers = identifiers.map(id => ({ ...id, user_id: userId })) as dynamoDBInterface.Identifiers<T>[];
+  // Add the user_id to the identifiers and cast them to the appropriate type
+  const enrichedIdentifiers = identifiers.map(id => ({ ...id, user_id: userId })) as dynamoDBInterface.Identifiers<T>[];
 
-    // Call the original function with the enriched identifiers
-    return dynamoDBInterface.deleteItems(itemType, enrichedIdentifiers);
+  // Call the original function with the enriched identifiers
+  return dynamoDBInterface.deleteItems(itemType, enrichedIdentifiers);
 }
 
 /**
@@ -190,94 +190,94 @@ export async function deleteItemsWithAuth<T extends dynamoDBInterface.ValidItemT
  * @throws Will throw an error if the user is not authenticated or if the fetch operation fails.
  */
 export async function getAllItemsForPresentationWithAuth(
-    itemType: "slide",
-    presentationID: string,
-    attributes?: string[]
-  ): Promise<Slide[]>;
-  
-  /**
-   * Get all topics for a specific presentation from DynamoDB.
-   * This wrapper function automatically injects the authenticated user's ID, eliminating the need 
-   * to pass the user ID manually.
-   *
-   * This function fetches all topics for a given presentation. It uses the authenticated user ID 
-   * and presentation ID to build the partition key and scans for items with a matching sort key prefix.
-   *
-   * @param {string} presentationID - The presentation ID for which to fetch topics.
-   * @param {string[]} [attributes] - An optional array of attribute names to fetch. If provided, only 
-   *        these attributes will be fetched.
-   * @returns {Promise<Topic[]>} - A promise that resolves with an array of topics. Returns an empty array if no topics are found.
-   *
-   * @throws Will throw an error if the user is not authenticated or if the fetch operation fails.
-   */
-  export async function getAllItemsForPresentationWithAuth(
-    itemType: "topic",
-    presentationID: string,
-    attributes?: string[]
-  ): Promise<Topic[]>;
-  
-  /**
-   * Get all sources for a specific presentation from DynamoDB.
-   * This wrapper function automatically injects the authenticated user's ID, eliminating the need 
-   * to pass the user ID manually.
-   *
-   * This function fetches all sources for a given presentation. It uses the authenticated user ID 
-   * and presentation ID to build the partition key and scans for items with a matching sort key prefix.
-   *
-   * @param {string} presentationID - The presentation ID for which to fetch sources.
-   * @param {string[]} [attributes] - An optional array of attribute names to fetch. If provided, only 
-   *        these attributes will be fetched.
-   * @returns {Promise<Source[]>} - A promise that resolves with an array of sources. Returns an empty array if no sources are found.
-   *
-   * @throws Will throw an error if the user is not authenticated or if the fetch operation fails.
-   */
-  export async function getAllItemsForPresentationWithAuth(
-    itemType: "source",
-    presentationID: string,
-    attributes?: string[]
-  ): Promise<Source[]>;
-  
-  /**
-   * Get all items for a specific presentation from DynamoDB.
-   * This wrapper function automatically injects the authenticated user's ID, eliminating the need 
-   * to pass the user ID manually.
-   *
-   * This function fetches all items of a specific type (slide, topic, or source) for a given presentation.
-   * It uses the authenticated user ID and presentation ID to build the partition key and scans for items 
-   * with a matching sort key prefix.
-   *
-   * @param {'slide' | 'topic' | 'source'} itemType - The type of items to fetch (slide, topic, or source).
-   * @param {string} presentationID - The presentation ID for which to fetch items.
-   * @param {string[]} [attributes] - An optional array of attribute names to fetch. If provided, only 
-   *        these attributes will be fetched.
-   * @returns {Promise<Slide[] | Topic[] | Source[]>} - A promise that resolves with an array of items. 
-   *          Returns an empty array if no items are found.
-   *
-   * @throws Will throw an error if the user is not authenticated or if the fetch operation fails.
-   *
-   * Example usage:
-   * ```typescript
-   * const slides = await getAllItemsForPresentationWithAuth("slide", "67890");
-   * const topics = await getAllItemsForPresentationWithAuth("topic", "67890", ["title", "description"]);
-   * const sources = await getAllItemsForPresentationWithAuth("source", "67890");
-   * ```
-   */
-  export async function getAllItemsForPresentationWithAuth(
-    itemType: "slide" | "topic" | "source",
-    presentationID: string,
-    attributes?: string[]
-  ): Promise<Slide[] | Topic[] | Source[]> {
-    const userId = await getAuthenticatedUserId();
-  
-    // Use a type guard to narrow down the itemType
-    if (itemType === "slide") {
-      return dynamoDBInterface.getAllItemsForPresentation("slide", userId, presentationID, attributes);
-    } else if (itemType === "topic") {
-      return dynamoDBInterface.getAllItemsForPresentation("topic", userId, presentationID, attributes);
-    } else {
-      return dynamoDBInterface.getAllItemsForPresentation("source", userId, presentationID, attributes);
-    }
+  itemType: "slide",
+  presentationID: string,
+  attributes?: string[]
+): Promise<Slide[]>;
+
+/**
+ * Get all topics for a specific presentation from DynamoDB.
+ * This wrapper function automatically injects the authenticated user's ID, eliminating the need 
+ * to pass the user ID manually.
+ *
+ * This function fetches all topics for a given presentation. It uses the authenticated user ID 
+ * and presentation ID to build the partition key and scans for items with a matching sort key prefix.
+ *
+ * @param {string} presentationID - The presentation ID for which to fetch topics.
+ * @param {string[]} [attributes] - An optional array of attribute names to fetch. If provided, only 
+ *        these attributes will be fetched.
+ * @returns {Promise<Topic[]>} - A promise that resolves with an array of topics. Returns an empty array if no topics are found.
+ *
+ * @throws Will throw an error if the user is not authenticated or if the fetch operation fails.
+ */
+export async function getAllItemsForPresentationWithAuth(
+  itemType: "topic",
+  presentationID: string,
+  attributes?: string[]
+): Promise<Topic[]>;
+
+/**
+ * Get all sources for a specific presentation from DynamoDB.
+ * This wrapper function automatically injects the authenticated user's ID, eliminating the need 
+ * to pass the user ID manually.
+ *
+ * This function fetches all sources for a given presentation. It uses the authenticated user ID 
+ * and presentation ID to build the partition key and scans for items with a matching sort key prefix.
+ *
+ * @param {string} presentationID - The presentation ID for which to fetch sources.
+ * @param {string[]} [attributes] - An optional array of attribute names to fetch. If provided, only 
+ *        these attributes will be fetched.
+ * @returns {Promise<Source[]>} - A promise that resolves with an array of sources. Returns an empty array if no sources are found.
+ *
+ * @throws Will throw an error if the user is not authenticated or if the fetch operation fails.
+ */
+export async function getAllItemsForPresentationWithAuth(
+  itemType: "source",
+  presentationID: string,
+  attributes?: string[]
+): Promise<Source[]>;
+
+/**
+ * Get all items for a specific presentation from DynamoDB.
+ * This wrapper function automatically injects the authenticated user's ID, eliminating the need 
+ * to pass the user ID manually.
+ *
+ * This function fetches all items of a specific type (slide, topic, or source) for a given presentation.
+ * It uses the authenticated user ID and presentation ID to build the partition key and scans for items 
+ * with a matching sort key prefix.
+ *
+ * @param {'slide' | 'topic' | 'source'} itemType - The type of items to fetch (slide, topic, or source).
+ * @param {string} presentationID - The presentation ID for which to fetch items.
+ * @param {string[]} [attributes] - An optional array of attribute names to fetch. If provided, only 
+ *        these attributes will be fetched.
+ * @returns {Promise<Slide[] | Topic[] | Source[]>} - A promise that resolves with an array of items. 
+ *          Returns an empty array if no items are found.
+ *
+ * @throws Will throw an error if the user is not authenticated or if the fetch operation fails.
+ *
+ * Example usage:
+ * ```typescript
+ * const slides = await getAllItemsForPresentationWithAuth("slide", "67890");
+ * const topics = await getAllItemsForPresentationWithAuth("topic", "67890", ["title", "description"]);
+ * const sources = await getAllItemsForPresentationWithAuth("source", "67890");
+ * ```
+ */
+export async function getAllItemsForPresentationWithAuth(
+  itemType: "slide" | "topic" | "source",
+  presentationID: string,
+  attributes?: string[]
+): Promise<Slide[] | Topic[] | Source[]> {
+  const userId = await getAuthenticatedUserId();
+
+  // Use a type guard to narrow down the itemType
+  if (itemType === "slide") {
+    return dynamoDBInterface.getAllItemsForPresentation("slide", userId, presentationID, attributes);
+  } else if (itemType === "topic") {
+    return dynamoDBInterface.getAllItemsForPresentation("topic", userId, presentationID, attributes);
+  } else {
+    return dynamoDBInterface.getAllItemsForPresentation("source", userId, presentationID, attributes);
   }
+}
 
 /**
  * Delete all items for a specific presentation from DynamoDB.
@@ -287,8 +287,8 @@ export async function getAllItemsForPresentationWithAuth(
  * This function deletes all items of a specific type (slide, topic, or source) for a given presentation.
  * It first queries the items by their partition and sort keys, then deletes them in batches.
  *
- * @param {string} presentationID - The presentation ID for which to delete items.
  * @param {'slide' | 'topic' | 'source'} itemType - The type of items to delete (slide, topic, or source).
+ * @param {string} presentationID - The presentation ID for which to delete items.
  * @returns {Promise<void>} - A promise that resolves when all items are deleted. If there are no items, 
  *          the function completes without error.
  *
@@ -300,11 +300,11 @@ export async function getAllItemsForPresentationWithAuth(
  * ```
  */
 export async function deleteAllItemsForPresentationWithAuth(
-    presentationID: string,
-    itemType: "slide" | "topic" | "source"
+  itemType: "slide" | "topic" | "source",
+  presentationID: string,
 ): Promise<void> {
-    const userId = await getAuthenticatedUserId();
+  const userId = await getAuthenticatedUserId();
 
-    // Call the original function with the authenticated user ID
-    return dynamoDBInterface.deleteAllItemsForPresentation(userId, presentationID, itemType);
+  // Call the original function with the authenticated user ID
+  return dynamoDBInterface.deleteAllItemsForPresentation(itemType, userId, presentationID);
 }

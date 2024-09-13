@@ -6,10 +6,12 @@ import { Spinner, Spacer, Button, ScrollShadow, Progress } from "@nextui-org/rea
 import { SourceCard } from "@/components/source-card";
 import { useRouter } from 'next/navigation';
 import { Icon } from "@iconify/react";
+import { Source } from '@/utils/database-types';
+
 
 interface InterfaceProps {
-  sources: any[];
-  deleteSource: (id: string) => void;
+  sources: Source[];
+  deleteSource: (source_id: string) => void;
   block: boolean;
   presentationID: string;
   refreshSources: () => void;
@@ -25,10 +27,10 @@ export default function Interface({ sources, deleteSource, block, presentationID
 
   // sort sources by id
   sources.sort((a, b) => {
-    if (a.id < b.id) {
+    if (a.source_id < b.source_id) {
       return -1;
     }
-    if (a.id > b.id) {
+    if (a.source_id > b.source_id) {
       return 1;
     }
     return 0;
@@ -64,7 +66,7 @@ export default function Interface({ sources, deleteSource, block, presentationID
           ) : (
             sources.map((sources, index) => (
               <SourceCard
-                key={sources.id}
+                key={sources.source_id}
                 source={sources}
                 deleteSource={deleteSource}
                 index={index}

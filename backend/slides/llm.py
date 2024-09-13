@@ -1,15 +1,9 @@
-from abc import ABCMeta
 from instructor import OpenAISchema
-from enum import Enum
-from pydantic import BaseModel, Field
-from typing import List
-from typing_extensions import Literal
-from init_llm import client
+from pydantic import BaseModel
+from llm_clients import chat_client
 import tokentrim as tt
-from dynamodb import get_presentation
 from slides.edit_slide_content import edit_slide_content
 from slides.images.edit_slide_image import edit_slide_image
-import json
 from database_models import Slide
 from slides.persistent_slide_list import PersistentSlideList
 import copy
@@ -233,7 +227,7 @@ async def complete(presentation_id, messages, emitter, memory, interface_data, m
         
         tools = base_tools + (image_tools if current_slide.slide_type in ['section_header_slide', 'presentation_title_slide'] else content_tools)
         
-        completion = await client.chat.completions.create(
+        completion = await chat_client.chat.completions.create(
             model=os.getenv("SLIDES_CHAT_MODEL_OPENAI_ID"),
             # filter out any messages with roles that start with meta
             # reduce messages to 16k tokens

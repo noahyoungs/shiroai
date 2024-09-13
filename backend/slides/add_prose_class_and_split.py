@@ -94,90 +94,90 @@ async def process_slide(slide):
     return slides
 
 # Sample data for testing
-test_slides = [
-    MarkdownSlide(
-        slide_title="Short Text Markdown Slide",
-        topic_id="topic-1",
-        id=uuid7str(),
-        slide_content={
-            "content": "This is a short text.",
-            "footnotes": []
-        },
-        hidden=False,
-        previous=None,
-        next=None,
-        generation_messages=[LLMMessage(role="system", content="Generate a short markdown slide.")],
-        extra={}
-    ),
-    MarkdownSlide(
-        slide_title="Large Text Markdown Slide",
-        topic_id="topic-2",
-        id=uuid7str(),
-        slide_content={
-            "content": "This is a very large text. " * 300,
-            "footnotes": []
-        },
-        hidden=False,
-        previous=None,
-        next=None,
-        generation_messages=[LLMMessage(role="system", content="Generate a large markdown slide.")],
-        extra={}
-    ),
-    MarkdownSlide(
-        slide_title="Markdown Slide with Table",
-        topic_id="topic-3",
-        id=uuid7str(),
-        slide_content={
-            "content": "| Header 1 | Header 2 | Header 3 |\n|----------|----------|----------|\n" + 
-                       "| Cell 1.1 | Cell 1.2 | Cell 1.3 |\n" * 20,
-            "footnotes": []
-        },
-        hidden=False,
-        previous=None,
-        next=None,
-        generation_messages=[LLMMessage(role="system", content="Generate a markdown slide with a table.")],
-        extra={}
-    ),
-    SimpleMermaidSlide(
-        slide_title="Simple Mermaid Slide",
-        topic_id="topic-4",
-        id=uuid7str(),
-        slide_content={
-            "mermaid_code": "graph TD;\nA-->B;",
-            "excerpts": [],
-            "light_svg": "<svg>Light SVG Content</svg>",
-            "dark_svg": "<svg>Dark SVG Content</svg>"
-        },
-        hidden=False,
-        previous=None,
-        next=None,
-        generation_messages=[LLMMessage(role="system", content="Generate a simple mermaid slide.")],
-        extra={}
-    ),
-    SectionHeaderSlide(
-        slide_title="Section Header Slide",
-        topic_id="topic-5",
-        id=uuid7str(),
-        image=Image(
-            prompt="Sunset over mountains",
-            model="stable-diffusion",
-            width=800,
-            height=600,
-            shape="rectangle",
-            type="generated"
-        ),
-        hidden=False,
-        previous=None,
-        next=None,
-        generation_messages=[LLMMessage(role="system", content="Generate a section header slide.")],
-        extra={}
-    )
-]
+# test_slides = [
+#     MarkdownSlide(
+#         slide_title="Short Text Markdown Slide",
+#         topic_id="topic-1",
+#         slide_id=uuid7str(),
+#         slide_content={
+#             "content": "This is a short text.",
+#             "footnotes": []
+#         },
+#         hidden=False,
+#         previous=None,
+#         next=None,
+#         generation_messages=[LLMMessage(role="system", content="Generate a short markdown slide.")],
+#         extra={}
+#     ),
+#     MarkdownSlide(
+#         slide_title="Large Text Markdown Slide",
+#         topic_id="topic-2",
+#         slide_id=uuid7str(),
+#         slide_content={
+#             "content": "This is a very large text. " * 300,
+#             "footnotes": []
+#         },
+#         hidden=False,
+#         previous=None,
+#         next=None,
+#         generation_messages=[LLMMessage(role="system", content="Generate a large markdown slide.")],
+#         extra={}
+#     ),
+#     MarkdownSlide(
+#         slide_title="Markdown Slide with Table",
+#         topic_id="topic-3",
+#         slide_id=uuid7str(),
+#         slide_content={
+#             "content": "| Header 1 | Header 2 | Header 3 |\n|----------|----------|----------|\n" + 
+#                        "| Cell 1.1 | Cell 1.2 | Cell 1.3 |\n" * 20,
+#             "footnotes": []
+#         },
+#         hidden=False,
+#         previous=None,
+#         next=None,
+#         generation_messages=[LLMMessage(role="system", content="Generate a markdown slide with a table.")],
+#         extra={}
+#     ),
+#     SimpleMermaidSlide(
+#         slide_title="Simple Mermaid Slide",
+#         topic_id="topic-4",
+#         slide_id=uuid7str(),
+#         slide_content={
+#             "mermaid_code": "graph TD;\nA-->B;",
+#             "excerpts": [],
+#             "light_svg": "<svg>Light SVG Content</svg>",
+#             "dark_svg": "<svg>Dark SVG Content</svg>"
+#         },
+#         hidden=False,
+#         previous=None,
+#         next=None,
+#         generation_messages=[LLMMessage(role="system", content="Generate a simple mermaid slide.")],
+#         extra={}
+#     ),
+#     SectionHeaderSlide(
+#         slide_title="Section Header Slide",
+#         topic_id="topic-5",
+#         slide_id=uuid7str(),
+#         image=Image(
+#             prompt="Sunset over mountains",
+#             model="stable-diffusion",
+#             width=800,
+#             height=600,
+#             shape="rectangle",
+#             type="generated"
+#         ),
+#         hidden=False,
+#         previous=None,
+#         next=None,
+#         generation_messages=[LLMMessage(role="system", content="Generate a section header slide.")],
+#         extra={}
+#     )
+# ]
 
 # Run the functions
-if __name__ == "__main__":
-    for slide in test_slides:
-        print(f"Processing original slide: {slide.slide_title}")
-        processed_slides = asyncio.run(process_slide(slide))
-        for processed_slide in processed_slides:
-            print(processed_slide)
+# if __name__ == "__main__":
+#     for slide in test_slides:
+#         print(f"Processing original slide: {slide.slide_title}")
+#         processed_slides = asyncio.run(process_slide(slide))
+#         for processed_slide in processed_slides:
+#             print(processed_slide)

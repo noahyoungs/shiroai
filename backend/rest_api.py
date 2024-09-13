@@ -72,32 +72,18 @@ class IconObject(BaseModel):
     name: str
     source: str
 
-async def authenticate_request(request: Request, presentation_id: str):
+async def authenticate_request(request: Request):
     cookie_str = request.headers.get('cookie', '')
-    cookies = http.cookies.SimpleCookie()
-    cookies.load(cookie_str)
     
-    accessToken = cookies.get("__Secure-next-auth.session-token", None).value if cookies else None
-    
-    if accessToken:
-        logger.debug(f"Access token found: {accessToken}")
-        logger.debug(f"Presentation ID: {presentation_id}")
-        isAuthorized, isAuthenticated, userID = await authorize(presentation_id, accessToken)
-        if not isAuthenticated:
-            logger.warning("Not authenticated.")
-            raise HTTPException(status_code=401, detail="Authentication issue. Please try logging out and logging back in.")
-        if not isAuthorized:
-            logger.warning("Unauthorized.")
-            raise HTTPException(status_code=403, detail="Authorization issue. Please try logging out and logging back in.")
-        return presentation_id, userID
-    else:
-        logger.warning("No access token found.")
-        raise HTTPException(status_code=403, detail="Authorization issue, access token not found. Please try logging out and logging back in.")
+    async def auth_error_handler(status_code: int, reason: str):
+        raise HTTPException(status_code=status_code, detail=reason)
+
+    userID = await authorize(cookie_str, auth_error_handler)
 
 @router.post("/icon/simple_bp_search", response_model=List[IconObject])
 async def get_top_n_icons_for_bullet_point_route(request: BulletPointRequest, req: Request):
     try:
-        await authenticate_request(req, request.presentation_id)
+        userID = await authenticate_request(req)
         result = await get_top_n_icons_for_bullet_point(request.bullet_point, request.n)
         # Map result to IconObject
         response = [IconObject(detailed_name=icon['icon_name'], name=icon['original_label'], source=icon['source']) for icon in result]
@@ -112,7 +98,7 @@ async def get_top_n_icons_for_bullet_point_route(request: BulletPointRequest, re
 @router.post("/icon/unique_bp_search", response_model=List[IconObject])
 async def get_top_n_icons_with_unique_embedding_route(request: UniqueEmbeddingRequest, req: Request):
     try:
-        await authenticate_request(req, request.presentation_id)
+        userID = await authenticate_request(req)
         result = await get_top_n_icons_with_unique_embedding(request.bullet_point, request.bullet_point_list, request.n)
         # Map result to IconObject
         response = [IconObject(detailed_name=icon['icon_name'], name=icon['original_label'], source=icon['source']) for icon in result]
@@ -127,7 +113,7 @@ async def get_top_n_icons_with_unique_embedding_route(request: UniqueEmbeddingRe
 @router.post("/icon/query_search", response_model=List[IconObject])
 async def get_top_n_icons_for_query_route(request: QueryRequest, req: Request):
     try:
-        await authenticate_request(req, request.presentation_id)
+        userID = await authenticate_request(req)
         result = await get_top_n_icons_for_query(request.query, request.n)
         # Map result to IconObject
         response = [IconObject(detailed_name=icon['icon_name'], name=icon['original_label'], source=icon['source']) for icon in result]
@@ -142,7 +128,7 @@ async def get_top_n_icons_for_query_route(request: QueryRequest, req: Request):
 @router.post("/slides/generate_image", response_model=dict)
 async def generate_image_route(request: GenerateImageRequest, req: Request):
     try:
-        await authenticate_request(req, request.presentationID)
+        userID = await authenticate_request(req)
         image_data = await generate_upload_update_by_prompt(
             request.presentationID, 
             request.prompt, 

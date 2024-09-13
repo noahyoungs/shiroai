@@ -430,6 +430,7 @@ export default function Page({
   );
 
   const interfaceComponent = (
+    <>
     <Interface
       slideList={slideList}
       currentSlideID={currentSlideID}
@@ -442,6 +443,7 @@ export default function Page({
       socketReady={socketRef.current && socketRef.current.connected}
       generateScriptNotes={generateScriptNotes}
     />
+    </>
   );
 
   return (

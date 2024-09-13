@@ -7,6 +7,7 @@ import Conversation from "./conversation";
 import PromptInputBasic from "./prompt-input-basic";
 import PromptInputDropbox from "./prompt-input-dropbox";
 import { set } from "lodash";
+import { Source } from '@/utils/database-types';
 
 export type ChatProps = {
   presentationID: string;
@@ -16,7 +17,7 @@ export type ChatProps = {
   block: boolean;
   setBlock: (block: boolean) => void;
   typing: any;
-  sources?: any;
+  sources?: Source[];
   refreshSources?: () => void;
   placeholder?: string;
   title?: string;

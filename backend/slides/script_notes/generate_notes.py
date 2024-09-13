@@ -1,20 +1,9 @@
 from slides.xml_instructor import get_basemodel_instance_from_llm
 from backend.database_models import Slide
-from slides.slide_to_xml import slide_content_to_xml
 from math import floor
 from pydantic import BaseModel, Field
-from portkey_ai import AsyncPortkey
+from llm_clients import content_gen_client, content_gen_model
 
-
-bedrock_client = AsyncPortkey(
-    virtual_key="aldeo-portkey-b-5cf75f",
-    config={"cache": {"mode": "simple"},
-                "retry": {
-            "attempts": 3,
-            "on_status_codes": [429, 500, 502, 503, 504, 424],
-            }},
-)
-claude_haiku = "anthropic.claude-3-haiku-20240307-v1:0"
 
 slide_type_descriptions = {
     'short_bullets_slide': 'Icon Node Slide (This slide type has a title and 2-5 nodes, each with an icon and a short text description (<=80 chars). The nodes can be arranged in a list or a grid, and arrows can be displayed between the nodes to indicate sequentiality. The layout and arrangement of the title and nodes are determined by the content and number of nodes.)',
@@ -68,10 +57,10 @@ Please write your presenter notes inside <presenter_notes> tags. Aim for bullet 
         slide_scripts: List[SlideScript] = Field(..., min_items=5, max_items=5)
 
     response, messages = await get_basemodel_instance_from_llm(
-        client=bedrock_client,
+        client=content_gen_client,
         pydantic_model_class=Response,
         max_iterations=5,
-        model=claude_haiku,
+        model=content_gen_model,
         max_tokens=2000,
         messages={'role': 'user', 'prompt': prompt},
     )

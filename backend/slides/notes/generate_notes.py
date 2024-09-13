@@ -3,24 +3,13 @@ from database_models import Slide, Topic
 from slides.slide_to_xml import slide_content_to_xml
 from slides.script.script_styles import generate_xml_for_style
 from pydantic import BaseModel, Field
-from math import floor
-from portkey_ai import AsyncPortkey
 from typing import List
 from slides.persistent_slide_list import PersistentSlideList
 from database_models import Slide, Topic
 from typing import List
-from dynamodb import get_all_topics, get_presentation
-import traceback
+from dynamodb_service import get_items_with_user, get_all_items_for_presentation_with_user
+from llm_clients import content_gen_client, content_gen_model
 
-bedrock_client = AsyncPortkey(
-    virtual_key="aldeo-portkey-b-5cf75f",
-    config={"cache": {"mode": "simple"},
-                "retry": {
-            "attempts": 3,
-            "on_status_codes": [429, 500, 502, 503, 504, 424],
-            }},
-)
-claude_haiku = "anthropic.claude-3-haiku-20240307-v1:0"
 
 slide_type_descriptions = {
     'short_bullets_slide': 'Icon Node Slide (This slide type has a title and 2-5 nodes, each with an icon and a short text description (<=80 chars). The nodes can be arranged in a list or a grid, and arrows can be displayed between the nodes to indicate sequentiality. The layout and arrangement of the title and nodes are determined by the content and number of nodes.)',
@@ -90,10 +79,10 @@ Response Format:
 Begin writing the speaker notes for each slide, adhering to the guidelines and format specified above."""
 
     response, messages = await get_basemodel_instance_from_llm(
-        client=bedrock_client,
+        client=content_gen_client,
         pydantic_model_class=Response,
         max_iterations=5,
-        model=claude_haiku,
+        model=content_gen_model,
         max_tokens=100000,
         messages=[{'role':'user', 'content':prompt}],
     )
@@ -104,8 +93,9 @@ Begin writing the speaker notes for each slide, adhering to the guidelines and f
 
 async def generate_all_notes(psl: PersistentSlideList, style_key: int = 0, custom_style: str = None, max_char_per_slide: int = None):
     print(f"Generating notes for presentation {psl.presentation_id}")
-    topics: List[Topic] = await get_all_topics(psl.presentation_id)
-    presentation = await get_presentation(psl.presentation_id, ['topic', 'audience', 'goal'])
+    topics: List[Topic] = await get_all_items_for_presentation_with_user('topic', psl.presentation_id, 'model')
+    # presentation = await get_presentation(psl.presentation_id, ['topic', 'audience', 'goal'])
+    presentation = await get_items_with_user('presentation', [{'presentation_id': psl.presentation_id}], ['topic', 'audience', 'goal'])
     
     slides_l: List[Slide] = psl.convert_to_array()
 
@@ -132,7 +122,7 @@ async def generate_all_notes(psl: PersistentSlideList, style_key: int = 0, custo
         print(f"Error generating notes: number of notes ({len(notes)}) doesn't match number of slides ({len(slides_l)})")
         return
 
-    update_partial_slides = [{'id': slide.id, 'speaker_notes': note} for slide, note in zip(slides_l, notes)]
+    update_partial_slides = [{'id': slide.slide_id, 'speaker_notes': note} for slide, note in zip(slides_l, notes)]
     print(f"Updating {len(update_partial_slides)} slides with generated speaker notes")
     await psl.update_slides(update_partial_slides)
     print("Notes generated and updated")

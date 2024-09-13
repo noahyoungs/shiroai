@@ -103,12 +103,12 @@ async def add_rerank_score(docs, query):
 async def reduce_docs(presentation_id, all_docs, reduce_length, topic_name, topic_id):
         
     # Get topic docs
-    topic_docs = [doc for doc in all_docs if doc.get('metadata', {}).get('topic', {}).get('id') == topic_id]
+    topic_docs = [doc for doc in all_docs if doc.get('metadata', {}).get('topic', {}).get('topic_id') == topic_id]
     # topic_docs = [dict(doc) for doc in topic_docs]
     
     # print(f"Original number of topic docs: {len(topic_docs)}")
     # print(f"Original character length of topic docs: {len(to_single_string(topic_docs))}")
-    # print(f"Original number of sources: {len(set(doc['metadata']['source']['id'] for doc in topic_docs))}")
+    # print(f"Original number of sources: {len(set(doc['metadata']['source']['source_id'] for doc in topic_docs))}")
 
     original_length = len(to_single_string(topic_docs))
     
@@ -123,7 +123,7 @@ async def reduce_docs(presentation_id, all_docs, reduce_length, topic_name, topi
         
         # print(f"\nCharacter length of topic docs after reduction by vector similarity: {len(to_single_string(reduced_by_vector_similarity))}")
         # print(f"Number of topic docs after reduction by vector similarity: {len(reduced_by_vector_similarity)}")
-        # print(f"Number of sources after reduction by vector similarity: {len(set(doc['metadata']['source']['id'] for doc in reduced_by_vector_similarity))}")
+        # print(f"Number of sources after reduction by vector similarity: {len(set(doc['metadata']['source']['source_id'] for doc in reduced_by_vector_similarity))}")
         
         original_length = len(to_single_string(reduced_by_vector_similarity))
         topic_docs = reduced_by_vector_similarity
@@ -149,7 +149,7 @@ async def reduce_docs(presentation_id, all_docs, reduce_length, topic_name, topi
         reduced_by_rerank_score_docs = reduce_docs_to_length(source_docs.copy(), ['metadata','topic', 'rerank_score'], reduce_length, remove_highest_first=False)
         # print(f"\nCharacter length of topic docs after reduction by rerank score: {len(to_single_string(reduced_by_rerank_score_docs))}")
         # print(f"Number of topic docs after reduction by rerank score: {len(reduced_by_rerank_score_docs)}")
-        # print(f"Number of sources after reduction by rerank score: {len(set(doc['metadata']['source']['id'] for doc in reduced_by_rerank_score_docs))}")
+        # print(f"Number of sources after reduction by rerank score: {len(set(doc['metadata']['source']['source_id'] for doc in reduced_by_rerank_score_docs))}")
         # print(f"Minimum rerank score increased from {min(doc['metadata']['topic']['rerank_score'] for doc in source_docs)} to {min(doc['metadata']['topic']['rerank_score'] for doc in reduced_by_rerank_score_docs)}")
         
         return reduced_by_rerank_score_docs

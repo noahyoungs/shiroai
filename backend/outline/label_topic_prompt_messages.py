@@ -1,0 +1,7 @@
+def get_messages(topic, excerpts, keywords):
+    return [
+  {
+    "role": "user",
+    "content": f"You are tasked with naming a subtopic based on a set of research excerpts. This subtopic should encapsulate the common themes found in the excerpts and relate to the overall research topic. Follow these steps:\n\n1. Review the overall research topic:\n<topic>\n{topic}\n</topic>\n\n2. Carefully read the following excerpts:\n<excerpts>\n{excerpts}\n</excerpts>\n\n3. Consider these keywords that have been identified:\n<keywords>\n{keywords}\n</keywords>\n\n4. Analyze the excerpts, keywords, and overall topic to identify the common themes and ideas they represent.\n\n5. Based on your analysis, create a concise subtopic name that:\n   - Accurately represents the common themes in the excerpts\n   - Relates to the overall research topic\n   - Uses 8 words or less\n   - Is clear and descriptive\n\n6. Provide your reasoning for choosing this subtopic name, explaining how it relates to the excerpts, keywords, and overall topic.\n\n7. Present your answer in the following format:\n   <reasoning>Your explanation for choosing this subtopic name</reasoning>\n   <subtopic_name>Your 8-word-or-less subtopic name here</subtopic_name>\n\nRemember to focus on capturing the essence of the excerpts while keeping the subtopic name concise and relevant to the overall research topic."
+  }
+]

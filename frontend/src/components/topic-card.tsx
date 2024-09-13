@@ -62,7 +62,7 @@ export const TopicCard: React.FC<TopicCardProps> = ({ topic, provided, included,
                                 <div className="flex flex-row flex-wrap gap-2">
                                     {
                                         topic.keywords.map((keyword: any, index: number) => (
-                                            <Chip key={index} color="primary" variant="flat">
+                                            <Chip key={index} color="default" variant="flat">
                                                 {keyword}
                                             </Chip>
                                         ))
@@ -116,7 +116,7 @@ export const TopicCard: React.FC<TopicCardProps> = ({ topic, provided, included,
                                         <Card key={index} className="">
                                             <CardHeader className="p-4">
                                                 {Array.isArray(allSources) && allSources.length > 0 ? (
-                                                    allSources.find((source) => source.id === excerpt.source.id) ? (
+                                                    allSources.find((source) => source.source_id === excerpt.source.source_id) ? (
                                                         (matchedSource: any) => (
                                                             matchedSource.type === "web" ? (
                                                                 <SearchResultItem source={matchedSource.web_source} description={false} />
@@ -127,29 +127,29 @@ export const TopicCard: React.FC<TopicCardProps> = ({ topic, provided, included,
                                                                 </div>
                                                             )
                                                         )
-                                                    )(allSources.find((source) => source.id === excerpt.source.id)) : (
+                                                    )(allSources.find((source) => source.source_id === excerpt.source.source_id)) : (
                                                         <div className="flex flex-col">
                                                             <p>No match</p>
-                                                            <p>Excerpt ID {excerpt}</p>
-                                                            <p>Source: </p>
-                                                            {excerpt.source.includes("http") ? (
+                                                            <p>Excerpt: {JSON.stringify(excerpt)}</p>
+                                                            <p>First source in allSources: {JSON.stringify(allSources[0])}</p>
+                                                            {typeof excerpt?.source === 'string' && excerpt.source.includes("http") ? (
                                                                 <Link href={excerpt.source} isExternal showAnchorIcon>
                                                                     {excerpt.source}
                                                                 </Link>
                                                             ) : (
-                                                                excerpt.source
+                                                                JSON.stringify(excerpt.source)
                                                             )}
                                                         </div>
                                                     )
                                                 ) : (
                                                     <div className="flex flex-col">
                                                         <p>Source: </p>
-                                                        {excerpt.source.includes("http") ? (
+                                                        {typeof excerpt?.source === 'string' && excerpt.source.includes("http") ? (
                                                             <Link href={excerpt.source} isExternal showAnchorIcon>
                                                                 {excerpt.source}
                                                             </Link>
                                                         ) : (
-                                                            excerpt.source
+                                                            JSON.stringify(excerpt.source)
                                                         )}
                                                     </div>
                                                 )}

@@ -3,7 +3,7 @@ import asyncio
 
 interface = "research"
 
-from dynamodb import update_presentation, batch_update_sources
+from dynamodb_service import update_items_with_user
 
 # Constant to control whether to update sources or not
 UPDATE_SOURCES = False
@@ -18,7 +18,7 @@ async def save_progress(presentation_id, messages, interface_data, memory):
     if memory:
         attributes["memory"] = json.dumps(memory)
     
-    update_presentation_task = asyncio.create_task(update_presentation(presentation_id, **attributes))
+    update_presentation_task = asyncio.create_task(update_items_with_user('presentation', [{**attributes, 'presentation_id': presentation_id}]))
     
     tasks = [update_presentation_task]
     
@@ -27,8 +27,10 @@ async def save_progress(presentation_id, messages, interface_data, memory):
         web_sources = [source for source in interface_data['sources'] if source['type'] == 'web']
         
         if web_sources:
-            batch_update_sources_task = asyncio.create_task(batch_update_sources(presentation_id, web_sources))
-            tasks.append(batch_update_sources_task)
+            # update_sources_task = asyncio.create_task(update_items_with_user('source', web_sources))
+            update_sources_task = asyncio.create_task(update_items_with_user('source', [{**source, 'presentation_id': presentation_id} for source in web_sources])) # add presentation_id to each source just in case its not in there
+
+            tasks.append(update_sources_task)
     
     # print(f"Saving progress, presentation attributes: {attributes}, web sources: {web_sources}")
     

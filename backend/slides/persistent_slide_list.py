@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional, Union, Callable
 import asyncio
-from dynamodb import get_presentation as get_presentation_action, get_all_slides as get_all_slides_action, get_slides as get_slides_action, update_slides as update_slides_action
+from dynamodb_service import get_items_with_user, get_all_items_for_presentation_with_user, update_items_with_user
 from database_models import Slide as SlideModel
 
 async def _get_head_slide_id_action(presentation_id: str) -> str:
@@ -13,7 +13,8 @@ async def _get_head_slide_id_action(presentation_id: str) -> str:
     Returns:
         str: The head slide ID.
     """
-    presentation = await get_presentation_action(presentation_id, ["head_slide_id"])
+    # presentation = await get_presentation_action(presentation_id, ["head_slide_id"])
+    presentation = await get_items_with_user('presentation', {'presentation_id': presentation_id}, ['head_slide_id'])
     return presentation.get("head_slide_id")
 
 
@@ -55,16 +56,16 @@ class PersistentSlideList:
         
         if push_value is None:
             if isinstance(slides_to_update[0], SlideModel):
-                push_value = [slide.id for slide in slides_to_update]
+                push_value = [slide.slide_id for slide in slides_to_update]
             elif isinstance(slides_to_update[0], dict):
-                push_value = [slide['id'] for slide in slides_to_update]
+                push_value = [slide['slide_id'] for slide in slides_to_update]
             else:
                 raise ValueError("Invalid slide type _update_dynamodb_then_emit_update")
             
             if len(push_value) == 1:
                 push_value = push_value[0]
         
-        await update_slides_action(self.presentation_id, slides_to_update)
+        await update_items_with_user('slide', slides_to_update)
         print(f"Emitting interface_update event, ")
         await self.emitter('interface_update', {'push': push_value})
         
@@ -80,23 +81,23 @@ class PersistentSlideList:
             return
 
         for slide in initial_slides:
-            if not hasattr(slide, 'id') or not slide.id:
+            if not hasattr(slide, 'slide_id') or not slide.slide_id:
                 print(f"Slide: {slide}")
                 raise ValueError("Each slide must have an ID")
 
-        self.head_id = initial_slides[0].id
+        self.head_id = initial_slides[0].slide_id
         for i, slide in enumerate(initial_slides):
-            self.slides[slide.id] = slide
+            self.slides[slide.slide_id] = slide
             self.length += 1
             if i == 0:
                 slide.previous = None  # The first slide's previous should be None
             else:
-                slide.previous = initial_slides[i - 1].id
+                slide.previous = initial_slides[i - 1].slide_id
             
             if i == len(initial_slides) - 1:
                 slide.next = None  # The last slide's next should be None
             else:
-                slide.next = initial_slides[i + 1].id
+                slide.next = initial_slides[i + 1].slide_id
 
         # Update slides in DynamoDB then emit an update event
         asyncio.create_task(self._update_dynamodb_then_emit_update(initial_slides, push_value='*'))
@@ -112,10 +113,11 @@ class PersistentSlideList:
         if not self.head_id:
             self.head_id = await _get_head_slide_id_action(self.presentation_id)
 
-        slides_data = await get_all_slides_action(self.presentation_id)
+        # slides_data = await get_all_slides_action(self.presentation_id)
+        slides_data = await get_all_items_for_presentation_with_user('slide', self.presentation_id, return_type='model')
         if slides_data:
             for slide in slides_data:
-                self.slides[slide.id] = slide
+                self.slides[slide.slide_id] = slide
                 self.length += 1
 
     def convert_to_array(self) -> List[SlideModel]:
@@ -145,7 +147,15 @@ class PersistentSlideList:
         Returns:
             List[SlideModel]: A list of fetched slides.
         """
-        fetched_slides = await get_slides_action(self.presentation_id, slide_ids)
+        # fetched_slides = await get_slides_action(self.presentation_id, slide_ids)
+        if isinstance(slide_ids, str):
+            identifiers = {'presentation_id': self.presentation_id, 'slide_id': slide_ids}
+        elif isinstance(slide_ids, list):
+            identifiers = [{'presentation_id': self.presentation_id, 'slide_id': slide_id} for slide_id in slide_ids]
+        else:
+            raise ValueError("Slide IDs must be either a string or a list of strings")
+
+        fetched_slides = await get_items_with_user('slide', identifiers, 'model')
 
         if not fetched_slides:
             raise ValueError(f"Error: Slides with IDs {slide_ids} not found")
@@ -154,9 +164,9 @@ class PersistentSlideList:
             fetched_slides = [fetched_slides]
 
         for slide in fetched_slides:
-            if slide.id not in self.slides:
+            if slide.slide_id not in self.slides:
                 self.length += 1
-            self.slides[slide.id] = slide
+            self.slides[slide.slide_id] = slide
 
         return fetched_slides
 
@@ -180,18 +190,18 @@ class PersistentSlideList:
             for slide in slides:
                 if isinstance(slide, SlideModel):
                     print("SlideModel")
-                    if not slide.id:
+                    if not slide.slide_id:
                         raise ValueError("Slide id is required")
 
-                    if slide.id not in self.slides:
-                        raise ValueError(f"Slide with id {slide.id} does not exist")
+                    if slide.slide_id not in self.slides:
+                        raise ValueError(f"Slide with id {slide.slide_id} does not exist")
 
                     # Update self.slides before performing the DynamoDB operation
-                    self.slides[slide.id] = slide
+                    self.slides[slide.slide_id] = slide
                     slides_to_update.append(slide)
                 elif isinstance(slide, dict):
                     print("Dict")
-                    slide_id = slide.get('id')
+                    slide_id = slide.get('slide_id')
                     if not slide_id:
                         raise ValueError("Slide id is required in the dictionary")
 
@@ -232,7 +242,7 @@ class PersistentSlideList:
         try:
             previous_slide = self.slides[previous_slide_id]
             next_slide_id = previous_slide.next
-            new_slide_id = new_slide.id
+            new_slide_id = new_slide.slide_id
 
             self.slides[new_slide_id] = new_slide
             self.length += 1
@@ -242,8 +252,8 @@ class PersistentSlideList:
                 self.slides[next_slide_id].previous = new_slide_id
 
             slides_to_update = [
-                SlideModel(id=previous_slide.id, next=new_slide_id),
-                SlideModel(id=new_slide_id, previous=previous_slide.id, next=next_slide_id)
+                SlideModel(id=previous_slide.slide_id, next=new_slide_id),
+                SlideModel(id=new_slide_id, previous=previous_slide.slide_id, next=next_slide_id)
             ]
             if next_slide_id:
                 slides_to_update.append(SlideModel(id=next_slide_id, previous=new_slide_id))
@@ -285,13 +295,13 @@ class PersistentSlideList:
                 self.slides[next_slide_id].previous = previous_slide_id
 
             slides_to_update = [
-                {'id': slide_id, 'hidden': True}
+                {'slide_id': slide_id, 'hidden': True}
             ]
 
             if previous_slide_id:
-                slides_to_update.append({'id': previous_slide_id, 'next': next_slide_id})
+                slides_to_update.append({'slide_id': previous_slide_id, 'next': next_slide_id})
             if next_slide_id:
-                slides_to_update.append({'id': next_slide_id, 'previous': previous_slide_id})
+                slides_to_update.append({'slide_id': next_slide_id, 'previous': previous_slide_id})
 
             if wait_for_db:
                 await self._update_dynamodb_then_emit_update(slides_to_update)
@@ -314,7 +324,8 @@ class PersistentSlideList:
         if slide_id not in self.slides:
             print(f"WARNING: Attepted to get slide with id {slide_id} which does not exist locally. Attempting to fetch from dynmamodb.")
             
-            fetched_slide = await get_slides_action(self.presentation_id, slide_id)
+            # fetched_slide = await get_slides_action(self.presentation_id, slide_id)
+            fetched_slide = await get_items_with_user('slide', [{'presentation_id': self.presentation_id, 'slide_id': slide_id}], 'model')
             
             print(f"fetched slide {fetched_slide}")
 
@@ -364,7 +375,7 @@ async def main():
     # Fetch all slides and store them in the linked list
     await persistent_slide_list.fetch_all_slides()
     slides_array = persistent_slide_list.convert_to_array()
-    print("Slides in order:", [slide.id for slide in slides_array])
+    print("Slides in order:", [slide.slide_id for slide in slides_array])
 
     # Fetch specific slides and update them in the linked list
     await persistent_slide_list.fetch_slides("slide2")

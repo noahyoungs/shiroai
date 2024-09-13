@@ -1,19 +1,26 @@
+
 import global_prompts_config
-from dynamodb import get_presentation
 import json
 from typing import List
 from slides.persistent_slide_list import PersistentSlideList
+from dynamodb_service import get_items_with_user
 
 
 interface = "slides"
 interface_data_keys = ['current_slide_id']
 
-async def initialize(presentation_id, emitter):
+async def initialize(user_id, presentation_id, emit):
     # get interface keys
     memory = {}
     all_docs = []
 
-    presentation = await get_presentation(presentation_id, ['messages', 'status', 'topic', 'outline', 'audience', 'goal', 'slide_generation_status']+ interface_data_keys)
+    # presentation = await get_presentation(presentation_id, ['messages', 'status', 'topic', 'outline', 'audience', 'goal', 'slide_generation_status']+ interface_data_keys)
+    attributes =  ['messages', 'status', 'topic', 'outline', 'audience', 'goal', 'slide_generation_status']+ interface_data_keys
+    presentation = await get_items_with_user('presentation', {'user_id': user_id, 'presentation_id': presentation_id}, attributes)
+
+    # If the presentation does not exist, return an error message
+    if not presentation:
+        raise RuntimeError('The presentation you\'re trying to edit was not found, please try creating a new presentation.')
 
     # Check if 'messages' exists in the presentation and is not None
     if 'messages' in presentation and presentation['messages'] is not None:
@@ -33,7 +40,7 @@ async def initialize(presentation_id, emitter):
         slides_created = True
         
         # get all the slides, put them in a PersistentSlideList and set as memory
-        slide_list = PersistentSlideList(presentation_id, emitter=emitter)
+        slide_list = PersistentSlideList(presentation_id, emitter=emit)
         await slide_list.fetch_all_slides()
         memory['slide_list'] = slide_list
     else:

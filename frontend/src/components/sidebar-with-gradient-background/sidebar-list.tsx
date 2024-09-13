@@ -1,6 +1,6 @@
 "use server"
 import PresentationListboxWithPagination from "@/components/sidebar-with-gradient-background/presentation-listbox-with-pagination";
-import { getPresentationsByUserID } from "@/utils/dynamodb";
+// import { getPresentationsByUserID } from "@/utils/dynamodb";
 import { auth } from "@/auth"
 
 export default async function SidebarList() {
@@ -9,7 +9,10 @@ export default async function SidebarList() {
     return <div>You must be signed in to view this page.</div>;
   }
 
-  const initialResponse = await getPresentationsByUserID(session.user.id, ["topic", "status", "time_updated"], 10);
+  // const initialResponse = await getPresentationsByUserID(session.user.id, ["topic", "status", "time_updated"], 10);
+  const initialResponse = {
+    presentations: []
+  }
 
   const sortedPresentations = initialResponse.presentations?.sort((a, b) => {
     if (isNaN(a.time_updated) || isNaN(b.time_updated)) {

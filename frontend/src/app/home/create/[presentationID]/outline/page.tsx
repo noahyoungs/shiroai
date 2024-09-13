@@ -9,6 +9,7 @@ import { io } from "socket.io-client";
 import { useRouter } from 'next/navigation';
 import ChatConfigureLayout from '@/components/chat-configure-layout';
 import { debounce } from 'lodash';
+import { Topic } from '@/utils/database-types';
 
 
 export default function Page({ params }: { params: { presentationID: string } }) {
@@ -97,11 +98,11 @@ export default function Page({ params }: { params: { presentationID: string } })
       console.log("referenceTopics:", referenceTopics);
     
       if (socketMessage.outline) {
-        const includedTopics = [];
-        const excludedTopics = [];
+        const includedTopics: Topic[] = [];
+        const excludedTopics: Topic[] = [];
     
-        socketMessage.outline.forEach(subtopic => {
-          const topic = referenceTopics.find(topic => topic.id === subtopic.id);
+        socketMessage.outline.forEach((subtopic: {topic_id: string, included: boolean}) => {
+          const topic = referenceTopics.find((topic: Topic) => topic.topic_id === subtopic.topic_id);
           if (topic) {
             if (subtopic.included) {
               includedTopics.push(topic);
@@ -152,7 +153,7 @@ export default function Page({ params }: { params: { presentationID: string } })
   );
 
   useEffect(() => {
-    const outline = [...includedTopics.map(topic => ({ id: topic.id, included: true })), ...excludedTopics.map(topic => ({ id: topic.id, included: false }))]
+    const outline = [...includedTopics.map(topic => ({ topic_id: topic.topic_id, included: true })), ...excludedTopics.map(topic => ({ topic_id: topic.topic_id, included: false }))]
     if (outline.length === 0) {
       console.error("Not emitting interface update because outline is empty")
       return;

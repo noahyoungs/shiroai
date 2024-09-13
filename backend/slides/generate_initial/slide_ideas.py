@@ -1,18 +1,8 @@
 from pydantic import BaseModel, Field
 from typing import List, Literal
 from slides.xml_instructor import generate_variable_input_xml, get_basemodel_instance_from_llm
-from portkey_ai import AsyncPortkey
+from llm_clients import content_gen_client, content_gen_model
 
-bedrock_client = AsyncPortkey(
-    virtual_key="aldeo-portkey-b-5cf75f",
-    config={"cache": {"mode": "simple"},
-                "retry": {
-            "attempts": 3,
-            "on_status_codes": [429, 500, 502, 503, 504, 424],
-            }},
-)
-
-claude_haiku = "anthropic.claude-3-haiku-20240307-v1:0"
 
 async def get_slide_ideas(presentation_xml, subtopic_xml, research_xml):
     class Slide(BaseModel):
@@ -69,10 +59,10 @@ Remember, the <slide_content_idea></slide_content_idea> is not the actual conten
     messages = [{'role': 'user', 'content': prompt}]
 
     slide_list, messages = await get_basemodel_instance_from_llm(
-        client=bedrock_client,
+        client=content_gen_client,
         pydantic_model_class=SlideList,
         max_iterations=5,
-        model=claude_haiku,
+        model=content_gen_model,
         max_tokens=2000,
         messages=messages,
     )

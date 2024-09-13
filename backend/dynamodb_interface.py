@@ -2,21 +2,20 @@
 import os
 import time
 from dotenv import load_dotenv
+from decimal import Decimal
 from aiobotocore.session import get_session
 from typing import List, Dict, Any, Union, Literal, Optional
 from pydantic import BaseModel
-from uuid_extensions import uuid7str
 from database_models import *
-import logging
+from session_log_config import get_child_logger
 
-load_dotenv()
-
-# Create a logger specific to this module
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger = get_child_logger(os.path.abspath(__file__))
 
 TABLE_NAME = os.getenv("DYNAMODB_TABLE_NAME")
 AWS_REGION = os.getenv("AWS_REGION")
+
+if not TABLE_NAME or not AWS_REGION:
+    raise ValueError("Missing environment variables for DynamoDB configuration")
 
 from boto3.dynamodb.types import TypeSerializer, TypeDeserializer
 
@@ -95,10 +94,26 @@ def prepare_projection_expression(attributes: List[str]) -> Dict[str, Any]:
         }
     return {}
 
+def convert_floats_to_decimals(item: Any) -> Any:
+    """
+    Recursively converts floats to Decimals in the given item, which can be a dictionary, list, or scalar value.
+    """
+    if isinstance(item, float):
+        return Decimal(str(item))  # Convert float to Decimal
+    elif isinstance(item, dict):
+        return {key: convert_floats_to_decimals(value) for key, value in item.items()}
+    elif isinstance(item, list):
+        return [convert_floats_to_decimals(value) for value in item]
+    else:
+        return item
+
 def build_update_expression(item_dict: Dict[str, Any], item_type: str) -> Dict[str, Any]:
     update_expression_parts = []
     expression_attribute_values = {}
     expression_attribute_names = {}
+
+    # First, convert any floats to decimals in the item_dict
+    item_dict = convert_floats_to_decimals(item_dict)
 
     for key, value in item_dict.items():
         if key not in ['PK', 'SK', 'last_updated'] and key not in item_ids:
@@ -178,7 +193,8 @@ async def execute_db_operation(client, operation: str, params: Dict[str, Any]):
 async def get_items(item_type: item_types_literal, 
                     identifiers: Union[Dict[str, str], List[Dict[str, str]]], 
                     attributes: Optional[List[str]] = None, 
-                    return_type: Optional[Literal['dict', 'model']] = 'dict') -> Union[Dict, BaseModel, None, List[Union[Dict, None]], List[Union[BaseModel, None]]]:
+                    return_type: Optional[Literal['dict', 'model']] = 'dict',
+                    consistent_read: bool = False) -> Union[Dict, BaseModel, None, List[Union[Dict, None]], List[Union[BaseModel, None]]]:
     """
     Fetch one or multiple items of a specified type from the DynamoDB table.
 
@@ -187,6 +203,7 @@ async def get_items(item_type: item_types_literal,
         identifiers (Union[Dict[str, str], List[Dict[str, str]]]): A dictionary or list of dictionaries containing identifiers for the item(s) to fetch.
         attributes (Optional[List[str]], optional): A list of specific attributes to retrieve. If None, all attributes are retrieved. Defaults to None.
         return_type (Optional[Literal['dict', 'model']], optional): The desired return type, either 'dict' or 'model'. Defaults to 'dict'. 'model' is only supported for 'slide' and 'topic' item types.
+        consistent_read (bool, optional): Whether to use strongly consistent reads. Defaults to False.
 
     Returns:
         Union[Dict, BaseModel, None, List[Union[Dict, None]], List[Union[BaseModel, None]]]: If one item is fetched, a dictionary or model instance is returned. If multiple items are fetched, a list of dictionaries or model instances is returned. If no items match a provided identifier, None is returned in its place.
@@ -195,9 +212,9 @@ async def get_items(item_type: item_types_literal,
         ValueError: If an unsupported item type is provided for model creation or if required identifiers are missing.
         botocore.exceptions.ClientError: If an error occurs during the DynamoDB operation like AccessDeniedException which occurs when the IAM user does not have permission to perform the operation.
     """
-
-    logger.info(f"Fetching items of type {item_type} with identifiers: {identifiers}")
     
+    logger.debug(f"Fetching {item_type} items with identifiers: {identifiers}, consistent read: {consistent_read}")
+
     async with get_session().create_client('dynamodb', region_name=AWS_REGION) as client:
         is_single_item = isinstance(identifiers, dict)
         items_to_fetch = [identifiers] if is_single_item else identifiers
@@ -206,10 +223,12 @@ async def get_items(item_type: item_types_literal,
         projection_params = prepare_projection_expression(attributes)
 
         if len(items_to_fetch) == 1:
-            request_params = {'TableName': TABLE_NAME, 'Key': keys_to_get[0], **projection_params}
+            request_params = {'TableName': TABLE_NAME, 'Key': keys_to_get[0], 'ConsistentRead': consistent_read, **projection_params}
             response = await execute_db_operation(client, 'get_item', request_params)
             items = [response.get('Item', {})] if 'Item' in response else []
         else:
+            if consistent_read:
+                logger.warning("Strongly consistent reads are not supported for BatchGetItem. Falling back to eventually consistent reads.")
             request_params = {TABLE_NAME: {'Keys': keys_to_get, **projection_params}}
             response = await execute_db_operation(client, 'batch_get_item', {'RequestItems': request_params})
             items = response.get('Responses', {}).get(TABLE_NAME, [])
@@ -221,18 +240,18 @@ async def get_items(item_type: item_types_literal,
             item = deserialized_items.get((key['PK']['S'], key['SK']['S']), None)
             if item:
                 identifiers = extract_identifiers(item_type, key['PK']['S'], key['SK']['S'], item.get('GSI1SK'))
-                item.update(identifiers)
-                # Don't include the attributes PK, SK, and GSI1SK in the result
-                item = {k: v for k, v in item.items() if k not in ['PK', 'SK', 'GSI1SK']}
-            sorted_items.append(item)
+                filtered_item = {k: v for k, v in item.items() if k not in ['PK', 'SK', 'GSI1SK']}
+                filtered_item.update(identifiers)
+                sorted_items.append(filtered_item)
+            else:
+                sorted_items.append(None)
 
         if return_type == 'model' and item_type in ['slide', 'topic']:
             result = [create_model_instance(item_type, item, attributes) if item else None for item in sorted_items]
         else:
             result = sorted_items
 
-        logger.info(f"Fetched {len(result)} items, of which {len([item for item in result if item is not None])} were found in the database")
-        
+        logger.info(f"Fetched {len(result)} {item_type} items. {len([item for item in result if item is not None])} found")
         return result[0] if is_single_item and result else result
 
 async def update_items(item_type: item_types_literal, 
@@ -251,8 +270,8 @@ async def update_items(item_type: item_types_literal,
         This function uses either UpdateItem for a single item or TransactWriteItems for multiple items.
     """
 
-    logger.info(f"Updating items of type {item_type}")
-    
+    logger.debug(f"Preparing to update {len(items)} {item_type} items")
+
     async with get_session().create_client('dynamodb', region_name=AWS_REGION) as client:
         items_to_update = []
         for item in items:
@@ -273,6 +292,8 @@ async def update_items(item_type: item_types_literal,
         else:
             await execute_db_operation(client, 'transact_write_items', {'TransactItems': items_to_update})
 
+        logger.info(f"Updated {len(items)} {item_type} items successfully")
+
 async def delete_items(item_type: Literal['user', 'presentation', 'slide', 'topic', 'source'], 
                        identifiers: List[Dict[str, str]]) -> None:
     """
@@ -288,8 +309,8 @@ async def delete_items(item_type: Literal['user', 'presentation', 'slide', 'topi
     Note:
         This function uses either DeleteItem for a single item or TransactWriteItems for multiple items.
     """
-    logger.info(f"Deleting items of type {item_type} with identifiers: {identifiers}")
-    
+    logger.debug(f"Preparing to delete {len(identifiers)} {item_type} items")
+
     async with get_session().create_client('dynamodb', region_name=AWS_REGION) as client:
         items_to_delete = []
         for item_identifiers in identifiers:
@@ -307,22 +328,26 @@ async def delete_items(item_type: Literal['user', 'presentation', 'slide', 'topi
         else:
             await execute_db_operation(client, 'transact_write_items', {'TransactItems': items_to_delete})
 
+        logger.info(f"Deleted {len(items_to_delete)} {item_type} items successfully")
+
 async def get_all_items_for_presentation(
+    item_type: Literal['slide', 'topic', 'source'],
     user_id: str,
     presentation_id: str,
-    item_type: Literal['slide', 'topic', 'source'],
     attributes: Optional[List[str]] = None,
-    return_type: Optional[Literal['model', 'dict']] = 'dict'
+    return_type: Optional[Literal['model', 'dict']] = 'dict',
+    consistent_read: bool = False
 ) -> Union[List[Dict], List[BaseModel]]:
     """
     Fetch all items of a specified type for a given presentation.
 
     Args:
+        item_type (Literal['slide', 'topic', 'source']): The type of items to fetch.
         user_id (str): The ID of the user who owns the presentation.
         presentation_id (str): The ID of the presentation.
-        item_type (Literal['slide', 'topic', 'source']): The type of items to fetch.
         attributes (Optional[List[str]], optional): A list of specific attributes to retrieve. If None, all attributes are retrieved. Defaults to None.
         return_type (Optional[Literal['model', 'dict']], optional): The desired return type, either 'dict' or 'model'. Defaults to 'dict'.
+        consistent_read (bool, optional): Whether to use strongly consistent reads. Defaults to False.
 
     Returns:
         Union[List[Dict], List[BaseModel]]: A list of fetched items in the specified return type.
@@ -331,7 +356,7 @@ async def get_all_items_for_presentation(
         This function uses a Query operation to fetch all items of the specified type for the given presentation.
     """
 
-    logger.info(f"Fetching all {item_type}s for presentation {presentation_id} of user {user_id}")
+    logger.debug(f"Fetching all {item_type}s for presentation {presentation_id} of user {user_id}, consistent read: {consistent_read}")
 
     async with get_session().create_client('dynamodb', region_name=AWS_REGION) as client:
         query_params = {
@@ -344,7 +369,8 @@ async def get_all_items_for_presentation(
             'ExpressionAttributeValues': {
                 ':pk': {'S': f"USER#{user_id}"},
                 ':sk_prefix': {'S': f"PRESENTATION#{presentation_id}#{item_type.upper()}#"}
-            }
+            },
+            'ConsistentRead': consistent_read
         }
 
         if attributes:
@@ -357,9 +383,9 @@ async def get_all_items_for_presentation(
 
         for item in deserialized_items:
             identifiers = extract_identifiers(item_type, item['PK'], item['SK'], item.get('GSI1SK'))
-            # Don't include the attributes PK, SK, and GSI1SK in the result
-            item = {k: v for k, v in item.items() if k not in ['PK', 'SK', 'GSI1SK']}
-            item.update(identifiers)
+            filtered_item = {k: v for k, v in item.items() if k not in ['PK', 'SK', 'GSI1SK']}
+            filtered_item.update(identifiers)
+            item.update(filtered_item)
 
         if return_type == 'model' and item_type in ['slide', 'topic']:
             result = [create_model_instance(item_type, item, attributes) for item in deserialized_items]
@@ -370,17 +396,17 @@ async def get_all_items_for_presentation(
         return result
     
 async def delete_all_items_for_presentation(
+    item_type: Literal['slide', 'topic', 'source'],
     user_id: str,
     presentation_id: str,
-    item_type: Literal['slide', 'topic', 'source']
 ) -> None:
     """
     Delete all items of a specified type for a given presentation.
 
     Args:
+        item_type (Literal['slide', 'topic', 'source']): The type of items to delete.
         user_id (str): The ID of the user who owns the presentation.
         presentation_id (str): The ID of the presentation.
-        item_type (Literal['slide', 'topic', 'source']): The type of items to delete.
 
     Returns:
         None
@@ -390,10 +416,9 @@ async def delete_all_items_for_presentation(
         then uses TransactWriteItems to delete the items in batches of 25 (DynamoDB limit).
     """
     
-    logger.info(f"Deleting all {item_type}s for presentation {presentation_id} of user {user_id}")
+    logger.debug(f"Deleting all {item_type}s for presentation {presentation_id} of user {user_id}")
 
     async with get_session().create_client('dynamodb', region_name=AWS_REGION) as client:
-        # Query to get all items of the specified type for the presentation
         query_params = {
             'TableName': TABLE_NAME,
             'KeyConditionExpression': '#PK = :pk AND begins_with(#SK, :sk_prefix)',
@@ -405,7 +430,7 @@ async def delete_all_items_for_presentation(
                 ':pk': {'S': f"USER#{user_id}"},
                 ':sk_prefix': {'S': f"PRESENTATION#{presentation_id}#{item_type.upper()}#"}
             },
-            'ProjectionExpression': 'PK, SK'  # We only need the key attributes
+            'ProjectionExpression': 'PK, SK'
         }
 
         items_to_delete = []
@@ -417,15 +442,13 @@ async def delete_all_items_for_presentation(
             logger.info(f"No {item_type}s found for presentation {presentation_id}")
             return
 
-        # Prepare the delete requests
         delete_requests = [
             {'Delete': {'TableName': TABLE_NAME, 'Key': item}}
             for item in items_to_delete
         ]
 
-        # Use TransactWriteItems to delete items in batches of 25 (DynamoDB limit)
         for i in range(0, len(delete_requests), 25):
             batch = delete_requests[i:i+25]
             await execute_db_operation(client, 'transact_write_items', {'TransactItems': batch})
 
-    logger.info(f"Deleted {len(items_to_delete)} {item_type}s for presentation {presentation_id}")
+        logger.info(f"Deleted {len(items_to_delete)} {item_type}s for presentation {presentation_id}")

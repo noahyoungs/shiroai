@@ -1,3 +1,4 @@
+// frontend/src/components/chat/prompt-input-dropbox.tsx
 "use client";
 
 import React, { useState } from "react";
@@ -5,6 +6,7 @@ import { useDropzone } from "react-dropzone";
 import { Button, Tooltip, Badge, Card, CardBody } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import { getIcon } from "@/utils/get-file-icon";
+import { Source } from '@/utils/database-types';
 
 import { cn } from "@/utils/cn";
 
@@ -26,7 +28,7 @@ export default function Component({
   socket: any;
   block: boolean;
   setBlockSend: (block: boolean) => void;
-  sources: any;
+  sources: Source[];
   presentationID: string;
   refreshSources: () => void;
   onHeightChange?: (height: number, meta: { rowHeight: number }) => void;

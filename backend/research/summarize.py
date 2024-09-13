@@ -1,7 +1,7 @@
 # %%
 from s3 import get_object
 from portkey_custom_langchain import CustomPortkeyLLM, CustomPortkeyChatModel
-from dynamodb import update_source
+from dynamodb_service import update_items_with_user
 
 from llama_index.core import SimpleDirectoryReader
 from llama_index.readers.web import MainContentExtractorReader
@@ -28,6 +28,12 @@ from s3fs import S3FileSystem
 import asyncio
 import time
 
+from session_log_config import get_child_logger
+import logging
+import os
+
+# Create a logger for this file
+logger = get_child_logger(os.path.abspath(__file__), level=logging.INFO)
 
 from portkey_ai import createHeaders, PORTKEY_GATEWAY_URL
 from portkey_ai import Portkey, AsyncPortkey
@@ -38,48 +44,54 @@ load_dotenv()
 # for token counting
 openai = OpenAI(temperature=0)
 
-mistral7b_model = "mistral.mistral-7b-instruct-v0:2"
-haiku_model = "anthropic.claude-3-haiku-20240307-v1:0"
+dumb_model = "anthropic.claude-3-haiku-20240307-v1:0"
+smart_model = "anthropic.claude-3-haiku-20240307-v1:0"
 portkey_trace = None
 
 portkey_client = Portkey(
     virtual_key="aldeo-portkey-b-5cf75f",
-    trace_id=portkey_trace
+    trace_id=portkey_trace,
+    config={
+            "cache": {"mode": "simple"},
+            "retry": {"attempts": 3}
+                },
 )
 
 async_portkey_client = AsyncPortkey(
     virtual_key="aldeo-portkey-b-5cf75f",
-    trace_id=portkey_trace
+    trace_id=portkey_trace,
+    config={
+            "cache": {"mode": "simple"},
+            "retry": {"attempts": 3}
+                },
 )
 
 mistral7b = CustomPortkeyLLM(
     client=portkey_client,
     async_client=async_portkey_client,
-    model=mistral7b_model,
+    model=dumb_model,
+    max_tokens=500,
 )
 
 chatMistral7b = CustomPortkeyChatModel(
     client=portkey_client,
     async_client=async_portkey_client,
-    model=mistral7b_model,
+    model=dumb_model,
+    max_tokens=500,
 )
 
 chatHaiku = CustomPortkeyChatModel(
     client=portkey_client,
     async_client=async_portkey_client,
-    model=haiku_model,
-    max_tokens=1000,
+    model=smart_model,
+    max_tokens=500,
 )
 
 
 def analyze(documents):
     total_characters = sum([len(doc.page_content) for doc in documents])
     total_tokens = openai.get_num_tokens(to_single_string(documents))
-    # print(f"Total tokens: {total_tokens}")
-    # print(f"Total characters: {total_characters}")
-    # print(f"Number of documents: {len(documents)}")
-    # print(f"Average length: {total_characters / len(documents)}")
-
+    logger.debug(f"Analyzed documents: {len(documents)} docs, {total_tokens} tokens, {total_characters} characters")
     return total_tokens
 
 
@@ -98,24 +110,17 @@ def extract_xml_tag_contents(tag_name, text):
     else:
         return None
 
+
 def get_first_sentence(text):
-    # Split the text into sentences using regular expression
     sentences = re.split(r'(?<=[.!?])\s+', text)
-    
-    if len(sentences) > 0:
-        # Return the first sentence
-        return sentences[0].strip()
-    else:
-        # Return an empty string if no sentence is found
-        return ""
+    return sentences[0].strip() if sentences else ""
+
 
 def split_documents_by_chars(documents, chars):
     text_splitter = RecursiveCharacterTextSplitter(
         separators=["\n\n", "\n", "\t", " ", ""], chunk_size=chars, chunk_overlap=100
     )
     split_docs = text_splitter.create_documents([to_single_string(documents)])
-
-    # print(f"-- After split --")
     analyze(split_docs)
     return split_docs
 
@@ -133,11 +138,11 @@ refer to the text as "This source".
 One Sentence Summary:
 This source"""
 
+    logger.info(f"Summarizing short document of {len(documents)} docs")
     response = (await mistral7b.ainvoke(prompt, max_tokens=250)).strip()
     cleaned = response[0].lower() + response[1:]
     if not cleaned.lower().startswith("this source"):
         cleaned = f"This source {cleaned}"
-    # capitalize first letter
     cleaned = cleaned[0].upper() + cleaned[1:]
     return cleaned
 
@@ -145,7 +150,6 @@ This source"""
 # %%
 async def summarize_medium(documents):
 
-    # Map
     map_template = """The following is a section of text extracted from a document:
     <section>
     {docs}
@@ -155,7 +159,6 @@ async def summarize_medium(documents):
     map_prompt = PromptTemplate.from_template(map_template)
     map_chain = LLMChain(llm=chatMistral7b, prompt=map_prompt)
 
-    # Reduce
     claude_final_reduce_template = """I broke up a long source document into sections and summarized each section in a few sentences. Here are all the section summaries in order:
 
 <summaries>
@@ -165,6 +168,9 @@ async def summarize_medium(documents):
 Please read through all the summaries carefully to get an overall sense of what the full source document that all these summaries are describing is about. Write your thoughts and impressions from the summaries in a <scratchpad></scratchpad> section.
 
 Then, based on your understanding from the summaries, write a single sentence concisely describing what you believe the overall source document is about. You must refer to this source document as "this source". Output this sentence inside <one_sentence_description></one_sentence_description> tags."""
+
+    claude_final_reduce_prompt = PromptTemplate.from_template(
+        claude_final_reduce_template)
 
     mistral_reduce_template = """I broke up a document into sections and summarized each section in a few sentences. Here are all the section summaries in order:
 
@@ -178,8 +184,6 @@ Then, based on your understanding from the summaries, write a few sentences conc
 
 Concise description:
 """
-    claude_final_reduce_prompt = PromptTemplate.from_template(
-        claude_final_reduce_template)
     mistral_reduce_prompt = PromptTemplate.from_template(
         mistral_reduce_template)
 
@@ -187,8 +191,6 @@ Concise description:
         llm=chatHaiku, prompt=claude_final_reduce_prompt)
     mistral_reduce_chain = LLMChain(
         llm=chatMistral7b, prompt=mistral_reduce_prompt)
-
-    # Takes a list of documents, combines them into a single string, and passes this to an LLMChain
 
     claude_final_combine_documents_chain = StuffDocumentsChain(
         llm_chain=claude_final_reduce_chain, document_variable_name="docs"
@@ -198,33 +200,24 @@ Concise description:
         llm_chain=mistral_reduce_chain, document_variable_name="docs"
     )
 
-    # Combines and iteratively reduces the mapped documents
     reduce_documents_chain = ReduceDocumentsChain(
-        # This is final chain that is called.
         combine_documents_chain=claude_final_combine_documents_chain,
-        # If documents exceed context for `StuffDocumentsChain`
         collapse_documents_chain=mistral_reduce_combine_documents_chain,
-        # The maximum number of tokens to group documents into.
         token_max=4000,
     )
 
-    # Combining documents by mapping a chain over them, then combining results
     map_reduce_chain = MapReduceDocumentsChain(
-        # Map chain
         llm_chain=map_chain,
-        # Reduce chain
         reduce_documents_chain=reduce_documents_chain,
-        # The variable name in the llm_chain to put the documents in
         document_variable_name="docs",
-        # Return the results of the map steps in the output
         return_intermediate_steps=False,
     )
 
+    logger.info(f"Summarizing medium document of {len(documents)} docs")
     return extract_xml_tag_contents("one_sentence_description", (await map_reduce_chain.ainvoke(documents))["output_text"].strip())
 
 
 async def summarize_long(documents):
-    # vectorize
     portkeyHeaders = createHeaders(
         provider="openai",
         api_key=os.getenv("PORTKEY_API_KEY"),
@@ -234,23 +227,14 @@ async def summarize_long(documents):
                                   base_url=PORTKEY_GATEWAY_URL, default_headers=portkeyHeaders)
     vectors = await embeddings.aembed_documents([x.page_content for x in documents])
 
-    # Assuming 'embeddings' is a list or array of 1536-dimensional embeddings
-    # Choose the number of clusters, this can be adjusted based on the book's content.
-    # I played around and found ~10 was the best.
-    # Usually if you have 10 passages from a book you can tell what it's about
     num_clusters = 11
 
     with concurrent.futures.ProcessPoolExecutor() as executor:
-        # Perform K-means clustering
         kmeans_future = executor.submit(
             KMeans(n_clusters=num_clusters, random_state=42).fit, vectors)
         kmeans = kmeans_future.result()
 
-        # Find the closest embeddings to the centroids
-        # Create an empty list that will hold your closest points
         closest_indices = []
-
-        # Loop through the number of clusters you have
         futures = []
         for i in range(num_clusters):
             future = executor.submit(
@@ -259,18 +243,14 @@ async def summarize_long(documents):
 
         for i, future in enumerate(futures):
             distances = future.result()
-            # Find the list position of the closest one (using argmin to find the smallest distance)
             closest_index = np.argmin(distances)
-            # Append that position to your closest indices list
             closest_indices.append(closest_index)
 
     selected_indices = sorted(closest_indices)
     selected_docs = [documents[doc] for doc in selected_indices]
 
-    # print("-- After k means clustering filter --")
     analyze(selected_docs)
 
-    # Map
     map_template = """The following is a section of text extracted from a document:
 
     <section>
@@ -284,7 +264,6 @@ async def summarize_long(documents):
     map_prompt = PromptTemplate.from_template(map_template)
     map_chain = LLMChain(llm=chatMistral7b, prompt=map_prompt)
 
-    # Reduce
     claude_final_reduce_template = """The following are summaries of some key sections from the source document, capturing the main points and themes:
 
     <summaries>
@@ -300,38 +279,30 @@ async def summarize_long(documents):
     claude_final_reduce_chain = LLMChain(
         llm=chatHaiku, prompt=claude_final_reduce_prompt)
 
-    # Takes a list of documents, combines them into a single string, and passes this to an LLMChain
     claude_final_combine_documents_chain = StuffDocumentsChain(
         llm_chain=claude_final_reduce_chain, document_variable_name="docs"
     )
 
-    # Combining documents by mapping a chain over them, then combining results
     map_reduce_chain = MapReduceDocumentsChain(
-        # Map chain
         llm_chain=map_chain,
-        # Reduce chain
         reduce_documents_chain=claude_final_combine_documents_chain,
-        # The variable name in the llm_chain to put the documents in
         document_variable_name="docs",
-        # Return the results of the map steps in the output
         return_intermediate_steps=False,
     )
 
+    logger.info(f"Summarizing long document of {len(documents)} docs")
     return extract_xml_tag_contents("one_sentence_description", (await map_reduce_chain.ainvoke(selected_docs))["output_text"].strip())
 
 
 async def summarize_tabular_file(file_path):
-    # Get the file data from S3
     file_data = await get_object(file_path)
 
     if file_data is None:
-        print(f"Failed to retrieve file '{file_path}' from S3.")
+        logger.error(f"Failed to retrieve file '{file_path}' from S3")
         return None
 
-    # Create a file-like object from the file data
     file_like = io.BytesIO(file_data)
 
-    # Read the file into a DataFrame based on the file extension
     if file_path.endswith('.csv'):
         df = pd.read_csv(file_like)
     elif file_path.endswith('.xlsx') or file_path.endswith('.xls'):
@@ -339,9 +310,11 @@ async def summarize_tabular_file(file_path):
     elif file_path.endswith('.tsv'):
         df = pd.read_csv(file_like, sep='\t')
     else:
-        print("Unsupported file format. Please provide a CSV, XLS, XLSX, or TSV file.")
+        logger.error("Unsupported file format")
         return None
 
+    logger.info(f"Summarizing tabular file: {file_path} ({df.shape[0]} rows, {df.shape[1]} cols)")
+    
     prompt = f"""I will provide you with some information about a spreadsheet. Your task is to carefully examine this information and provide a brief one-sentence summary describing the contents and nature of the spreadsheet.
 
     Here is the output of the number of rows and columns:
@@ -389,11 +362,11 @@ async def load_web_source(url):
         loader1 = MainContentExtractorReader()
         documents = loader1.load_langchain_documents(urls=[url])
         if len(to_single_string(documents)) < 1200:
-            print("Small amount of text extracted from MainContentExtractorReader.")
+            logger.warning(f"Small amount of text extracted from MainContentExtractorReader for URL: {url}")
         else:
             scrape_success = True
     except Exception as e:
-        print(f"Error scraping using MainContentExtractorReader: {e}")
+        logger.error(f"Error scraping using MainContentExtractorReader: {e}")
 
     if not scrape_success:
         try:
@@ -404,17 +377,16 @@ async def load_web_source(url):
                 for doc in documents
             ]
             if len(to_single_string(documents)) < 1200:
-                print("Small amount of text extracted from ReadabilityWebPageReader.")
+                logger.warning(f"Small amount of text extracted from ReadabilityWebPageReader for URL: {url}")
             else:
                 scrape_success = True
         except Exception as e:
-            print(f"Error scraping using ReadabilityWebPageReader: {e}")
+            logger.error(f"Error scraping using ReadabilityWebPageReader: {e}")
 
     if not scrape_success:
         return None
 
-    # print(f"Extracted Text:\n{to_single_string(documents)}")
-
+    logger.info(f"Successfully loaded web source from URL: {url} with {len(documents)} documents")
     return documents
 
 
@@ -427,7 +399,9 @@ def load_file_source(filepath):
     reader = SimpleDirectoryReader(fs=s3, input_files=[s3_filepath])
     documents = reader.load_data()
     documents = [doc.to_langchain_format() for doc in documents]
+    logger.info(f"Loaded file source: {filepath} with {len(documents)} documents")
     return documents
+
 
 async def load_file_source_async(filepath):
     with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -438,34 +412,12 @@ async def load_file_source_async(filepath):
 
 
 async def summarize_documents(documents):
-    # print("-- Before split --")
-    tokens = analyze(documents)
-
-    if tokens <= 5000:
-        print("This is a short document so we will summarize it in one go.")
-        # Short so we sumamrize in one go
-        summary = await summarize_short(documents)
-    elif tokens <= 50000:
-        print("This is a medium document so we will use map reduce.")
-        # Medium length so recursive map reduce
-        split_docs = split_documents_by_chars(documents, 10000)
-        summary = await summarize_medium(split_docs)
-    else:
-        # Long so vectorize and summarize key chunks
-        print("This is a long document so we will use clustering.")
-        split_docs = split_documents_by_chars(documents, 10000)
-        summary = await summarize_long(split_docs)
-
-    return summary
-
-
-async def summarize_source(source, presentation_id, document=None, callback=None):
     """
    Summarize a source file based on its type and update the source with the generated summary.
 
    Args:
        source (dict): A dictionary representing the source file to be summarized.
-           The dictionary must contain an 'id' field and a 'type' field indicating the file type.
+           The dictionary must contain an 'source_id' field and a 'type' field indicating the file type.
        presentation_id (str): The ID of the presentation associated with the source file.
        document (Optional[Document]): A Document object representing the loaded source file.
            This argument is required for non-tabular source files.
@@ -476,7 +428,7 @@ async def summarize_source(source, presentation_id, document=None, callback=None
        str: The generated summary of the source file.
 
    Raises:
-       ValueError: If the source dictionary does not have an 'id' field or if the document argument
+       ValueError: If the source dictionary does not have an 'source_id' field or if the document argument
            is not provided for non-tabular source files.
 
    Description:
@@ -487,8 +439,7 @@ async def summarize_source(source, presentation_id, document=None, callback=None
        - For non-tabular files, it requires a `document` argument and calls the `summarize_documents`
          function.
 
-       After generating the summary, the function updates the source entry in the database using the
-       `update_source` function, associating the summary with the source.
+       After generating the summary, the function updates the source entry in dynamodb, associating the summary with the source.
 
        If a `callback` function is provided, it is executed asynchronously after the source is
        summarized and updated.
@@ -498,10 +449,29 @@ async def summarize_source(source, presentation_id, document=None, callback=None
        summary = await summarize_source(source, "presentation456")
        print(summary)
    """
-    # print(f"Summarizing source {source}...")
-    
-    if source.get("id", None) is None:
-        raise ValueError("Source must have an 'id' field.")
+    try:
+        tokens = analyze(documents)
+
+        if tokens <= 5000:
+            logger.info(f"Summarizing short document with {tokens} tokens")
+            summary = await summarize_short(documents)
+        elif tokens <= 50000:
+            logger.info(f"Summarizing medium document with {tokens} tokens")
+            split_docs = split_documents_by_chars(documents, 10000)
+            summary = await summarize_medium(split_docs)
+        else:
+            logger.info(f"Summarizing long document with {tokens} tokens")
+            split_docs = split_documents_by_chars(documents, 10000)
+            summary = await summarize_long(split_docs)
+        return summary
+    except Exception as e:
+        logger.warning("Error summarizing documents: %s", str(e))
+        return f"Shiro was able to read this document, but could not generate a summary."
+
+
+async def summarize_source(source, presentation_id, document=None, callback=None):
+    if source.get("source_id", None) is None:
+        raise ValueError("Source must have an 'source_id' field.")
 
     if source["type"] in ["csv", "xls", "xlsx", "tsv"]:
         s3_path = f"{presentation_id}/{source['s3_filepath']}"
@@ -511,10 +481,10 @@ async def summarize_source(source, presentation_id, document=None, callback=None
             raise ValueError("Document must be provided for non-tabular sources.")
         summary = await summarize_documents([document])
     
-    await update_source(presentation_id, source["id"], summary=summary)
+    await update_items_with_user('source', [{'presentation_id': presentation_id, 'source_id': source['source_id'], 'summary': summary}])
     
-    print("Finished summarizing one source.")
-    # run callback
+    logger.info(f"Finished summarizing source {source['source_id']} for presentation {presentation_id}")
+    
     if callback:
         await callback()
     return summary
@@ -523,23 +493,23 @@ async def summarize_source(source, presentation_id, document=None, callback=None
 async def test_tabular():
     path = "fb18a73f-80a8-483a-8cfe-150c9fc58049/wonders_of_world.csv"
     summary = await summarize_tabular_file(path)
-    print(f"Summary: {summary}")
+    logger.info(f"Tabular file summary: {summary}")
+
 
 async def test_s3_file():
     path = "018e9dc7-2584-7c66-a45e-889ac6e5aece/Japan.pdf"
     documents = await load_file_source_async(path)
     summary = await summarize_documents(documents)
-    print(f"Summary: {summary}")
+    logger.info(f"S3 file summary: {summary}")
+
 
 async def test_web_source():
     url = "https://www.blueprintcreativegroup.com/generative-ai-and-its-ethical-implications-navigating-the-future-of-artificial-intelligence"
     documents = await load_web_source(url)
     summary = await summarize_documents(documents)
-    print(f"Summary: {summary}")
+    logger.info(f"Web source summary: {summary}")
+
 
 if __name__ == "__main__":
     nest_asyncio.apply()
     asyncio.run(test_web_source())
-
-
-# %%

@@ -3,16 +3,16 @@ from enum import Enum
 from pydantic import BaseModel, Field
 from typing import List
 from typing_extensions import Literal
-from init_llm import client
+from llm_clients import chat_client
 import tokentrim as tt
-from dynamodb import get_presentation
+from dynamodb_service import get_items_with_user
 import json
 import os
 
 
 async def getCurrentSubtopicListMessage(interface_data, presentation_id):
     if not isinstance(interface_data['all_topics'], list):
-        presentation = await get_presentation(presentation_id, ['candidate_topics', 'topic_extraction_status'])
+        presentation = await get_items_with_user('presentation', {'presentation_id': presentation_id}, ['candidate_topics', 'topic_extraction_status'])
         if 'candidate_topics' in presentation and presentation.get('candidate_topics') is not None:
             topics = json.loads(presentation['candidate_topics'])
         if topics:
@@ -23,15 +23,15 @@ async def getCurrentSubtopicListMessage(interface_data, presentation_id):
     if not isinstance(interface_data['outline'], list):
         raise ValueError("outline must be a list")
     
-    included_topics = [(next((d for d in interface_data['all_topics'] if d['id'] == subtopic['id']), None)) for subtopic in interface_data['outline'] if subtopic['included']]
-    excluded_topics = [(next((d for d in interface_data['all_topics'] if d['id'] == subtopic['id']), None)) for subtopic in interface_data['outline'] if not subtopic['included']]
+    included_topics = [(next((d for d in interface_data['all_topics'] if d['topic_id'] == subtopic['topic_id']), None)) for subtopic in interface_data['outline'] if subtopic['included']]
+    excluded_topics = [(next((d for d in interface_data['all_topics'] if d['topic_id'] == subtopic['topic_id']), None)) for subtopic in interface_data['outline'] if not subtopic['included']]
     
     included_lists = []
     excluded_lists = []
 
     for subtopic in included_topics:
         included_lists.append({
-            'id': subtopic['id'][-8:],
+            'topic_id': subtopic['topic_id'][-8:],
             'name': subtopic['name'],
             'keywords': ', '.join(subtopic['keywords']),
             'relevance_score': subtopic['relevance_rating'],
@@ -41,7 +41,7 @@ async def getCurrentSubtopicListMessage(interface_data, presentation_id):
 
     for subtopic in excluded_topics:
         excluded_lists.append({
-            'id': subtopic['id'][-8:],
+            'topic_id': subtopic['topic_id'][-8:],
             'name': subtopic['name'],
             'keywords': ', '.join(subtopic['keywords']),
             'relevance_score': subtopic['relevance_rating'],
@@ -52,7 +52,7 @@ async def getCurrentSubtopicListMessage(interface_data, presentation_id):
     included_xml = "<included_subtopics>\n"
     for included_subtopic in included_lists:
         included_xml += f"<subtopic>\n"
-        included_xml += f"<id>{included_subtopic['id']}</id>\n"
+        included_xml += f"<id>{included_subtopic['topic_id'][-8:]}</id>\n"
         included_xml += f"<name>{included_subtopic['name']}</name>\n"
         included_xml += f"<keywords>{included_subtopic['keywords']}</keywords>\n"
         included_xml += f"<relevance_score>{included_subtopic['relevance_score']}</relevance_score>\n"
@@ -64,7 +64,7 @@ async def getCurrentSubtopicListMessage(interface_data, presentation_id):
     excluded_xml = "<excluded_subtopics>\n"
     for excluded_subtopic in excluded_lists:
         excluded_xml += f"<subtopic>\n"
-        excluded_xml += f"<id>{excluded_subtopic['id']}</id>\n"
+        excluded_xml += f"<id>{excluded_subtopic['topic_id'][-8:]}</id>\n"
         excluded_xml += f"<name>{excluded_subtopic['name']}</name>\n"
         excluded_xml += f"<keywords>{excluded_subtopic['keywords']}</keywords>\n"
         excluded_xml += f"<relevance_score>{excluded_subtopic['relevance_score']}</relevance_score>\n"
@@ -126,65 +126,6 @@ async def complete(presentation_id, messages, interface_data, max_turns=5, emitt
             async def post_run(self, output):
                 raise ProceedToNextStepException()
             
-        
-        # class IncludeTopic(OpenAISchema):
-        #     """Include a source in the presentation by moving it from the excluded sources list to the included sources list."""
-        #     topic_id: str = Field (
-        #         ...,
-        #         description="The ID of the source to include. This ID must be in the excluded sources list.",
-        #         examples=["a1b2c3d4"],
-        #     )
-            
-        #     # errors raised here are considered the model's mistake
-        #     async def run(self):
-        #         nonlocal memory, interface_data
-        #         source = next((s for s in interface_data.get('excluded_topics', None) if s.get("id", "").endswith(self.topic_id)), None)
-        #         if not source:
-        #             raise ValueError(f"Topic with ID {id} is not in the exlcuded topics list. You can only include topics that are in the excluded topics list.")
-        #         return source["id"] # the whole id
-            
-        #     # errors raised here are not caught
-        #     # second param is the output of the run function
-        #     async def post_run(self, id):
-        #         nonlocal memory, interface_data
-        #         # move the topic to the included topics list
-        #         topic_to_move = next((d for d in interface_data['excluded_topics'] if d['id'] == id), None)
-        #         if topic_to_move:
-        #             interface_data['included_topics'].append(topic_to_move)
-        #             interface_data['excluded_topics'].remove(topic_to_move)             
-        #         else:
-        #             raise ValueError(f"Topic with ID {id} not found in the excluded topics list even though it was validated in the run function.")   
-        #         # post_messages = [getCurrentTopicListMessage(interface_data)]
-        #         return f"Success: Successfully moved topic {self.topic_id} to included topics"
-            
-        # class ExcludeTopic(OpenAISchema):
-        #     """Exclude a source from the presentation by moving it from the included sources list to the excluded sources list."""
-        #     topic_id: str = Field(
-        #         ...,
-        #         description="The ID of the source to exclude. This ID must be in the included sources list.",
-        #         examples=["a1b2c3d4"],
-        #     )
-            
-        #     # errors raised here are considered the model's mistake
-        #     async def run(self):
-        #         source = next((s for s in interface_data.get('included_topics', None) if s.get("id", "").endswith(self.topic_id)), None)
-        #         if not source:
-        #             raise ValueError(f"Topic with ID {id} is not in the included topics list. You can only exclude topics that are in the included topics list.")
-        #         return source["id"]
-            
-        #     # errors raised here are not caught
-        #     # second param is the output of the run function
-        #     async def post_run(self, id):
-        #         nonlocal memory, interface_data
-        #         # move the topic to the excluded topics list
-        #         topic_to_move = next((d for d in interface_data['included_topics'] if d['id'] == id), None)
-        #         if topic_to_move:
-        #             interface_data['excluded_topics'].append(topic_to_move)
-        #             interface_data['included_topics'].remove(topic_to_move)
-        #         else:
-        #             raise ValueError(f"Topic with ID {id} not found in the included topics list even though it was validated in the run function.")
-        #         # post_messages = [getCurrentTopicListMessage(interface_data)]
-        #         return f"Success: Successfully moved topic {self.topic_id} to excluded topics"
             
         class SetIncludedSubtopics(OpenAISchema):
             """Set the list of topics included in the presentation"""
@@ -199,7 +140,7 @@ async def complete(presentation_id, messages, interface_data, max_turns=5, emitt
                 nonlocal memory, interface_data
                 # Check that all the id prefixes match an id in the outline
                 unmatched_prefixes = [prefix for prefix in self.ids_in_new_order
-                      if not any(prefix == subtopic['id'][-8:] for subtopic in interface_data['outline'])]
+                      if not any(prefix == subtopic['topic_id'][-8:] for subtopic in interface_data['outline'])]
 
                 if unmatched_prefixes:
                     raise ValueError(f"Error: The following ID prefixes do not match any subtopic in the outline: {', '.join(unmatched_prefixes)}")
@@ -214,7 +155,7 @@ async def complete(presentation_id, messages, interface_data, max_turns=5, emitt
                 new_outline = []
 
                 # Create a dictionary to map id prefixes to their corresponding subtopics
-                subtopic_dict = {subtopic['id'][-8:]: subtopic for subtopic in interface_data['outline']}
+                subtopic_dict = {subtopic['topic_id'][-8:]: subtopic for subtopic in interface_data['outline']}
 
                 # Iterate over the id prefixes in new_order and add the corresponding topics to new_included_topics
                 for prefix in new_order:
@@ -225,7 +166,7 @@ async def complete(presentation_id, messages, interface_data, max_turns=5, emitt
 
                 # Add the remaining subtopics
                 for subtopic in interface_data['outline']:
-                    if subtopic['id'][-8:] not in new_order:
+                    if subtopic['topic_id'][-8:] not in new_order:
                         new_outline.append(dict(subtopic, included=False))
                 
                 print(f"New Outline kength: {len(new_outline)}")
@@ -279,7 +220,7 @@ async def complete(presentation_id, messages, interface_data, max_turns=5, emitt
         # Update the model on the current source list
         messages.append( await getCurrentSubtopicListMessage(interface_data, presentation_id))
         
-        completion = await client.chat.completions.create(
+        completion = await chat_client.chat.completions.create(
             model=os.getenv("CHAT_MODEL_OPENAI_ID"),
             # filter out any messages with roles that start with meta
             messages=tt.trim(

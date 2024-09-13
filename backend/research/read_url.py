@@ -132,6 +132,7 @@ async def parse_url(url, id, min_length=None):
 
     Args:
         url (str): The URL to scrape.
+        id (str): The ID of the source to put in document metadata.
         min_length (int, optional): Minimum length of extracted markdown (chars). Defaults to None.
 
     Returns:
@@ -147,11 +148,10 @@ async def parse_url(url, id, min_length=None):
                 'type': 'web',
                 'extraction_method': extraction_method,
                 'download_method': download_method,
-                'id': id
             }
 
             if id:
-                source_metadata['id'] = id
+                source_metadata['source_id'] = id
 
             doc = Document(
                 page_content=extracted_markdown,

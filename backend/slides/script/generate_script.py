@@ -3,23 +3,13 @@ from database_models import Slide, Topic
 from slides.slide_to_xml import slide_content_to_xml
 from slides.script.script_styles import generate_xml_for_style
 from pydantic import BaseModel, Field
-from math import floor
-from portkey_ai import AsyncPortkey
 from slides.persistent_slide_list import PersistentSlideList
 from database_models import Slide, Topic
 from typing import List, Dict, Any, Callable
-from dynamodb import get_all_topics, get_presentation
+from dynamodb_service import get_items_with_user, get_all_items_for_presentation_with_user
 import traceback
+from llm_clients import content_gen_client, content_gen_model
 
-bedrock_client = AsyncPortkey(
-    virtual_key="aldeo-portkey-b-5cf75f",
-    config={"cache": {"mode": "simple"},
-                "retry": {
-            "attempts": 3,
-            "on_status_codes": [429, 500, 502, 503, 504, 424],
-            }},
-)
-claude_haiku = "anthropic.claude-3-haiku-20240307-v1:0"
 
 slide_type_descriptions = {
     'short_bullets_slide': 'Icon Node Slide (This slide type has a title and 2-5 nodes, each with an icon and a short text description (<=80 chars). The nodes can be arranged in a list or a grid, and arrows can be displayed between the nodes to indicate sequentiality. The layout and arrangement of the title and nodes are determined by the content and number of nodes.)',
@@ -152,10 +142,10 @@ Begin writing the script for slide {i+1}/{len(slides)}, adhering to the guidelin
 
         try: 
             response, messages = await get_basemodel_instance_from_llm(
-                client=bedrock_client,
+                client=content_gen_client,
                 pydantic_model_class=Response,
                 max_iterations=5,
-                model=claude_haiku,
+                model=content_gen_model,
                 max_tokens=100000,
                 messages=trim_messages(messages + [{'role':'user', 'content': init_prompt if i == 0 else rep_prompt}]),
                 error_message_prefix=f"There was an issue with the response you provided. Please fix the issue below and respond again with the <slide_script></slide_script> for slide {i+1}.",
@@ -171,8 +161,8 @@ Begin writing the script for slide {i+1}/{len(slides)}, adhering to the guidelin
 
 async def generate_all_scripts(psl: PersistentSlideList, interface_data: Any, emitter: Callable[[Any], None],  style_key: int = 0, custom_style: str = None, max_char_per_slide: int = None):
     print(f"Generating scripts for presentation {psl.presentation_id}, style {style_key}, custom style {custom_style}, max characters per slide {max_char_per_slide}")
-    topics: List[Topic] = await get_all_topics(psl.presentation_id)
-    presentation = await get_presentation(psl.presentation_id, ['topic', 'audience', 'goal'])
+    topics: List[Topic] = await get_all_items_for_presentation_with_user('topic', [{'presentation_id': psl.presentation_id}], return_type='model')
+    presentation = await get_items_with_user('presentation', [{'presentation_id': psl.presentation_id}], ['topic', 'audience', 'goal'])
     
     slides_l: List[Slide] = psl.convert_to_array()
 
@@ -191,14 +181,14 @@ async def generate_all_scripts(psl: PersistentSlideList, interface_data: Any, em
         max_char_per_slide=max_char_per_slide
     ):
         await psl.update_slides({
-            'id': slide.id,
+            'id': slide.slide_id,
             'script': script
         })  
         # update status in interface_data for progress bar
         interface_data["script"]["status"] = f"{i+1}/{len(slides_l)}"
         # emit interface update with new status
         await emitter(data=interface_data)
-        print(f"Script generated for slide {slide.id} ({i}/{len(slides_l)})")
+        print(f"Script generated for slide {slide.slide_id} ({i}/{len(slides_l)})")
         i += 1
     
     print("All scripts generated and updated")

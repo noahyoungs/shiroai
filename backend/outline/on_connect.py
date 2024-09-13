@@ -1,16 +1,19 @@
 import global_prompts_config
-from dynamodb import get_presentation, get_sources
 import json
-import asyncio
-
+from dynamodb_service import get_items_with_user
 
 interface = "outline"
 
-async def initialize(presentation_id):
+async def initialize(user_id, presentation_id):
     # get interface keys
     memory = {}
 
-    presentation = await get_presentation(presentation_id, ['messages', 'status', 'topic', 'outline', 'audience', 'goal', 'candidate_topics'])
+    presentation = await get_items_with_user('presentation', {'presentation_id': presentation_id}, ['messages', 'status', 'topic', 'outline', 'audience', 'goal', 'candidate_topics'])
+
+    # If the presentation does not exist, disconnect with an error message
+    if not presentation:
+        raise RuntimeError('The presentation you\'re trying to edit was not found, please try creating a new presentation.')
+        return
 
     # Check if 'messages' exists in the presentation and is not None
     if 'messages' in presentation and presentation['messages'] is not None:

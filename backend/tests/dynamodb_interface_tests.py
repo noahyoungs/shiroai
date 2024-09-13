@@ -35,7 +35,7 @@ def create_dummy_data(item_type):
         }
     elif item_type == 'slide':
         return ShortBulletsSlide(
-            user_id=user_id,
+            slide_id=user_id,
             presentation_id=presentation_id,
             slide_id=f"test_slide_{uuid7str()}",
             slide_title="Test Slide",
@@ -218,7 +218,7 @@ async def test_delete_all_items_for_presentation():
     await update_items('presentation', [pres_data])
     await update_items('slide', [slide_data1, slide_data2])
     
-    await delete_all_items_for_presentation(pres_data['user_id'], pres_data['presentation_id'], 'slide')
+    await delete_all_items_for_presentation('slide', pres_data['user_id'], pres_data['presentation_id'])
     result = await get_all_items_for_presentation(pres_data['user_id'], pres_data['presentation_id'], 'slide')
     assert len(result) == 0
 

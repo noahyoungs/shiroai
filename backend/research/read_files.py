@@ -28,7 +28,7 @@ def parse_other(file_path, id):
     }
 
     if id:
-        source_metadata['id'] = id
+        source_metadata['source_id'] = id
 
     return Document(
         page_content=to_single_string(documents),
@@ -95,7 +95,7 @@ def parse_pdf(file_path, id):
     }
 
     if id:
-        source_metadata['id'] = id
+        source_metadata['source_id'] = id
 
     return Document(
         page_content=extracted_markdown,

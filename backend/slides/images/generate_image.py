@@ -6,10 +6,8 @@ from dotenv import load_dotenv
 from slides.xml_instructor import get_basemodel_instance_from_llm, generate_variable_input_xml
 from pydantic import BaseModel
 from typing import List, Literal
-from portkey_ai import AsyncPortkey
 from dotenv import load_dotenv
 from s3 import upload_bytes_to_s3
-from dynamodb import update_slides
 import aiohttp
 import ssl
 import certifi
@@ -17,6 +15,8 @@ import asyncio
 from uuid_extensions import uuid7str
 import ssl
 import httpx
+from llm_clients import content_gen_client, content_gen_model
+
 
 load_dotenv()
 
@@ -125,21 +125,9 @@ openai_style_presets = [
     "natural",
 ]
 
-# initialize LLM
-bedrock_client = AsyncPortkey(
-    virtual_key="aldeo-portkey-b-5cf75f",
-    config={"cache": {"mode": "simple"}},
-)
 
-anthropic_client = AsyncPortkey(
-    virtual_key="anthropic-b4a29a",
-    config={"cache": {"mode": "simple"}},
-)
-
-claude_haiku = "anthropic.claude-3-haiku-20240307-v1:0"
-
-client = bedrock_client
-model = claude_haiku
+client = content_gen_client
+model = content_gen_model
 force_start_with_first_tag = True
 
 
@@ -358,9 +346,9 @@ Remember to follow the instructions for creating a good prompt and to provide a 
     messages = [{"role": "user", "content": prompt}]
 
     template, messages = await get_basemodel_instance_from_llm(
-        client=bedrock_client,
+        client=content_gen_client,
         pydantic_model_class=DalleGenerationTemplate if model_type == "dalle" else StabilityGenerationTemplate,
-        model=claude_haiku,
+        model=content_gen_model,
         temperature=1.0,
         temperature_multiplier=1.1,
         max_temperature=2,

@@ -3,7 +3,7 @@ import asyncio
 
 interface = "slides"
 
-from dynamodb import update_presentation
+from dynamodb_service import update_items_with_user
 
 
 # interface_data is not used in slides
@@ -25,7 +25,8 @@ async def save_progress(presentation_id, messages, interface_data, memory):
     if interface_data.get("current_slide_id"):
         attributes["current_slide_id"] = interface_data["current_slide_id"]
     
-    await update_presentation(presentation_id, **attributes)
+    # await update_presentation(presentation_id, **attributes)
+    await update_items_with_user('presentation', [{**attributes, 'presentation_id': presentation_id}])
     
     # print(f"Saving progress, presentation attributes: {attributes}
     

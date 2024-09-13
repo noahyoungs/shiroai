@@ -5,16 +5,16 @@ import numpy as np
 import re
 import os
 import asyncio
-from dynamodb import get_sources, update_presentation, get_presentation
+from dynamodb_service import get_items, get_all_items_for_presentation, update_items
 from s3 import download_model_from_s3, upload_model_list_to_s3, upload_np_array_to_s3
 from bertopic import BERTopic
 from bertopic.representation import KeyBERTInspired
 from hdbscan import HDBSCAN
 from openai import OpenAI
-from portkey_ai import PORTKEY_GATEWAY_URL, createHeaders, AsyncPortkey
+from portkey_ai import PORTKEY_GATEWAY_URL, createHeaders
 from bertopic.backend import OpenAIBackend
 from langchain_openai import OpenAIEmbeddings
-from outline.label_topic_prompt import get_prompt
+from outline.label_topic_prompt_messages import get_messages as get_label_topic_messages
 from outline.rate_topic_prompt_messages import get_messages as get_rate_relevance_messages
 from outline.rate_value_prompt_messages import get_messages as get_rate_value_messages
 from copy import deepcopy
@@ -24,6 +24,7 @@ import concurrent.futures
 from uuid_extensions import uuid7str
 from outline.remove_leading_numbers import remove_leading_numbers
 import traceback
+from llm_clients import content_gen_client, content_gen_model
 
 load_dotenv()
 
@@ -138,14 +139,14 @@ def process_topics(chunk_strings, embeddings, portkey_trace=None):
     document_info = topic_model.get_document_info(chunk_strings)
     return topic_info, document_info
     
-async def _label_documents_and_extract_topics(presentation_id):
-    print(f"Labeling documents and extracting topics for presentation {presentation_id}")
+async def _label_documents_and_extract_topics(user_id, presentation_id):
+    print(f"Labeling documents and extracting topics for presentation {presentation_id} for user {user_id}")
     
     portkey_trace = None 
     
     # get presentation and sources concurrently
-    presentation_task = get_presentation(presentation_id, ['topic', 'audience', 'goal'])
-    sources_task = get_sources(presentation_id)
+    presentation_task = get_items('presentation', {'user_id': user_id, 'presentation_id': presentation_id}, ['topic', 'audience', 'goal'])
+    sources_task = get_all_items_for_presentation('source', user_id, presentation_id, ['whole_document_path'])
     
     presentation, sources = await asyncio.gather(presentation_task, sources_task)
 
@@ -196,34 +197,26 @@ async def _label_documents_and_extract_topics(presentation_id):
     # print(len(topic_info_df['Representative_Docs'].iloc[0]))
     # print(len(topic_model.get_representative_docs()[0]))
 
-    async_portkey_bedrock = AsyncPortkey(
-        virtual_key="aldeo-portkey-b-5cf75f",
-        trace_id=portkey_trace,
-        config={"cache": {"mode": "simple"}},
-    )
 
     async def name_topic(keywords, documents):
         try:
-            response = await async_portkey_bedrock.completions.create(
-                model = "mistral.mistral-7b-instruct-v0:2",
-                prompt = get_prompt(documents, keywords, presentation['topic']),
-                temperature=0,
-                max_tokens=30,
-                stop=["\n"]
+            response = await content_gen_client.chat.completions.create(
+                model = content_gen_model,
+                messages = get_label_topic_messages(presentation['topic'], documents, keywords),
+                temperature=0.8,
+                max_tokens=1000,
             )
-            label = response.choices[0].text.strip()
-            no_numbering = re.sub(r'\d+\.\s*', '', label).strip()
-            no_quotes = re.sub(r'^[\'"]|[\'"]$', '', no_numbering).strip()
-            no_periods = no_quotes.rstrip('.')
-            return no_periods
+            response_text = response.choices[0].message.content.strip()
+            label = extract_xml_tag_contents("subtopic_name", response_text)
+            return label if label else "Untitled Subtopic"
         except Exception as e:
             print(f"Error in name_topic: {e}\n{traceback.format_exc()}")
             return "Untitled Subtopic"
 
     async def rate_topic_relevance(keywords, documents, label):
         try:
-            response = await async_portkey_bedrock.chat.completions.create(
-                model="anthropic.claude-3-haiku-20240307-v1:0",
+            response = await content_gen_client.chat.completions.create(
+                model=content_gen_model,
                 messages=get_rate_relevance_messages(presentation_topic=presentation['topic'], audience=presentation['audience'], goal=presentation['goal'], subtopic_label=label, documents=documents, keywords=keywords),
                 temperature=0,
                 stop=["</score>"],
@@ -250,8 +243,8 @@ async def _label_documents_and_extract_topics(presentation_id):
 
     async def rate_topic_value(documents):
         try:
-            response = await async_portkey_bedrock.chat.completions.create(
-                model="anthropic.claude-3-haiku-20240307-v1:0",
+            response = await content_gen_client.chat.completions.create(
+                model=content_gen_model,
                 messages=get_rate_value_messages(topic=presentation['topic'], text=documents),
                 temperature=0,
                 stop=["</score>"],
@@ -333,7 +326,7 @@ async def _label_documents_and_extract_topics(presentation_id):
     # topic_model.visualize_topics_per_class(topics_per_class, top_n_topics=10, custom_labels=True)
     
     #Add uuid7str to every topic in topic_info
-    topic_info['id'] = [uuid7str() for _ in range(len(topic_info))]
+    topic_info['topic_id'] = [uuid7str() for _ in range(len(topic_info))]
 
     # aggregate a list of documents with topics in metadata
     docs_with_topics = deepcopy(final_chunked_docs)
@@ -344,18 +337,18 @@ async def _label_documents_and_extract_topics(presentation_id):
     for i in range(len(docs_with_topics)):
         if document_topic_data.iloc[i]['TopicNumber'] != -1:
             # get matching id from topic_info
-            topic_id = topic_info[topic_info['Topic'] == document_topic_data.iloc[i]['TopicNumber']]['id'].values[0]
+            topic_id = topic_info[topic_info['Topic'] == document_topic_data.iloc[i]['TopicNumber']]['topic_id'].values[0]
             docs_with_topics[i].metadata["topic"] = {
                 "number": int(document_topic_data.iloc[i]['TopicNumber']),
                 "name": document_topic_data.iloc[i]['TopicName'],
                 "probability": float(document_topic_data.iloc[i]['Probability']),
-                "id": topic_id,
+                "topic_id": topic_id,
             }
     # docs_with_topics is now filled with topics in metadata (list of Document objects)
     
     # add a uuidv7 to each document
     for doc in docs_with_topics:
-        doc.metadata['id'] = uuid7str()
+        doc.metadata['document_id'] = uuid7str()
     
     
     # get all the rows in topic_info except where Topic is -1
@@ -363,7 +356,7 @@ async def _label_documents_and_extract_topics(presentation_id):
     
     # aggregate a list of topics with relevance ratings and reasonings
     topic_names = list(valid_topic_info['CustomName'])
-    topic_ids = list(valid_topic_info['id'])
+    topic_ids = list(valid_topic_info['topic_id'])
     representative_docs = list(valid_topic_info['Representative_Docs'])
     keywords = list(valid_topic_info['Representation'])
     
@@ -390,7 +383,7 @@ async def _label_documents_and_extract_topics(presentation_id):
             excerpts.append(excerpt)
         
         topic = {
-            'id': topic_ids[i],
+            'topic_id': topic_ids[i],
             'name': topic_names[i],
             'relevance_rating': relevance_ratings[i],
             'relevance_reasoning': relevance_reasonings[i],
@@ -412,17 +405,17 @@ async def _label_documents_and_extract_topics(presentation_id):
     await asyncio.gather(
         upload_model_list_to_s3(docs_with_topics, docs_with_topics_s3_key),
         upload_np_array_to_s3(embeddings, embeddings_s3_key),
-        update_presentation(presentation_id, candidate_topics=json.dumps(topics))
+        update_items('presentation', [{'user_id': user_id, 'presentation_id': presentation_id, 'candidate_topics': json.dumps(topics)}])
     )
     
     print(f"Finished labeling documents and extracting topics for presentation {presentation_id}")
     return topics
     
 # test function
-async def label_documents_extract_topics(presentation_id):
+async def label_documents_extract_topics(user_id, presentation_id):
     loop = asyncio.get_running_loop()
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        topics = await loop.run_in_executor(executor, asyncio.run, _label_documents_and_extract_topics(presentation_id))
+        topics = await loop.run_in_executor(executor, asyncio.run, _label_documents_and_extract_topics(user_id, presentation_id))
     return topics
     
     

@@ -18,7 +18,7 @@ slide_type_descriptions_script = {
 }
 
 def slide_content_to_xml(current_slide: Slide, all_topics: List[Topic]):
-    topic_titles_d = {topic.id: topic.title for topic in all_topics}
+    topic_titles_d = {topic.topic_id: topic.title for topic in all_topics}
     
     if current_slide.slide_type == 'presentation_title_slide':
         subtopic = "N/A"

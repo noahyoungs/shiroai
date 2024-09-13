@@ -5,20 +5,10 @@ from slides.xml_instructor import generate_variable_input_xml, get_basemodel_ins
 from slides.icons.icon_similarity_search import hybrid_icon_assignment
 from uuid_extensions import uuid7str
 from database_models import ShortBulletsSlide
-from portkey_ai import AsyncPortkey
+from llm_clients import content_gen_client, content_gen_model
 
-bedrock_client = AsyncPortkey(
-    virtual_key="aldeo-portkey-b-5cf75f",
-    config={"cache": {"mode": "simple"},
-                "retry": {
-            "attempts": 3,
-            "on_status_codes": [429, 500, 502, 503, 504, 424],
-            }},
-)
 
-claude_haiku = "anthropic.claude-3-haiku-20240307-v1:0"
-
-async def get_short_bullets_slide(presentation_xml, subtopic_xml, reduced_docs, slide_idea, excerpt_ids):
+async def get_short_bullets_slide(presentation_id, presentation_xml, subtopic_xml, reduced_docs, slide_idea, excerpt_ids):
     id_suffixes = [id[-8:] for id in excerpt_ids]
     research_xml = get_research_xml(reduced_docs)
 
@@ -66,11 +56,11 @@ Remember you must cite an <excerpt_id></excerpt_id> as a source for every bullet
     messages = [{'role': 'user', 'content': prompt}]
 
     short_bullets_slide, messages = await get_basemodel_instance_from_llm(
-        client=bedrock_client,
+        client=content_gen_client,
         pydantic_model_class=CompletionShortBulletsSlide,
         max_iterations=5,
         dynamic_val_params={"valid_ids": id_suffixes},
-        model=claude_haiku,
+        model=content_gen_model,
         max_tokens=2000,
         messages=messages,
         temperature=0.5,
@@ -81,9 +71,9 @@ Remember you must cite an <excerpt_id></excerpt_id> as a source for every bullet
         source_excerpt_id = get_id_from_suffix(
             excerpt_ids, bullet_point['excerpt_id'])
         source_excerpt = next(
-            (doc['page_content'] for doc in reduced_docs if doc['metadata']['id'] == source_excerpt_id), None)
-        source_id = next((doc['metadata']['source']['id']
-                         for doc in reduced_docs if doc['metadata']['id'] == source_excerpt_id), None)
+            (doc['page_content'] for doc in reduced_docs if doc['metadata']['document_id'] == source_excerpt_id), None)
+        source_id = next((doc['metadata']['source']['source_id']
+                         for doc in reduced_docs if doc['metadata']['document_id'] == source_excerpt_id), None)
 
         bullet_points_list.append({
             'content': bullet_point['content'],
@@ -102,8 +92,9 @@ Remember you must cite an <excerpt_id></excerpt_id> as a source for every bullet
                         'source': icon_data[dict['content']][1]}
 
     return ShortBulletsSlide(
+        presentation_id=presentation_id,
         slide_title=slide_idea['slide_title'],
-        id=uuid7str(),
+        slide_id=uuid7str(),
         generation_messages=messages,
         slide_type='short_bullets_slide',
         slide_content=bullet_points_list,

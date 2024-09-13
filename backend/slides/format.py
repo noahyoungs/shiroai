@@ -206,7 +206,7 @@ def format_topic_xml(documents, show_sources=True, show_excerpt_ids=True):
         paragraph = {
             'headings': doc['metadata']['headers'],
             'content': doc['page_content'],
-            'id': doc['metadata']['id']
+            'id': doc['metadata']['document_id']
         }
         sources[source_title]['paragraphs'].append(paragraph)
 
