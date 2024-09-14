@@ -1,6 +1,6 @@
 // frontend/src/components/slides/slide-component.tsx
 import React from "react";
-import { Slide } from "@/utils/slide-types";
+import { Slide } from "@shared-utils/database-types";
 import { PillShortBulletsSlideComponent } from "@/components/slides/short-bullets-slides/short-bullets-slide-pills";
 import { MarkdownSlideComponent } from "@/components/slides/markdown-slide";
 import { SimpleMermaidSlideComponent } from "@/components/slides/mermaid-diagram-slide";

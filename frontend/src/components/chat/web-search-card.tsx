@@ -3,7 +3,7 @@
 import React from "react";
 import { SearchResultItem } from "@/components/search-result-item";
 import { Avatar } from "@nextui-org/react"
-import { cn } from "@/utils/cn";
+import { cn } from "@shared-utils/cn";
 import { Code } from "@nextui-org/react";
 
 export type WebSearchCardProps = React.HTMLAttributes<HTMLDivElement> & {

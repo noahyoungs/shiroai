@@ -3,7 +3,7 @@ import { Icon } from "@iconify/react";
 import React from "react";
 import Markdown from 'react-markdown'
 import { Card, Link, Image, CardHeader, CardBody, Divider, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, useDisclosure, Chip, Spacer, Progress, Accordion, AccordionItem } from "@nextui-org/react";
-import { cn } from "@/utils/cn";
+import { cn } from "@shared-utils/cn";
 import { getIcon } from "@/utils/get-file-icon";
 import { SearchResultItem } from "@/components/search-result-item";
 

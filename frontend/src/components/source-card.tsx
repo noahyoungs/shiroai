@@ -12,7 +12,7 @@ import { SearchResultItem } from "./search-result-item";
 
 import { Icon } from "@iconify/react";
 import { getIcon } from "@/utils/get-file-icon";
-import { cn } from "@/utils/cn";
+import { cn } from "@shared-utils/cn";
 
 export function SourceCard({ source, deleteSource, className, index }: SourceCardProps) {
     let pending = !source.char_count ? "opacity-50" : "";

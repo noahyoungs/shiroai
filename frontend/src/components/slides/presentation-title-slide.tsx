@@ -1,5 +1,5 @@
 // presentation-title-slide.tsx
-import { PresentationTitleSlide, Slide } from "@/utils/slide-types";
+import { PresentationTitleSlide, Slide } from "@shared-utils/database-types";
 import { SlideImage } from "./image/editable-slide-image";
 import { EditableTitle } from "@/components/slides/editable-title";
 import { useState } from "react";

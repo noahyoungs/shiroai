@@ -1,7 +1,7 @@
 // edit-image-modal.tsx
 import { useState } from "react";
 import { Icon } from "@iconify/react";
-import { Image as ImageType } from "@/utils/slide-types";
+import { Image as ImageType } from "@shared-utils/database-types";
 import {
   Modal,
   ModalContent,
@@ -23,7 +23,7 @@ import {
 import { stabilityStyles, dalleStyles } from "./style-preset-options";
 import NextImage from "next/image";
 import axios from "axios";
-import { cn } from "@/utils/cn";
+import { cn } from "@shared-utils/cn";
 
 type SlideImageModalProps = {
   presentationID: string;

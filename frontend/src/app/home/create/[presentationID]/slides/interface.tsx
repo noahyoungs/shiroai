@@ -11,7 +11,7 @@ import {
 } from "@nextui-org/react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
-import { Slide } from "@/utils/slide-types";
+import { Slide } from "@shared-utils/database-types";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { SlideThumbnailBar } from "@/components/slide-thumbnail-bar";
 import { SlideComponent } from "@/components/slides/slide-component";

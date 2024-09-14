@@ -1,10 +1,10 @@
 // src/components/slides/image/editable-slide-image.tsx
 import NextImage from "next/image";
 import { useEffect, useState } from "react";
-import { Image as ImageType } from "@/utils/slide-types";
+import { Image as ImageType } from "@shared-utils/database-types";
 import { Icon } from "@iconify/react";
-import { cn } from "@/utils/cn";
-import { Slide } from "@/utils/slide-types";
+import { cn } from "@shared-utils/cn";
+import { Slide } from "@shared-utils/database-types";
 import {
   Image as NextUIImage,
   Tooltip,

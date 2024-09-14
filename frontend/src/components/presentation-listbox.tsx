@@ -4,7 +4,7 @@ import {
   ListboxItem
 } from "@nextui-org/react";
 
-import { Presentation } from "@/utils/database-types";
+import { Presentation } from "@shared-utils/database-types";
 
 type PresentationListboxProps = {
   presentations?: Presentation[];

@@ -1,8 +1,7 @@
-// frontend/src/components/slides/view-only/view-only-short-bullets-slide-boxes.tsx
-import { ShortBulletsSlide } from "../utils/slide-types";
+import { ShortBulletsSlide } from "@shared-utils/database-types";
 import React from "react";
 import { Icon } from '@iconify-icon/react';
-import { cn } from "../utils/cn";
+import { cn } from "@shared-utils/cn";
 import { ViewOnlyTitle } from "./view-only-title";
 
 type BulletItemProps = {

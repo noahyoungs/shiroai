@@ -1,6 +1,4 @@
-// frontend/src/components/slides/view-only/view-only-section-header-slide.tsx
-import React from "react";
-import { SectionHeaderSlide } from "../utils/slide-types";
+import { SectionHeaderSlide } from "@shared-utils/database-types";
 import { ViewOnlySlideImage } from "./view-only-slide-image";
 import { ViewOnlyTitle } from "./view-only-title";
 

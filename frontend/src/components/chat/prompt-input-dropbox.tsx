@@ -8,7 +8,7 @@ import { Icon } from "@iconify/react";
 import { getIcon } from "@/utils/get-file-icon";
 import { Source } from '@/utils/database-types';
 
-import { cn } from "@/utils/cn";
+import { cn } from "@shared-utils/cn";
 
 import PromptInput from "./prompt-input";
 import { set } from "lodash";

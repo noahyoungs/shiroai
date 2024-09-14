@@ -1,4 +1,4 @@
-import { SimpleMermaidSlide, Slide } from "@/utils/slide-types";
+import { SimpleMermaidSlide, Slide } from "@shared-utils/database-types";
 import { useTheme } from "next-themes";
 import DOMPurify from "dompurify";
 import "@/components/slides/mermaid-styles.css";

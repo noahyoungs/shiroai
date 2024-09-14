@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { Tabs, Tab, Textarea } from "@nextui-org/react";
-import { Slide } from "@/utils/slide-types";
+import { Slide } from "@shared-utils/database-types";
 import { PersistentSlideList } from "@/utils/persistent-slides-list";
 import { debounce } from "lodash";
 import { Icon } from "@iconify/react";

@@ -10,7 +10,7 @@ import {
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import { useTheme } from "next-themes";
-import { cn } from "@/utils/cn";
+import { cn } from "@shared-utils/cn";
 
 const ThemeRadioItem = ({
   icon,

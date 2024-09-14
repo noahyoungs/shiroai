@@ -1,7 +1,7 @@
 // frontend/src/components/slides/view-only/view-only-slide-image.tsx
 import React from "react";
-import { cn } from "../utils/cn";
-import { Image as ImageType } from "../utils/slide-types";
+import { cn } from "@shared-utils/cn";
+import { Image as ImageType } from "@shared-utils/database-types";
 
 type ViewOnlySlideImageProps = {
   image?: ImageType;

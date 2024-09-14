@@ -2,7 +2,7 @@ import React, { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { Button, Tooltip } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
-import { cn } from "@/utils/cn";
+import { cn } from "@shared-utils/cn";
 import PromptInput from "./prompt-input";
 
 interface PromptInputBasicProps {

@@ -8,7 +8,7 @@ import {
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import { useEffect, useState, useCallback } from "react";
-import { Slide } from "@/utils/slide-types";
+import { Slide } from "@shared-utils/database-types";
 import { uuidv7 } from "uuidv7";
 import { PersistentSlideList } from "@/utils/persistent-slides-list";
 import { SlidesSyncStatus } from "@/components/slides-sync-status";

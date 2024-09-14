@@ -9,7 +9,7 @@ import { AcmeLogo } from "./acme";
 import SidebarDrawer from "./sidebar-drawer";
 import { useSession } from 'next-auth/react';
 import ThemeSwitch from "../theme-switch";
-import { cn } from "@/utils/cn";
+import { cn } from "@shared-utils/cn";
 
 
 export default function Component({

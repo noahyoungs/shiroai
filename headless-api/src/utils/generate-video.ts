@@ -13,7 +13,7 @@ import * as fs from "fs";
 import * as path from "path";
 
 // Configure AWS Lambda client
-const lambdaClient = new LambdaClient({ region: process.env.AWS_REGION });
+const lambdaClient = new LambdaClient();
 
 // Read Lambda function name from environment variable
 const lambdaFunctionName = process.env.EXPORT_MP4_LAMBDA_NAME;

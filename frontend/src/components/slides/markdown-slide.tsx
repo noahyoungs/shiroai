@@ -15,9 +15,9 @@ import {
   type MDXEditorMethods,
   InsertTable,
 } from "@mdxeditor/editor";
-import { cn } from "@/utils/cn";
+import { cn } from "@shared-utils/cn";
 import { Footnote } from "@/components/footnote";
-import { MarkdownSlide, Slide } from "@/utils/slide-types";
+import { MarkdownSlide, Slide } from "@shared-utils/database-types";
 
 type MarkdownSlideComponentProps = {
   slide: MarkdownSlide;

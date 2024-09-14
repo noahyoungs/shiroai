@@ -1,6 +1,6 @@
 import { Image, Link } from "@nextui-org/react";
 import NextImage from "next/image";
-import { cn } from "@/utils/cn";
+import { cn } from "@shared-utils/cn";
 
 
 type SearchResultItemProps = {

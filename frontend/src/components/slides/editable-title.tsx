@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Textarea, Skeleton, Tooltip, input } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import { template } from "lodash";
-import { cn } from "@/utils/cn";
+import { cn } from "@shared-utils/cn";
 
 type EditableTitleProps = {
   title: string;

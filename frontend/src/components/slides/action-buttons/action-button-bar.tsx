@@ -8,7 +8,7 @@ import { ExportToPdfModal } from "@/components/slides/action-buttons/export-to-p
 import { ExportToPptModal } from "@/components/slides/action-buttons/export-to-ppt-modal";
 import { ShareModal } from "@/components/slides/action-buttons/share-modal";
 import { max } from "lodash";
-import { cn } from "@/utils/cn";
+import { cn } from "@shared-utils/cn";
 
 export function ActionButtonBar({
   presentationId: presentationID,

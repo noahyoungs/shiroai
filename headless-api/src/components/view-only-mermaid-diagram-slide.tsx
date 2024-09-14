@@ -1,5 +1,4 @@
-// frontend/src/components/slides/view-only/view-only-mermaid-diagram-slide.tsx
-import { SimpleMermaidSlide } from "../utils/slide-types";
+import { SimpleMermaidSlide } from "@shared-utils/database-types";
 // import "../mermaid-styles.css";
 import { ViewOnlyTitle } from "./view-only-title";
 

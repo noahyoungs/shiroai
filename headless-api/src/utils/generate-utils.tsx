@@ -4,7 +4,7 @@ import path from "path";
 import puppeteer, { Browser, Page } from "puppeteer";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import fs from "fs";
-import { Slide } from "../../../frontend/src/utils/slide-types";
+import { Slide } from "@shared-utils/database-types";
 import logger from "./logger";
 import { getPresentationByID, getAllSlides } from "./dynamodb";
 import { createSignedUrlSuffix } from "./create-signed-url-suffix";

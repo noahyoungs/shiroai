@@ -1,18 +1,13 @@
-import winston from 'winston';
-import path from 'path';
+import pino from 'pino';
 
-const logger = winston.createLogger({
+const logger = pino({
   level: 'info',
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.printf(({ timestamp, level, message }) => {
-      return `${timestamp} [${level.toUpperCase()}]: ${message}`;
-    })
-  ),
-  transports: [
-    new winston.transports.Console(),
-    new winston.transports.File({ filename: path.join(__dirname, '../../app.log') })
-  ],
+  timestamp: pino.stdTimeFunctions.isoTime,
+  transport: {
+    targets: [
+      { target: 'pino-pretty', options: { destination: 1 } },
+    ]
+  }
 });
 
 export default logger;

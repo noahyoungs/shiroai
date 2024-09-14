@@ -1,4 +1,4 @@
-import { Excerpt } from "@/utils/slide-types";
+import { Excerpt } from "@shared-utils/database-types";
 
 export async function convertFootnotesToMDX(
     markdown: string,

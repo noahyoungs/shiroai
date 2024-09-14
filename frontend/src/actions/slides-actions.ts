@@ -1,11 +1,11 @@
 "use server";
 import { getItemsWithAuth, updateItemsWithAuth, getAllItemsForPresentationWithAuth } from "@/utils/dynamodb-service";
 
-import { Slide } from "@/utils/database-types";
+import { Slide } from "@shared-utils/database-types";
 import { getProseClass } from "@/actions/get-prose-class";
 import { splitMarkdown } from "@/actions/split-markdown";
 import { uuidv7 } from "uuidv7";
-import { Presentation } from "@/utils/database-types";
+import { Presentation } from "@shared-utils/database-types";
 
 /**
  * Adds prose classes and splits overheight slides.

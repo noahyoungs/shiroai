@@ -3,7 +3,7 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { Tabs, Tab, Card, CardBody } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
-import { cn } from "@/utils/cn";
+import { cn } from "@shared-utils/cn";
 
 type ChatConfigureLayoutProps = {
     chat: ReactNode;

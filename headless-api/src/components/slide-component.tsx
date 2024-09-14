@@ -1,6 +1,5 @@
-// frontend/src/components/slides/slide-component.tsx
 import React from "react";
-import { Slide } from "../../../frontend/src/utils/slide-types";
+import { Slide } from "@shared-utils/database-types";
 
 // View Only
 import { ViewOnlyPresentationTitleSlideComponent } from "./view-only-presentation-title-slide";

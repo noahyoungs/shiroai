@@ -3,7 +3,7 @@
 import type { TextAreaProps } from "@nextui-org/react";
 import React from "react";
 import { Textarea } from "@nextui-org/react";
-import { cn } from "@/utils/cn";
+import { cn } from "@shared-utils/cn";
 
 const PromptInput = React.forwardRef<
   HTMLTextAreaElement,

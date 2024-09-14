@@ -1,7 +1,7 @@
 // frontend/src/utils/dynamodb-service.ts
 // import path is "@/utils/dynamodb-service"
 import * as dynamoDBInterface from "@/utils/dynamodb-interface";
-import { Slide, Topic, Source } from "@/utils/database-types";
+import { Slide, Topic, Source } from "@shared-utils/database-types";
 import { auth } from "@/auth";
 
 /**

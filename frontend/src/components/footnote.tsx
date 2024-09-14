@@ -2,7 +2,7 @@ import { Tooltip } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import { ExcerptCard } from "@/components/excerpt-card";
 import { useState } from "react";
-import { Slide } from "@/utils/slide-types";
+import { Slide } from "@shared-utils/database-types";
 
 type FootnoteProps = {
   footnoteKeys: string[];

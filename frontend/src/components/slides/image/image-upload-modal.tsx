@@ -14,9 +14,9 @@ import {
   CardBody,
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
-import { Slide } from "@/utils/slide-types";
+import { Slide } from "@shared-utils/database-types";
 import { set } from "lodash";
-import { Image as ImageType } from "@/utils/slide-types";
+import { Image as ImageType } from "@shared-utils/database-types";
 
 
 type ImageUploadModalProps = {

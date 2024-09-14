@@ -1,5 +1,5 @@
 // section-header-slide.tsx
-import { SectionHeaderSlide, Slide } from "@/utils/slide-types";
+import { SectionHeaderSlide, Slide } from "@shared-utils/database-types";
 import { SlideImage } from "@/components/slides/image/editable-slide-image";
 import { useState } from "react";
 import { EditableTitle } from "@/components/slides/editable-title";

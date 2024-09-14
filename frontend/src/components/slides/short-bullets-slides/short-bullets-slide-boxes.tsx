@@ -1,9 +1,9 @@
 // short-bullets-slide-boxes.tsx
-import { ShortBulletsSlide, IconData, Slide } from "@/utils/slide-types";
+import { ShortBulletsSlide, IconData, Slide } from "@shared-utils/database-types";
 import { ExcerptCard } from "@/components/excerpt-card";
 import { Icon } from "@iconify/react";
 import React, { useState, useEffect, useRef } from "react";
-import { cn } from "@/utils/cn";
+import { cn } from "@shared-utils/cn";
 import { EditableTitle } from "../editable-title";
 import axios from "axios";
 import {

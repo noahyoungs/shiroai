@@ -3,7 +3,7 @@ import MessageCard from "./message-card";
 import WebSearchCard from "./web-search-card";
 import { Spinner } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
-import { cn } from "@/utils/cn";
+import { cn } from "@shared-utils/cn";
 import { stat } from "fs";
 
 export default function Component({

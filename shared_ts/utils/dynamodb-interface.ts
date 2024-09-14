@@ -1,4 +1,3 @@
-// frontend/src/utils/dynamodb-interface.ts
 import {
   DynamoDBClient,
   GetItemCommand,
@@ -9,9 +8,9 @@ import {
   QueryCommand,
 } from "@aws-sdk/client-dynamodb";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
-import { User, Presentation, Slide, Topic, Source } from "@/utils/database-types";
+import { User, Presentation, Slide, Topic, Source } from "./database-types";
 import { AttributeValue } from "@aws-sdk/client-dynamodb";
-import { getChildLogger } from './logger';
+import { getChildLogger } from '../../frontend/src/utils/logger';
 
 const logger = getChildLogger(import.meta.url);
 

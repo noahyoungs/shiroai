@@ -1,10 +1,8 @@
-// headless-api/src/components/view-only-markdown-slide.tsx
 "use client";
 import Markdown, { RuleType } from "markdown-to-jsx";
 import { ViewOnlyTitle } from "./view-only-title";
-import { cn } from "../utils/cn";
-import React from "react";
-import { MarkdownSlide } from "../utils/slide-types";
+import { cn } from "@shared-utils/cn";
+import { MarkdownSlide } from "@shared-utils/database-types";
 
 type ViewOnlyMarkdownSlideComponentProps = {
   slide: MarkdownSlide;
