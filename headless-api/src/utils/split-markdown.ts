@@ -1,7 +1,7 @@
 // headless-service/src/utils/split-markdown.ts
 import * as fs from 'fs';
 import * as path from 'path';
-import logger from "./logger";
+import globalLogger from "./logger";
 
 const LOG_TO_FILE = false;
 
@@ -20,7 +20,7 @@ export function splitMarkdown(
     ratioThreshold: number = 0.1,
     enableLogging: boolean = false
   ): [string, string] {
-    logger.info("Splitting markdown");
+    globalLogger.info("Splitting markdown");
 
     // Trim leading and trailing whitespace
     markdown = markdown.trim();

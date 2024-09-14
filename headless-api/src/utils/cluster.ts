@@ -1,5 +1,5 @@
 import { Cluster } from 'puppeteer-cluster';
-import logger from './logger';
+import globalLogger from './logger';
 
 let cluster: Cluster;
 
@@ -10,7 +10,7 @@ export async function launchCluster(): Promise<Cluster> {
       maxConcurrency: 4,
       puppeteerOptions: { headless: true },
     });
-    logger.info('Cluster launched');
+    globalLogger.info('Cluster launched');
   }
   return cluster;
 }

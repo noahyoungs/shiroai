@@ -3,7 +3,7 @@ import { Request, Response } from "express";
 import React from "react";
 import ReactDOMServer from "react-dom/server";
 import { SlideComponent } from "../components/slide-component";
-import logger from "./logger";
+import globalLogger from "./logger";
 import { sanitizeFileName } from "./sanitize-file-name";
 import archiver from "archiver";
 import streamBuffers from "stream-buffers";
@@ -53,13 +53,13 @@ export async function generateJPGs(
 
   if (!["dark", "light", "print"].includes(theme)) {
     const errorMsg = `Invalid theme: ${theme}. Please use 'dark', 'light' or 'print'`;
-    logger.info(errorMsg);
+    globalLogger.info(errorMsg);
     return new Error(errorMsg);
   }
 
   if (!["1920x1080", "1280x720", "2560x1440", "3840x2160"].includes(resolution)) {
     const errorMsg = `Invalid resolution: ${resolution}. Please use '1920x1080', '1280x720', '2560x1440', or '3840x2160'`;
-    logger.info(errorMsg);
+    globalLogger.info(errorMsg);
     return new Error(errorMsg);
   }
 
@@ -68,16 +68,16 @@ export async function generateJPGs(
                             resolution === "2560x1440" ? 2 :
                             resolution === "3840x2160" ? 3 : 1;
 
-  logger.info(`Received theme: ${theme}, resolution: ${resolution}, footnotes: ${footnotes}`);
+  globalLogger.info(`Received theme: ${theme}, resolution: ${resolution}, footnotes: ${footnotes}`);
 
   try {
-    logger.info(`Generating signed URL suffix for presentation ID: ${presentationID}`);
+    globalLogger.info(`Generating signed URL suffix for presentation ID: ${presentationID}`);
     const signedUrlSuffix = generateSignedUrlSuffix(presentationID);
 
-    logger.info(`Reading static files for presentation rendering`);
+    globalLogger.info(`Reading static files for presentation rendering`);
     const { tailwindCssContent, iconifyIconContent, fontCSS } = readStaticFiles();
 
-    logger.info(`Setting up the Puppeteer browser`);
+    globalLogger.info(`Setting up the Puppeteer browser`);
     const { browser, page } = await setupBrowser();
 
     await page.setViewport({
@@ -91,7 +91,7 @@ export async function generateJPGs(
 
     for (const [index, slide] of sortedSlidesArray.entries()) {
       try {
-        logger.info(`Rendering slide: ${slide.slide_title || `Slide_${index + 1}`}`);
+        globalLogger.info(`Rendering slide: ${slide.slide_title || `Slide_${index + 1}`}`);
         const slideHtml = ReactDOMServer.renderToString(
           <div
             className="slide text-black dark:text-white bg-neutral-100 dark:bg-neutral-900 nobg:bg-white"
@@ -125,7 +125,7 @@ export async function generateJPGs(
           timeout: 60000,
         });
 
-        logger.info(`Waiting for all images to load for slide ${index + 1} of ${sortedSlidesArray.length}`);
+        globalLogger.info(`Waiting for all images to load for slide ${index + 1} of ${sortedSlidesArray.length}`);
         await page.evaluate(() => {
           return Promise.all(
             Array.from(document.images)
@@ -139,7 +139,7 @@ export async function generateJPGs(
           );
         });
 
-        logger.info(`Taking screenshot of slide ${index + 1} of ${sortedSlidesArray.length}`);
+        globalLogger.info(`Taking screenshot of slide ${index + 1} of ${sortedSlidesArray.length}`);
         const jpegBuffer = await page.screenshot({
           type: 'jpeg',
           quality: 80,
@@ -155,16 +155,16 @@ export async function generateJPGs(
         manifest.push({ slide_id: slide.id, image_filename: slideFileName });
 
       } catch (error: any) {
-        logger.warn(`Error rendering slide ${index + 1}, omitted from manifest: ${error.message}\n${error.stack}`);
+        globalLogger.warn(`Error rendering slide ${index + 1}, omitted from manifest: ${error.message}\n${error.stack}`);
       }
     }
 
     if (!DEBUG) {
-      logger.info(`Closing the Puppeteer browser`);
+      globalLogger.info(`Closing the Puppeteer browser`);
       await browser.close();
     }
 
-    logger.info(`Creating zip archive for presentation ID: ${presentationID}`);
+    globalLogger.info(`Creating zip archive for presentation ID: ${presentationID}`);
     const zipStream = new streamBuffers.WritableStreamBuffer({
       initialSize: 100 * 1024,
       incrementAmount: 10 * 1024,
@@ -189,14 +189,14 @@ export async function generateJPGs(
     const zipBuffer = zipStream.getContents() as Buffer;
     const finalZipFileName = `${presentationID}${s3Subdirectory}${zipFileName}.zip`;
 
-    logger.info(`Uploading zip archive to S3: ${finalZipFileName}`);
+    globalLogger.info(`Uploading zip archive to S3: ${finalZipFileName}`);
     await uploadBufferToS3(zipBuffer, finalZipFileName, 'application/zip');
 
-    logger.info(`Buffer uploaded to S3 successfully: ${finalZipFileName}`);
+    globalLogger.info(`Buffer uploaded to S3 successfully: ${finalZipFileName}`);
     return { s3Key: finalZipFileName, manifest }; // Return both s3Key and manifest
 
   } catch (error: any) {
-    logger.error(`Failed to generate JPEGs: ${error.message}\n${error.stack}`);
+    globalLogger.error(`Failed to generate JPEGs: ${error.message}\n${error.stack}`);
     return new Error(`Failed to generate JPEGs: ${error.message}`);
   }
 }
@@ -213,7 +213,7 @@ export async function generateJPGsHandler(req: Request, res: Response) {
   const { theme, footnotes, resolution } = req.body;
 
   try {
-    logger.info(`Fetching and sorting slides for presentation ID: ${presentationId}`);
+    globalLogger.info(`Fetching and sorting slides for presentation ID: ${presentationId}`);
     const { presentation, sortedSlidesArray } = await fetchAndSortSlides(presentationId);
 
     // Generate sanitized zip file name based on presentation topic
@@ -235,7 +235,7 @@ export async function generateJPGsHandler(req: Request, res: Response) {
       res.json({ s3Key: result.s3Key, manifest: result.manifest }); // Send both s3Key and manifest in the response
     }
   } catch (error: any) {
-    logger.error(`Failed to process generateJPGsHandler: ${error.message}\n${error.stack}`);
+    globalLogger.error(`Failed to process generateJPGsHandler: ${error.message}\n${error.stack}`);
     res.status(500).send(`Internal Server Error: ${error.message}`);
   }
 }

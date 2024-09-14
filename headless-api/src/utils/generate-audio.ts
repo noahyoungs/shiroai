@@ -1,7 +1,7 @@
 import { PollyClient, SynthesizeSpeechCommand, Engine, VoiceId } from "@aws-sdk/client-polly";
 import archiver from "archiver";
 import streamBuffers from "stream-buffers";
-import logger from "./logger";
+import globalLogger from "./logger";
 import { uploadBufferToS3 } from "./generate-utils";
 import { sanitizeFileName } from "./sanitize-file-name";
 
@@ -23,7 +23,7 @@ async function exponentialBackoffRetry(fn: () => Promise<any>, retries: number, 
             }
             const jitter = Math.random() * 100; // Random jitter between 0-100ms
             const delayTime = baseDelay * Math.pow(2, attempt) + jitter; // Exponential backoff with jitter
-            logger.warn(`Retrying after ${delayTime}ms due to error: ${error.message}`);
+            globalLogger.warn(`Retrying after ${delayTime}ms due to error: ${error.message}`);
             await delay(delayTime);
             attempt++;
         }
@@ -46,7 +46,7 @@ export async function generateAudio(
     sortedSlidesArray: any[],
     voice: 'Ruth' | 'Gregory' | 'Danielle' = 'Danielle'
 ): Promise<{ audioS3Key: string; manifest: { slide_id: string; audio_filename: string }[] } | Error> {
-    logger.info(`Starting audio generation for presentation ID: ${presentationID}`);
+    globalLogger.info(`Starting audio generation for presentation ID: ${presentationID}`);
 
     // Ensure s3Subdirectory is in the format '/subdir/' or '/'
     if (s3Subdirectory === '' || !s3Subdirectory) {
@@ -63,7 +63,7 @@ export async function generateAudio(
 
     // Convert the voice to the appropriate Polly voiceId
     if (voice !== 'Ruth' && voice !== 'Gregory' && voice !== 'Danielle') {
-        logger.warn(`Invalid voice ${voice}, defaulting to 'Danielle'`);
+        globalLogger.warn(`Invalid voice ${voice}, defaulting to 'Danielle'`);
         voice = 'Danielle';
     }
 
@@ -100,20 +100,20 @@ export async function generateAudio(
                             audioBuffers.push({ buffer, slide, fileName });
                             manifest.push({ slide_id: slide!.id, audio_filename: fileName }); // Updated manifest structure
 
-                            logger.info(`Audio generated successfully for slide: ${slide!.id}`);
+                            globalLogger.info(`Audio generated successfully for slide: ${slide!.id}`);
                         });
                 } else {
-                    logger.warn(`No audio stream returned for slide: ${slide!.id}`);
+                    globalLogger.warn(`No audio stream returned for slide: ${slide!.id}`);
                 }
             });
 
             return exponentialBackoffRetry(sendPollyCommand, 5, 500) // 5 retries with base delay of 500ms
                 .catch(error => {
-                    logger.error(`Error generating audio for slide ${slide!.id}: ${error.message}`);
+                    globalLogger.error(`Error generating audio for slide ${slide!.id}: ${error.message}`);
                     return null; // Resolve with null to continue processing other slides
                 });
         } else {
-            logger.warn(`Invalid or empty script for slide ${slide.id}, skipping audio generation.`);
+            globalLogger.warn(`Invalid or empty script for slide ${slide.id}, skipping audio generation.`);
             return Promise.resolve(null);
         }
     });
@@ -122,7 +122,7 @@ export async function generateAudio(
     await Promise.all(pollyPromises);
 
     try {
-        logger.info(`Creating zip archive for audio files of presentation ID: ${presentationID}`);
+        globalLogger.info(`Creating zip archive for audio files of presentation ID: ${presentationID}`);
         const zipStream = new streamBuffers.WritableStreamBuffer({
             initialSize: 100 * 1024,
             incrementAmount: 10 * 1024,
@@ -145,14 +145,14 @@ export async function generateAudio(
         const zipBuffer = zipStream.getContents() as Buffer;
         const zipFileName = `${presentationID}${s3Subdirectory}audio.zip`;
 
-        logger.info(`Uploading zip archive to S3: ${zipFileName}`);
+        globalLogger.info(`Uploading zip archive to S3: ${zipFileName}`);
         await uploadBufferToS3(zipBuffer, zipFileName, 'application/zip');
 
-        logger.info(`Audio zip uploaded to S3 successfully: ${zipFileName}`);
+        globalLogger.info(`Audio zip uploaded to S3 successfully: ${zipFileName}`);
         return { audioS3Key: zipFileName, manifest };
 
     } catch (error: any) {
-        logger.error(`Failed to create or upload audio zip archive: ${error.message}\n${error.stack}`);
+        globalLogger.error(`Failed to create or upload audio zip archive: ${error.message}\n${error.stack}`);
         return new Error(`Failed to create or upload audio zip archive: ${error.message}`);
     }
 }

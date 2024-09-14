@@ -1,5 +1,26 @@
 // frontend/src/utils/database-types.ts
 
+// Define valid item types as a union type
+export type ValidItemTypes = 'user' | 'presentation' | 'slide' | 'topic' | 'source';
+
+// TypeScript types for identifiers
+export type Identifiers<T> = T extends 'user' ? { user_id: string }
+  : T extends 'presentation' ? { user_id: string; presentation_id: string }
+  : T extends 'slide' ? { user_id: string; presentation_id: string; slide_id: string }
+  : T extends 'topic' ? { user_id: string; presentation_id: string; topic_id: string }
+  : T extends 'source' ? { user_id: string; presentation_id: string; source_id: string }
+  : never;
+
+// TypeScript types for item type mapping
+export type DBItemMap<T> = T extends 'user' ? User
+  : T extends 'presentation' ? Presentation
+  : T extends 'slide' ? Slide
+  : T extends 'topic' ? Topic
+  : T extends 'source' ? Source
+  : never;
+
+export type ItemWithIdentifiers<T extends ValidItemTypes> = Identifiers<T> & Partial<Omit<DBItemMap<T>, keyof Identifiers<T>>>;
+
 export type Slide = 
   | ShortBulletsSlide 
   | MarkdownSlide 

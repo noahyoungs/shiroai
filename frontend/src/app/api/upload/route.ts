@@ -2,7 +2,7 @@
 
 import { createPresignedPost } from '@aws-sdk/s3-presigned-post';
 import { S3Client } from '@aws-sdk/client-s3';
-import { updateItems } from '@/utils/dynamodb-interface'; // Directly update database without auth
+import { updateItems } from '@/utils/dynamodb-interface-factory'; // Directly update database without auth
 import { uuidv7 } from 'uuidv7';
 import { auth } from "@/auth"
 

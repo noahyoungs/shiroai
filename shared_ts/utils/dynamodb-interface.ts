@@ -8,199 +8,178 @@ import {
   QueryCommand,
 } from "@aws-sdk/client-dynamodb";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
-import { User, Presentation, Slide, Topic, Source } from "./database-types";
+import { ValidItemTypes, Identifiers, DBItemMap, ItemWithIdentifiers, Slide, Topic, Source } from "./database-types";
 import { AttributeValue } from "@aws-sdk/client-dynamodb";
-import { getChildLogger } from '../../frontend/src/utils/logger';
+import { Logger } from "pino";
 
-const logger = getChildLogger(import.meta.url);
 
-const client = new DynamoDBClient({});
-const tableName = process.env.DYNAMODB_TABLE_NAME as string;
+export class DynamoDBInterface {
+  private client: DynamoDBClient;
+  private tableName: string;
+  private logger: Logger;
 
-if (!tableName) {
-  const errorMessage = "DYNAMODB_TABLE_NAME environment variable is not set";
-  logger.fatal(errorMessage);
-  throw new Error(errorMessage);
-}
+  constructor(logger: Logger, client: DynamoDBClient, tableName: string) {
+    this.client = client;
+    this.tableName = tableName;
+    this.logger = logger;
+  }
 
-logger.info("DynamoDB client initialized");
 
-// Define valid item types as a union type
-export type ValidItemTypes = 'user' | 'presentation' | 'slide' | 'topic' | 'source';
+  // Utility functions
 
-// TypeScript types for identifiers
-export type Identifiers<T> = T extends 'user' ? { user_id: string }
-  : T extends 'presentation' ? { user_id: string; presentation_id: string }
-  : T extends 'slide' ? { user_id: string; presentation_id: string; slide_id: string }
-  : T extends 'topic' ? { user_id: string; presentation_id: string; topic_id: string }
-  : T extends 'source' ? { user_id: string; presentation_id: string; source_id: string }
-  : never;
+  // Centralized logging and key building logic
+  private logAndBuildKey<T extends ValidItemTypes>(itemType: T, identifiers: Identifiers<T>): { PK: string; SK: string } {
+    this.logger.debug(`Building key for ${itemType} with identifiers: ${JSON.stringify(identifiers)}`);
+    return this.buildKey(itemType, identifiers);
+  }
 
-// TypeScript types for item type mapping
-export type DBItemMap<T> = T extends 'user' ? User
-  : T extends 'presentation' ? Presentation
-  : T extends 'slide' ? Slide
-  : T extends 'topic' ? Topic
-  : T extends 'source' ? Source
-  : never;
+  // Build key based on item type and check for missing identifiers
+  private buildKey<T extends ValidItemTypes>(itemType: T, identifiers: Identifiers<T>): { PK: string; SK: string } {
+    const keyMap: Record<ValidItemTypes, () => { PK: string; SK: string }> = {
+      user: () => {
+        if (!('user_id' in identifiers)) {
+          this.throwMissingIdentifierError('user_id', itemType);
+        }
+        return { PK: `USER#${identifiers.user_id}`, SK: `PROFILE` };
+      },
+      presentation: () => {
+        if (!('user_id' in identifiers) || !('presentation_id' in identifiers)) {
+          this.throwMissingIdentifierError('user_id, presentation_id', itemType);
+        }
+        return { PK: `USER#${identifiers.user_id}`, SK: `PRESENTATION#${identifiers.presentation_id}` };
+      },
+      slide: () => {
+        if (!('user_id' in identifiers) || !('presentation_id' in identifiers) || !('slide_id' in identifiers)) {
+          this.throwMissingIdentifierError('user_id, presentation_id, slide_id', itemType);
+        }
+        return { PK: `USER#${identifiers.user_id}`, SK: `PRESENTATION#${identifiers.presentation_id}#SLIDE#${identifiers.slide_id}` };
+      },
+      topic: () => {
+        if (!('user_id' in identifiers) || !('presentation_id' in identifiers) || !('topic_id' in identifiers)) {
+          this.throwMissingIdentifierError('user_id, presentation_id, topic_id', itemType);
+        }
+        return { PK: `USER#${identifiers.user_id}`, SK: `PRESENTATION#${identifiers.presentation_id}#TOPIC#${identifiers.topic_id}` };
+      },
+      source: () => {
+        if (!('user_id' in identifiers) || !('presentation_id' in identifiers) || !('source_id' in identifiers)) {
+          this.throwMissingIdentifierError('user_id, presentation_id, source_id', itemType);
+        }
+        return { PK: `USER#${identifiers.user_id}`, SK: `PRESENTATION#${identifiers.presentation_id}#SOURCE#${identifiers.source_id}` };
+      },
+    };
 
-export type ItemWithIdentifiers<T extends ValidItemTypes> = Identifiers<T> & Partial<Omit<DBItemMap<T>, keyof Identifiers<T>>>;
+    const buildFn = keyMap[itemType];
+    if (!buildFn) {
+      const errorMessage = `Invalid item type: ${itemType}`;
+      this.logger.error(errorMessage);
+      throw new Error(errorMessage);
+    }
 
-// Utility functions
+    return buildFn();
+  }
 
-// Centralized logging and key building logic
-function logAndBuildKey<T extends ValidItemTypes>(itemType: T, identifiers: Identifiers<T>): { PK: string; SK: string } {
-  logger.debug(`Building key for ${itemType} with identifiers: ${JSON.stringify(identifiers)}`);
-  return buildKey(itemType, identifiers);
-}
-
-// Build key based on item type and check for missing identifiers
-function buildKey<T extends ValidItemTypes>(itemType: T, identifiers: Identifiers<T>): { PK: string; SK: string } {
-  const keyMap: Record<ValidItemTypes, () => { PK: string; SK: string }> = {
-    user: () => {
-      if (!('user_id' in identifiers)) {
-        throwMissingIdentifierError('user_id', itemType);
-      }
-      return { PK: `USER#${identifiers.user_id}`, SK: `PROFILE` };
-    },
-    presentation: () => {
-      if (!('user_id' in identifiers) || !('presentation_id' in identifiers)) {
-        throwMissingIdentifierError('user_id, presentation_id', itemType);
-      }
-      return { PK: `USER#${identifiers.user_id}`, SK: `PRESENTATION#${identifiers.presentation_id}` };
-    },
-    slide: () => {
-      if (!('user_id' in identifiers) || !('presentation_id' in identifiers) || !('slide_id' in identifiers)) {
-        throwMissingIdentifierError('user_id, presentation_id, slide_id', itemType);
-      }
-      return { PK: `USER#${identifiers.user_id}`, SK: `PRESENTATION#${identifiers.presentation_id}#SLIDE#${identifiers.slide_id}` };
-    },
-    topic: () => {
-      if (!('user_id' in identifiers) || !('presentation_id' in identifiers) || !('topic_id' in identifiers)) {
-        throwMissingIdentifierError('user_id, presentation_id, topic_id', itemType);
-      }
-      return { PK: `USER#${identifiers.user_id}`, SK: `PRESENTATION#${identifiers.presentation_id}#TOPIC#${identifiers.topic_id}` };
-    },
-    source: () => {
-      if (!('user_id' in identifiers) || !('presentation_id' in identifiers) || !('source_id' in identifiers)) {
-        throwMissingIdentifierError('user_id, presentation_id, source_id', itemType);
-      }
-      return { PK: `USER#${identifiers.user_id}`, SK: `PRESENTATION#${identifiers.presentation_id}#SOURCE#${identifiers.source_id}` };
-    },
-  };
-
-  const buildFn = keyMap[itemType];
-  if (!buildFn) {
-    const errorMessage = `Invalid item type: ${itemType}`;
-    logger.error(errorMessage);
+  // Helper function to throw an error for missing identifiers
+  private throwMissingIdentifierError(missingIdentifiers: string, itemType: ValidItemTypes): never {
+    const errorMessage = `Missing required identifiers: ${missingIdentifiers} for item type: ${itemType}`;
+    this.logger.error(errorMessage);
     throw new Error(errorMessage);
   }
 
-  return buildFn();
-}
-
-// Helper function to throw an error for missing identifiers
-function throwMissingIdentifierError(missingIdentifiers: string, itemType: ValidItemTypes): never {
-  const errorMessage = `Missing required identifiers: ${missingIdentifiers} for item type: ${itemType}`;
-  logger.error(errorMessage);
-  throw new Error(errorMessage);
-}
-
-// Build GSI1SK based on presentationID and check for missing presentationID
-function buildGSI1SK(): string {
-  const gsi1sk = `LASTUPDATE#${Date.now()}`;
-  logger.debug(`Generated GSI1SK: ${gsi1sk}`);
-  return gsi1sk;
-}
-
-// Add identifiers based on item type
-function addIdentifiersToItem(item: any, itemType: ValidItemTypes) {
-  logger.debug(`Adding identifiers to item of type ${itemType}`);
-
-  const { PK, SK, GSI1SK } = item;
-
-  // Error if no PK or SK
-  if (!PK || !SK) {
-    const errorMessage = `invalid required keys PK (${PK}) and/or SK (${SK}) in item`;
-    logger.error(errorMessage);
-    throw new Error(errorMessage);
+  // Build GSI1SK based on presentationID and check for missing presentationID
+  private buildGSI1SK(): string {
+    const gsi1sk = `LASTUPDATE#${Date.now()}`;
+    this.logger.debug(`Generated GSI1SK: ${gsi1sk}`);
+    return gsi1sk;
   }
 
-  const ids: Record<string, string> = {
-    user_id: PK.split('#')[1],
-  };
+  // Add identifiers based on item type
+  private addIdentifiersToItem(item: any, itemType: ValidItemTypes) {
+    this.logger.debug(`Adding identifiers to item of type ${itemType}`);
 
-  if (itemType === 'presentation') {
-    try {
-      if (GSI1SK.startsWith('LASTUPDATED#')) {
-        const gsiParts = GSI1SK.split('#');
-        ids.last_updated = gsiParts[1]; // Extract the timestamp part
-      } else {
-        throw new Error('Invalid GSI1SK format');
+    const { PK, SK, GSI1SK } = item;
+
+    // Error if no PK or SK
+    if (!PK || !SK) {
+      const errorMessage = `invalid required keys PK (${PK}) and/or SK (${SK}) in item`;
+      this.logger.error(errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    const ids: Record<string, string> = {
+      user_id: PK.split('#')[1],
+    };
+
+    if (itemType === 'presentation') {
+      try {
+        if (GSI1SK.startsWith('LASTUPDATED#')) {
+          const gsiParts = GSI1SK.split('#');
+          ids.last_updated = gsiParts[1]; // Extract the timestamp part
+        } else {
+          throw new Error('Invalid GSI1SK format');
+        }
+      } catch (error: any) {
+        this.logger.warn({ error, GSI1SK }, 'Error parsing GSI1SK for, last_updated not added to item');
       }
-    } catch (error: any) {
-      logger.warn({ error, GSI1SK }, 'Error parsing GSI1SK for, last_updated not added to item');
     }
+
+    const skParts = SK.split('#');
+
+    // Extract presentation_id for all item types except 'user'
+    if (itemType !== 'user') {
+      if (skParts.length < 2) {
+        const errorMessage = `SK format is invalid for item type ${itemType}: ${SK}`;
+        this.logger.error(errorMessage);
+        throw new Error(errorMessage);
+      }
+      ids.presentation_id = skParts[1];
+    }
+
+    // Extract specific IDs based on item type
+    if (itemType === 'presentation') {
+      // Already handled above
+    } else if (itemType === 'slide') {
+      if (skParts.length < 4) {
+        const errorMessage = `SK format is invalid for slide: ${SK}`;
+        this.logger.error(errorMessage);
+        throw new Error(errorMessage);
+      }
+      ids.slide_id = skParts[3];
+    } else if (itemType === 'topic') {
+      if (skParts.length < 4) {
+        const errorMessage = `SK format is invalid for topic: ${SK}`;
+        this.logger.error(errorMessage);
+        throw new Error(errorMessage);
+      }
+      ids.topic_id = skParts[3];
+    } else if (itemType === 'source') {
+      if (skParts.length < 4) {
+        const errorMessage = `SK format is invalid for source: ${SK}`;
+        this.logger.error(errorMessage);
+        throw new Error(errorMessage);
+      }
+      ids.source_id = skParts[3];
+    }
+
+    this.logger.debug(`Identifiers added to item: ${JSON.stringify(ids)}`);
+    return { ...item, ...ids };
   }
 
-  const skParts = SK.split('#');
-  
-  // Extract presentation_id for all item types except 'user'
-  if (itemType !== 'user') {
-    if (skParts.length < 2) {
-      const errorMessage = `SK format is invalid for item type ${itemType}: ${SK}`;
-      logger.error(errorMessage);
-      throw new Error(errorMessage);
-    }
-    ids.presentation_id = skParts[1];
-  }
-
-  // Extract specific IDs based on item type
-  if (itemType === 'presentation') {
-    // Already handled above
-  } else if (itemType === 'slide') {
-    if (skParts.length < 4) {
-      const errorMessage = `SK format is invalid for slide: ${SK}`;
-      logger.error(errorMessage);
-      throw new Error(errorMessage);
-    }
-    ids.slide_id = skParts[3];
-  } else if (itemType === 'topic') {
-    if (skParts.length < 4) {
-      const errorMessage = `SK format is invalid for topic: ${SK}`;
-      logger.error(errorMessage);
-      throw new Error(errorMessage);
-    }
-    ids.topic_id = skParts[3];
-  } else if (itemType === 'source') {
-    if (skParts.length < 4) {
-      const errorMessage = `SK format is invalid for source: ${SK}`;
-      logger.error(errorMessage);
-      throw new Error(errorMessage);
-    }
-    ids.source_id = skParts[3];
-  }
-
-  logger.debug(`Identifiers added to item: ${JSON.stringify(ids)}`);
-  return { ...item, ...ids };
-}
-
-// Remove keys from item
-function removeKeysFromItem(item: any) {
-  logger.debug(`Removing keys (PK, SK, GSI1SK) from item`);
+  // Remove keys from item
+  private removeKeysFromItem(item: any) {
+  this.logger.debug(`Removing keys (PK, SK, GSI1SK) from item`);
   const { PK, SK, GSI1SK, ...rest } = item;
   return rest;
 }
 
 // Fetch single item
-async function fetchSingleItem<T extends ValidItemTypes>(
+private async fetchSingleItem<T extends ValidItemTypes>(
   itemType: T,
   requestKey: { PK: string; SK: string },
   projectionExpression?: string,
   expressionAttributeNames?: Record<string, string>
 ) {
   const commandInput = {
-    TableName: tableName,
+    TableName: this.tableName,
     Key: marshall(requestKey),
     ...(projectionExpression && { ProjectionExpression: projectionExpression }),
     ...(expressionAttributeNames && { ExpressionAttributeNames: expressionAttributeNames }),
@@ -208,20 +187,20 @@ async function fetchSingleItem<T extends ValidItemTypes>(
 
   try {
     const command = new GetItemCommand(commandInput);
-    const response = await client.send(command);
+    const response = await this.client.send(command);
     const item = response.Item ? unmarshall(response.Item) : null;
 
-    logger.debug(`Single item fetched for type ${itemType}: ${JSON.stringify(item)}`);
-    logger.info(`Single item fetched for type ${itemType}: ${item ? 'non-null (found)' : 'null (not found)'}`);
-    return item ? removeKeysFromItem(addIdentifiersToItem(item, itemType)) as (Partial<DBItemMap<T>> | DBItemMap<T>) : null;
+    this.logger.debug(`Single item fetched for type ${itemType}: ${JSON.stringify(item)}`);
+    this.logger.info(`Single item fetched for type ${itemType}: ${item ? 'non-null (found)' : 'null (not found)'}`);
+    return item ? this.removeKeysFromItem(this.addIdentifiersToItem(item, itemType)) as (Partial<DBItemMap<T>> | DBItemMap<T>) : null;
   } catch (error: any) {
-    logger.error({ error, commandInput }, `Error fetching item for type ${itemType}`);
+    this.logger.error({ error, commandInput }, `Error fetching item for type ${itemType}`);
     throw error;
   }
 }
 
 // Fetch multiple items
-async function fetchMultipleItems<T extends ValidItemTypes>(
+private async fetchMultipleItems<T extends ValidItemTypes>(
   itemType: T,
   requestKeys: { PK: string; SK: string }[],
   projectionExpression?: string,
@@ -229,7 +208,7 @@ async function fetchMultipleItems<T extends ValidItemTypes>(
 ) {
   const commandInput = {
     RequestItems: {
-      [tableName]: {
+      [this.tableName]: {
         Keys: requestKeys.map(key => marshall(key)),
         ...(projectionExpression && { ProjectionExpression: projectionExpression }),
         ...(expressionAttributeNames && { ExpressionAttributeNames: expressionAttributeNames }),
@@ -239,10 +218,10 @@ async function fetchMultipleItems<T extends ValidItemTypes>(
 
   try {
     const command = new BatchGetItemCommand(commandInput);
-    const response = await client.send(command);
-    const items = response.Responses?.[tableName]?.map((item: Record<string, AttributeValue>) => unmarshall(item)) || [];
+    const response = await this.client.send(command);
+    const items = response.Responses?.[this.tableName]?.map((item: Record<string, AttributeValue>) => unmarshall(item)) || [];
 
-    logger.debug(`Items fetched from db (unsorted): ${JSON.stringify(items)}`);
+    this.logger.debug(`Items fetched from db (unsorted): ${JSON.stringify(items)}`);
 
     const itemMap = items.reduce((acc, item) => {
       acc[`${item.PK}_${item.SK}`] = item;
@@ -252,20 +231,20 @@ async function fetchMultipleItems<T extends ValidItemTypes>(
     const resultItems = requestKeys.map((requestKey) => {
       const itemKey = `${requestKey.PK}_${requestKey.SK}`;
       const matchingItem = itemMap[itemKey];
-      return matchingItem ? removeKeysFromItem(addIdentifiersToItem(matchingItem, itemType)) as (Partial<DBItemMap<T>> | DBItemMap<T>) : null;
+      return matchingItem ? this.removeKeysFromItem(this.addIdentifiersToItem(matchingItem, itemType)) as (Partial<DBItemMap<T>> | DBItemMap<T>) : null;
     });
 
-    logger.debug(`Items fetched for type ${itemType} (sorted): ${JSON.stringify(resultItems)}`);
-    logger.info(`${resultItems.length} items fetched for type ${itemType}, ${resultItems.filter(Boolean).length} non-null (found)`);
+    this.logger.debug(`Items fetched for type ${itemType} (sorted): ${JSON.stringify(resultItems)}`);
+    this.logger.info(`${resultItems.length} items fetched for type ${itemType}, ${resultItems.filter(Boolean).length} non-null (found)`);
     return resultItems as (Partial<DBItemMap<T>> | DBItemMap<T>)[];
   } catch (error: any) {
-    logger.error({ error, commandInput }, `Error fetching items for type ${itemType}`);
+    this.logger.error({ error, commandInput }, `Error fetching items for type ${itemType}`);
     throw error;
   }
 }
 
 // Utility function to validate and extract identifiers
-function validateIdentifiers<T extends ValidItemTypes>(
+private validateIdentifiers<T extends ValidItemTypes>(
   itemType: T,
   item: Partial<ItemWithIdentifiers<T>>
 ): Identifiers<T> {
@@ -298,11 +277,11 @@ function validateIdentifiers<T extends ValidItemTypes>(
   return identifiers;
 }
 
-function getUpdateExpression<T extends ValidItemTypes>(
+private getUpdateExpression<T extends ValidItemTypes>(
   item: ItemWithIdentifiers<T>,
   itemType: T
 ): [string, Record<string, any>, Record<string, any>] {
-  logger.debug(`Generating update expression for item of type ${itemType}`);
+  this.logger.debug(`Generating update expression for item of type ${itemType}`);
 
   const omitAttributes = ['PK', 'SK', 'user_id', 'presentation_id', 'slide_id', 'source_id', 'topic_id', 'GSI1SK', 'last_updated'];
   let updateExpression = "SET ";
@@ -312,10 +291,10 @@ function getUpdateExpression<T extends ValidItemTypes>(
   // Iterate over the keys of the item and generate the update expression
   (Object.keys(item) as Array<keyof ItemWithIdentifiers<T>>).forEach((key, index) => {
     const value = item[key];
-    
+
     // Log a warning if the value is undefined
     if (value === undefined) {
-      logger.warn(`A value for attribute '${key as string}' is undefined. This attribute will be skipped.`);
+      this.logger.warn(`A value for attribute '${key as string}' is undefined. This attribute will be skipped.`);
       return; // Skip this iteration if the value is undefined
     }
 
@@ -331,7 +310,7 @@ function getUpdateExpression<T extends ValidItemTypes>(
 
   // Handle GSI1SK for presentation
   if (itemType == 'presentation') {
-    const gsi1sk = buildGSI1SK();
+    const gsi1sk = this.buildGSI1SK();
     updateExpression += "#GSI1SK = :gsi1sk, ";
     expressionAttributeNames["#GSI1SK"] = "GSI1SK";
     expressionAttributeValues[":gsi1sk"] = gsi1sk;
@@ -339,8 +318,8 @@ function getUpdateExpression<T extends ValidItemTypes>(
 
   // Remove trailing comma and space
   updateExpression = updateExpression.slice(0, -2);
-  logger.debug(`Update expression generated: ${updateExpression}`);
-  
+  this.logger.debug(`Update expression generated: ${updateExpression}`);
+
   return [updateExpression, expressionAttributeNames, marshall(expressionAttributeValues)];
 }
 
@@ -376,7 +355,7 @@ function getUpdateExpression<T extends ValidItemTypes>(
  * ]);
  * ```
  */
-export async function getItems<T extends ValidItemTypes>(
+public async getItems<T extends ValidItemTypes>(
   itemType: T,
   identifiers: Identifiers<T> | Identifiers<T>[],
   attributes?: string[]
@@ -387,10 +366,10 @@ export async function getItems<T extends ValidItemTypes>(
   | (Partial<DBItemMap<T>> | null)[]
   | (DBItemMap<T> | null)[]
 > {
-  logger.info(`Fetching items of type ${itemType} with identifiers: ${JSON.stringify(identifiers)}`);
+  this.logger.info(`Fetching items of type ${itemType} with identifiers: ${JSON.stringify(identifiers)}`);
 
   const isSingle = !Array.isArray(identifiers);
-  const requestKeys = (isSingle ? [identifiers] : identifiers).map(id => logAndBuildKey(itemType, id));
+  const requestKeys = (isSingle ? [identifiers] : identifiers).map(id => this.logAndBuildKey(itemType, id));
 
   let projectionExpression: string | undefined;
   let expressionAttributeNames: Record<string, string> | undefined;
@@ -405,9 +384,9 @@ export async function getItems<T extends ValidItemTypes>(
   }
 
   if (isSingle) {
-    return fetchSingleItem(itemType, requestKeys[0], projectionExpression, expressionAttributeNames);
+    return this.fetchSingleItem(itemType, requestKeys[0], projectionExpression, expressionAttributeNames);
   } else {
-    return fetchMultipleItems(itemType, requestKeys, projectionExpression, expressionAttributeNames);
+    return this.fetchMultipleItems(itemType, requestKeys, projectionExpression, expressionAttributeNames);
   }
 }
 
@@ -437,22 +416,22 @@ export async function getItems<T extends ValidItemTypes>(
  * ]);
  * ```
  */
-export async function updateItems<T extends ValidItemTypes>(
+public async updateItems<T extends ValidItemTypes>(
   itemType: T,
   items: ItemWithIdentifiers<T>[]
 ): Promise<void> {
-  logger.info(`Updating items of type ${itemType}`);
+  this.logger.info(`Updating items of type ${itemType}`);
 
   const transactItems = items.map(item => {
     // Check that the necessary identifiers are present (this is now guaranteed by types)
-    const identifiers = validateIdentifiers(itemType, item);
+    const identifiers = this.validateIdentifiers(itemType, item);
 
-    const key = logAndBuildKey(itemType, identifiers);
-    const [updateExpression, expressionAttributeNames, expressionAttributeValues] = getUpdateExpression(item, itemType);
+    const key = this.logAndBuildKey(itemType, identifiers);
+    const [updateExpression, expressionAttributeNames, expressionAttributeValues] = this.getUpdateExpression(item, itemType);
 
     return {
       Update: {
-        TableName: tableName,
+        TableName: this.tableName,
         Key: marshall(key),
         UpdateExpression: updateExpression,
         ExpressionAttributeNames: expressionAttributeNames,
@@ -463,15 +442,15 @@ export async function updateItems<T extends ValidItemTypes>(
 
   try {
     if (items.length === 1) {
-      logger.debug(`Updating a single item`);
-      await client.send(new UpdateItemCommand(transactItems[0].Update));
+      this.logger.debug(`Updating a single item`);
+      await this.client.send(new UpdateItemCommand(transactItems[0].Update));
     } else {
-      logger.debug(`Performing transaction write for multiple items`);
-      await client.send(new TransactWriteItemsCommand({ TransactItems: transactItems }));
+      this.logger.debug(`Performing transaction write for multiple items`);
+      await this.client.send(new TransactWriteItemsCommand({ TransactItems: transactItems }));
     }
-    logger.info(`Items successfully updated`);
+    this.logger.info(`Items successfully updated`);
   } catch (error: any) {
-    logger.error({ error, items }, `Error updating items for type ${itemType}`);
+    this.logger.error({ error, items }, `Error updating items for type ${itemType}`);
     throw error;
   }
 }
@@ -498,17 +477,17 @@ export async function updateItems<T extends ValidItemTypes>(
  * ]);
  * ```
  */
-export async function deleteItems<T extends ValidItemTypes>(
+public async deleteItems<T extends ValidItemTypes>(
   itemType: T,
   identifiers: Identifiers<T>[]
 ): Promise<void> {
-  logger.info(`Deleting items of type ${itemType}`);
+  this.logger.info(`Deleting items of type ${itemType}`);
 
   const deleteItems = identifiers.map(id => {
-    const key = buildKey(itemType, id);
+    const key = this.buildKey(itemType, id);
     return {
       Delete: {
-        TableName: tableName,
+        TableName: this.tableName,
         Key: marshall(key),
       }
     };
@@ -516,18 +495,18 @@ export async function deleteItems<T extends ValidItemTypes>(
 
   try {
     if (identifiers.length === 1) {
-      logger.debug(`Deleting a single item`);
-      await client.send(new DeleteItemCommand({
-        TableName: tableName,
-        Key: marshall(buildKey(itemType, identifiers[0])),
+      this.logger.debug(`Deleting a single item`);
+      await this.client.send(new DeleteItemCommand({
+        TableName: this.tableName,
+        Key: marshall(this.buildKey(itemType, identifiers[0])),
       }));
     } else {
-      logger.debug(`Performing transaction delete for multiple items`);
-      await client.send(new TransactWriteItemsCommand({ TransactItems: deleteItems }));
+      this.logger.debug(`Performing transaction delete for multiple items`);
+      await this.client.send(new TransactWriteItemsCommand({ TransactItems: deleteItems }));
     }
-    logger.info(`Items successfully deleted`);
+    this.logger.info(`Items successfully deleted`);
   } catch (error: any) {
-    logger.error({ error, identifiers }, `Error deleting items for type ${itemType}`);
+    this.logger.error({ error, identifiers }, `Error deleting items for type ${itemType}`);
     throw error;
   }
 }
@@ -543,7 +522,7 @@ export async function deleteItems<T extends ValidItemTypes>(
  *
  * @throws Will throw an error if the fetch operation fails.
  */
-export async function getAllItemsForPresentation(
+public async getAllItemsForPresentation(
   itemType: 'slide',
   userID: string,
   presentationID: string,
@@ -560,7 +539,7 @@ export async function getAllItemsForPresentation(
  *
  * @throws Will throw an error if the fetch operation fails.
  */
-export async function getAllItemsForPresentation(
+public async getAllItemsForPresentation(
   itemType: 'topic',
   userID: string,
   presentationID: string,
@@ -577,7 +556,7 @@ export async function getAllItemsForPresentation(
  *
  * @throws Will throw an error if the fetch operation fails.
  */
-export async function getAllItemsForPresentation(
+public async getAllItemsForPresentation(
   itemType: 'source',
   userID: string,
   presentationID: string,
@@ -598,13 +577,13 @@ export async function getAllItemsForPresentation(
  *
  * @throws Will throw an error if the fetch operation fails.
  */
-export async function getAllItemsForPresentation(
+public async getAllItemsForPresentation(
   itemType: 'slide' | 'topic' | 'source',
   userID: string,
   presentationID: string,
   attributes?: string[]
 ): Promise<Slide[] | Topic[] | Source[]> {
-  logger.info(`Fetching all ${itemType}s for presentation ${presentationID}`);
+  this.logger.info(`Fetching all ${itemType}s for presentation ${presentationID}`);
 
   const pk = `USER#${userID}`;
   const skPrefix = `PRESENTATION#${presentationID}#${itemType.toUpperCase()}#`;
@@ -621,7 +600,7 @@ export async function getAllItemsForPresentation(
   }
 
   const queryParams = {
-    TableName: tableName,
+    TableName: this.tableName,
     KeyConditionExpression: "PK = :pk and begins_with(SK, :skPrefix)",
     ExpressionAttributeValues: marshall({
       ":pk": pk,
@@ -633,15 +612,15 @@ export async function getAllItemsForPresentation(
 
   try {
     const command = new QueryCommand(queryParams);
-    const response = await client.send(command);
-    const items = response.Items?.map(item => removeKeysFromItem(addIdentifiersToItem(unmarshall(item), itemType))) || [];
+    const response = await this.client.send(command);
+    const items = response.Items?.map(item => this.removeKeysFromItem(this.addIdentifiersToItem(unmarshall(item), itemType))) || [];
 
-    logger.info(`Successfully fetched ${items.length} ${itemType}s for presentation ${presentationID}`);
+    this.logger.info(`Successfully fetched ${items.length} ${itemType}s for presentation ${presentationID}`);
 
     // TypeScript will correctly infer the return type based on itemType
     return items as Slide[] | Topic[] | Source[];
   } catch (error: any) {
-    logger.error({ error }, `Error fetching ${itemType}s for presentation`);
+    this.logger.error({ error }, `Error fetching ${itemType}s for presentation`);
     throw error;
   }
 }
@@ -664,18 +643,18 @@ export async function getAllItemsForPresentation(
  * await deleteAllItemsForPresentation('12345', '67890', 'slide');
  * ```
  */
-export async function deleteAllItemsForPresentation(
+public async deleteAllItemsForPresentation(
   itemType: 'slide' | 'topic' | 'source',
   userID: string,
   presentationID: string,
 ): Promise<void> {
-  logger.info(`Deleting all ${itemType}s for presentation ${presentationID}`);
+  this.logger.info(`Deleting all ${itemType}s for presentation ${presentationID}`);
 
   const pk = `USER#${userID}`;
   const skPrefix = `PRESENTATION#${presentationID}#${itemType.toUpperCase()}#`;
 
   const queryParams = {
-    TableName: tableName,
+    TableName: this.tableName,
     KeyConditionExpression: "PK = :pk and begins_with(SK, :skPrefix)",
     ExpressionAttributeValues: marshall({
       ":pk": pk,
@@ -687,18 +666,18 @@ export async function deleteAllItemsForPresentation(
   try {
     // First, query to get all the keys
     const queryCommand = new QueryCommand(queryParams);
-    const queryResponse = await client.send(queryCommand);
+    const queryResponse = await this.client.send(queryCommand);
     const items = queryResponse.Items || [];
 
     if (items.length === 0) {
-      logger.info(`No ${itemType}s found for presentation ${presentationID}`);
+      this.logger.info(`No ${itemType}s found for presentation ${presentationID}`);
       return;
     }
 
     // Prepare delete requests
     const deleteRequests = items.map(item => ({
       Delete: {
-        TableName: tableName,
+        TableName: this.tableName,
         Key: item,
       }
     }));
@@ -706,12 +685,14 @@ export async function deleteAllItemsForPresentation(
     // Delete items in batches of 25 (DynamoDB limit for transact writes)
     for (let i = 0; i < deleteRequests.length; i += 25) {
       const batch = deleteRequests.slice(i, i + 25);
-      await client.send(new TransactWriteItemsCommand({ TransactItems: batch }));
+      await this.client.send(new TransactWriteItemsCommand({ TransactItems: batch }));
     }
 
-    logger.info(`Successfully deleted ${items.length} ${itemType}s for presentation ${presentationID}`);
+    this.logger.info(`Successfully deleted ${items.length} ${itemType}s for presentation ${presentationID}`);
   } catch (error: any) {
-    logger.error({ error }, `Error deleting ${itemType}s for presentation`);
+    this.logger.error({ error }, `Error deleting ${itemType}s for presentation`);
     throw error;
   }
 }
+
+} // end class

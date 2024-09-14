@@ -1,13 +1,13 @@
 import { Router, Request, Response } from 'express';
 import { launchCluster } from '../utils/cluster';
-import logger from '../utils/logger';
+import globalLogger from '../utils/logger';
 
 const router = Router();
 
 router.post('/', async (req: Request, res: Response) => {
   const { diagram } = req.body;
   if (!diagram) {
-    logger.warn('Mermaid diagram is required');
+    globalLogger.warn('Mermaid diagram is required');
     return res.status(400).send('Mermaid diagram is required');
   }
 
@@ -54,14 +54,14 @@ router.post('/', async (req: Request, res: Response) => {
 
     const { parsingResult, errorMessage } = await cluster.execute({ diagram }, validateMermaid);
     if (parsingResult) {
-      logger.info('Valid Mermaid diagram');
+      globalLogger.info('Valid Mermaid diagram');
       res.json({ valid: true, message: 'Valid Mermaid diagram' });
     } else {
-      logger.warn(`Invalid Mermaid diagram: ${errorMessage}`);
+      globalLogger.warn(`Invalid Mermaid diagram: ${errorMessage}`);
       res.json({ valid: false, message: errorMessage || 'Invalid Mermaid diagram' });
     }
   } catch (error: any) {
-    logger.error(`Failed to validate Mermaid diagram: ${removeStacktrace(error.message)}`);
+    globalLogger.error(`Failed to validate Mermaid diagram: ${removeStacktrace(error.message)}`);
     res.json({ valid: false, message: removeStacktrace(error.message) || 'Invalid Mermaid diagram' });
   }
 });

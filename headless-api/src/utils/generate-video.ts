@@ -1,6 +1,6 @@
 // headless-api/src/utils/generate-video.ts
 import { Request, Response } from "express";
-import logger from "./logger";
+import globalLogger from "./logger";
 import { generateJPGs } from "./generate-jpgs";
 import { generateAudio } from "./generate-audio";
 import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
@@ -43,7 +43,7 @@ export async function generateVideo(
   footnotes: boolean,
   voice: "Ruth" | "Gregory" | "Danielle" = 'Danielle'
 ): Promise<{ videoS3Key: string; manifest?: { slide_id: string; image_filename?: string; audio_filename?: string }[] } | Error> {
-  logger.info(`Starting video generation for presentation ID: ${presentationID}`);
+  globalLogger.info(`Starting video generation for presentation ID: ${presentationID}`);
 
   try {
     // Fetch and sort slides for the presentation
@@ -57,7 +57,7 @@ export async function generateVideo(
     // const pollyVoiceId = VoiceId[voiceId.toUpperCase() as keyof typeof VoiceId];
 
     // Run generateJPGs and generateAudio concurrently using Promise.all
-    logger.info(`Generating JPEG images and audio files concurrently for presentation ID: ${presentationID}`);
+    globalLogger.info(`Generating JPEG images and audio files concurrently for presentation ID: ${presentationID}`);
 
     const [generateJpgsResult, generateAudioResult] = await Promise.all([
       generateJPGs(presentationID, theme, footnotes, outputResolution, sortedSlidesArray, imagesZipFileName, s3Subdirectory),
@@ -73,13 +73,13 @@ export async function generateVideo(
       throw generateAudioResult;
     }
 
-    logger.info(`JPEG images and audio files generated successfully. S3 Keys - Images ZIP: ${generateJpgsResult.s3Key}, Audio ZIP: ${generateAudioResult.audioS3Key}`);
+    globalLogger.info(`JPEG images and audio files generated successfully. S3 Keys - Images ZIP: ${generateJpgsResult.s3Key}, Audio ZIP: ${generateAudioResult.audioS3Key}`);
 
     // Store the manifests in memory
     const imageManifest = generateJpgsResult.manifest;
     const audioManifest = generateAudioResult.manifest;
 
-    logger.info(`Image manifest and audio manifest stored in memory`);
+    globalLogger.info(`Image manifest and audio manifest stored in memory`);
 
     // Combine manifests from images and audio by matching slide_id
     const combinedManifest = imageManifest
@@ -96,7 +96,7 @@ export async function generateVideo(
       })
       .filter(entry => entry !== null); // Omit any slides that are missing either an image_filename or an audio_filename
 
-    logger.info(`Combined manifest after matching slide_id`);
+    globalLogger.info(`Combined manifest after matching slide_id`);
 
     // Prepare payload for AWS Lambda function with the ZIP file S3 keys
     const lambdaPayload = {
@@ -108,13 +108,13 @@ export async function generateVideo(
       manifest: combinedManifest,  // Include the combined manifest in the payload
     };
 
-    logger.info(`Prepared payload for Lambda function`);
+    globalLogger.info(`Prepared payload for Lambda function`);
 
     // Save lambdaPayload to a JSON file if debugging is enabled
     if (savePayloadForDebugging) {
       const payloadPath = path.join(__dirname, 'lambdaPayloadDebug.json');
       fs.writeFileSync(payloadPath, JSON.stringify(lambdaPayload, null, 2));
-      logger.info(`Lambda payload saved for debugging at: ${payloadPath}`);
+      globalLogger.info(`Lambda payload saved for debugging at: ${payloadPath}`);
     }
 
     // // Invoke AWS Lambda function for video stitching synchronously
@@ -143,12 +143,12 @@ export async function generateVideo(
       throw new Error('Lambda function did not return a valid S3 key for the video.');
     }
 
-    logger.info(`Lambda function executed successfully, video stored at: ${videoS3Key}`);
+    globalLogger.info(`Lambda function executed successfully, video stored at: ${videoS3Key}`);
 
     return { videoS3Key, manifest: combinedManifest }; // Return videoS3Key and combined manifest
 
   } catch (error: any) {
-    logger.error(`Failed to generate video: ${error.message}\n${error.stack}`);
+    globalLogger.error(`Failed to generate video: ${error.message}\n${error.stack}`);
     return new Error(`Failed to generate video: ${error.message}`);
   }
 }
@@ -200,7 +200,7 @@ export async function generateVideoHandler(req: Request, res: Response) {
       res.json({ videoS3Key: result.videoS3Key });
     }
   } catch (error: any) {
-    logger.error(`Failed to process generateVideoHandler: ${error.message}\n${error.stack}`);
+    globalLogger.error(`Failed to process generateVideoHandler: ${error.message}\n${error.stack}`);
     res.status(500).send(`Internal Server Error: ${error.message}`);
   }
 }

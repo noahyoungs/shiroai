@@ -4,7 +4,7 @@ import https from 'https';
 import fs from 'fs';
 import path from 'path';
 import cors from 'cors'; // Import the CORS package
-import logger from './utils/logger';
+import globalLogger from './utils/logger';
 import requestLogger from './utils/request-logger';
 import mermaidRoutes from './routes/mermaid';
 import proseClassRoutes from './routes/prose-class';
@@ -66,10 +66,10 @@ const httpsOptions = {
 };
 
 https.createServer(httpsOptions, app).listen(PORT, async () => {
-  logger.info(`Server is running on port ${PORT} with HTTPS`);
+  globalLogger.info(`Server is running on port ${PORT} with HTTPS`);
 });
 
 process.on('exit', async () => {
   // Clean up resources if necessary
-  logger.info('Server is shutting down');
+  globalLogger.info('Server is shutting down');
 });

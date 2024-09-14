@@ -4,7 +4,7 @@ import { Request, Response } from "express";
 import React from "react";
 import ReactDOMServer from "react-dom/server";
 import { SlideComponent } from "../components/slide-component";
-import logger from "./logger";
+import globalLogger from "./logger";
 import {
   fetchAndSortSlides,
   setupBrowser,
@@ -22,12 +22,12 @@ export async function generatePDF(req: Request, res: Response) {
   const themeClass = theme === "print" ? "nobg" : theme === "dark" ? "dark" : "";
 
   if (!["dark", "light", "print"].includes(theme)) {
-    logger.info(`Received invalid theme: ${theme}`);
+    globalLogger.info(`Received invalid theme: ${theme}`);
     res.status(400).send("Invalid theme, please use 'dark', 'light' or 'print'");
     return;
   }
 
-  logger.info(`Received theme: ${theme}, footnotes: ${footnotes}`);
+  globalLogger.info(`Received theme: ${theme}, footnotes: ${footnotes}`);
 
   try {
     const { presentation, sortedSlidesArray } = await fetchAndSortSlides(presentationId);
@@ -75,20 +75,20 @@ export async function generatePDF(req: Request, res: Response) {
     });
 
     page.on("request", (request) => {
-      logger.debug(`Request: ${request.url()}`);
+      globalLogger.debug(`Request: ${request.url()}`);
     });
 
     page.on("response", async (response) => {
       const status = response.status();
       const url = response.url();
-      logger.debug(`Response: ${url} - ${status}`);
+      globalLogger.debug(`Response: ${url} - ${status}`);
 
       if (status === 403) {
         try {
           const text = await response.text();
-          logger.error(`403 Error Details for ${url}:\n${text}`);
+          globalLogger.error(`403 Error Details for ${url}:\n${text}`);
         } catch (error) {
-          logger.error(`Failed to get 403 error details for ${url}: ${error}`);
+          globalLogger.error(`Failed to get 403 error details for ${url}: ${error}`);
         }
       }
     });
@@ -98,7 +98,7 @@ export async function generatePDF(req: Request, res: Response) {
       timeout: 60000,
     });
 
-    logger.info(`Page content set`);
+    globalLogger.info(`Page content set`);
 
     await page.evaluate(() => {
       return Promise.all(
@@ -131,9 +131,9 @@ export async function generatePDF(req: Request, res: Response) {
     await uploadBufferToS3(pdfBuffer, s3Key, 'application/pdf');
 
     res.json({ s3Key });
-    logger.info(`PDF generated and uploaded to S3: ${s3Key}`);
+    globalLogger.info(`PDF generated and uploaded to S3: ${s3Key}`);
   } catch (error: any) {
-    logger.error(`Failed to generate PDF: ${error.message}\n${error.stack}`);
+    globalLogger.error(`Failed to generate PDF: ${error.message}\n${error.stack}`);
     res.status(500).send(`Failed to generate PDF: ${error.message}`);
   }
 }

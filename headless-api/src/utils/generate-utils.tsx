@@ -5,7 +5,7 @@ import puppeteer, { Browser, Page } from "puppeteer";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import fs from "fs";
 import { Slide } from "@shared-utils/database-types";
-import logger from "./logger";
+import globalLogger from "./logger";
 import { getPresentationByID, getAllSlides } from "./dynamodb";
 import { createSignedUrlSuffix } from "./create-signed-url-suffix";
 
@@ -13,7 +13,7 @@ export const DEBUG = false;
 
 export async function fetchAndSortSlides(presentationId: string, slide_attrs?: string[]): Promise<{ presentation: any, sortedSlidesArray: Slide[] }> {
   const presentation = await getPresentationByID(presentationId, ["head_slide_id", "topic"]);
-  logger.info(`Fetched presentation`);
+  globalLogger.info(`Fetched presentation`);
 
   if (!presentation.topic) {
     throw new Error("Presentation not found, please check the presentation id");
@@ -24,7 +24,7 @@ export async function fetchAndSortSlides(presentationId: string, slide_attrs?: s
   }
 
   const unsortedSlidesArray = await getAllSlides(presentationId, slide_attrs);
-  logger.info(`Fetched unsorted slides`);
+  globalLogger.info(`Fetched unsorted slides`);
 
   if (!unsortedSlidesArray.length) {
     throw new Error("No slides found for the presentation though the presentation exists");
@@ -37,7 +37,7 @@ export async function fetchAndSortSlides(presentationId: string, slide_attrs?: s
     }
   });
 
-  logger.info(`Converted slides to map`);
+  globalLogger.info(`Converted slides to map`);
 
   let sortedSlidesArray: Slide[] = [];
   let currentId = presentation.head_slide_id;
@@ -51,7 +51,7 @@ export async function fetchAndSortSlides(presentationId: string, slide_attrs?: s
     }
     currentId = slide.next!;
   }
-  logger.info(`Sorted slides`);
+  globalLogger.info(`Sorted slides`);
 
   return { presentation, sortedSlidesArray };
 }
@@ -93,7 +93,7 @@ export async function uploadBufferToS3(buffer: Buffer, key: string, contentType:
   });
 
   await s3Client.send(uploadCommand);
-  logger.info(`Buffer uploaded to S3: ${key}`);
+  globalLogger.info(`Buffer uploaded to S3: ${key}`);
 }
 
 export function generateSignedUrlSuffix(presentationId: string): string {
