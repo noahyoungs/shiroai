@@ -3,7 +3,7 @@
     "workspaces": [
       "frontend",
       "headless-api",
-      "shared"
+      "shared_ts"
     ],
     "dependencies": {
       "@aws-sdk/client-dynamodb": "^3.616.0",
