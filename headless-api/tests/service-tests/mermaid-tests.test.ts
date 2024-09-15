@@ -1,14 +1,5 @@
-import dotenv from 'dotenv';
-
-// Load environment variables from .env file
-dotenv.config();
-
-import axios from 'axios';
+import { axiosInstance } from './test-constants';
 import fs from 'fs/promises';
-
-const BASE_URL = 'https://meetshiro.com:3003';
-const IGNORE_SSL = true;
-const HEADLESS_API_INTERNAL_KEY = process.env.HEADLESS_API_INTERNAL_KEY;
 
 const mermaidCode = `
 graph TD;
@@ -17,17 +8,6 @@ graph TD;
   B-->D;
   C-->D;
 `;
-
-// Create an instance of Axios with or without SSL verification
-const axiosInstance = axios.create({
-  baseURL: BASE_URL,
-  headers: {
-    'x-api-key': HEADLESS_API_INTERNAL_KEY,
-  },
-  httpsAgent: new (require('https').Agent)({
-    rejectUnauthorized: !IGNORE_SSL,
-  }),
-});
 
 async function testMermaid() {
   const response = await axiosInstance.post('/mermaid', { code: mermaidCode });

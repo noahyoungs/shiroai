@@ -1,31 +1,9 @@
-import dotenv from 'dotenv';
-
-// Load environment variables from .env file
-dotenv.config();
-
-import axios from 'axios';
+import { axiosInstance } from './test-constants';
 import fs from 'fs';
 import path from 'path';
-import { splitMarkdown } from '../../src/utils/split-markdown';
-
-const BASE_URL = 'https://meetshiro.com:3003';
-const IGNORE_SSL = true;
-const HEADLESS_API_INTERNAL_KEY = process.env.HEADLESS_API_INTERNAL_KEY;
 
 const jsonDataPath = path.join(__dirname, 'markdown-split-results.json');
 const jsonData = JSON.parse(fs.readFileSync(jsonDataPath, 'utf-8'));
-
-// Create an instance of Axios with or without SSL verification
-
-const axiosInstance = axios.create({
-  baseURL: BASE_URL,
-  headers: {
-    'x-api-key': HEADLESS_API_INTERNAL_KEY,
-  },
-  httpsAgent: new (require('https').Agent)({
-    rejectUnauthorized: !IGNORE_SSL,
-  }),
-});
 
 async function testMarkdownSplit(markdown: string) {
   const response = await axiosInstance.post('/markdown-split/split', { markdown });
