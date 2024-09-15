@@ -8,6 +8,11 @@ import { Presentation, Slide } from "@shared-utils/database-types";
 import globalLogger from "./logger";
 import { getItems, getAllItemsForPresentation } from "./dynamodb-interface-factory";
 import { createSignedUrlSuffix } from "./create-signed-url-suffix";
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export const DEBUG = false;
 
@@ -25,6 +30,11 @@ export async function fetchAndSortSlides(userId: string, presentationId: string,
   }
 
   const unsortedSlidesArray = await getAllItemsForPresentation("slide", userId, presentationId, slide_attrs) as Slide[];
+
+  if (!unsortedSlidesArray || !unsortedSlidesArray.length) {
+    throw new Error("No slides found for the presentation though the presentation exists");
+  }
+
   globalLogger.info(`Fetched unsorted slides`);
 
   if (!unsortedSlidesArray.length) {
@@ -34,7 +44,7 @@ export async function fetchAndSortSlides(userId: string, presentationId: string,
   let slidesMap: { [key: string]: Slide } = {};
   unsortedSlidesArray.forEach((slide: Slide | undefined) => {
     if (slide) {
-      slidesMap[slide.id] = slide;
+      slidesMap[slide.slide_id] = slide;
     }
   });
 
@@ -42,17 +52,33 @@ export async function fetchAndSortSlides(userId: string, presentationId: string,
 
   let sortedSlidesArray: Slide[] = [];
   let currentId = presentation.head_slide_id;
+  globalLogger.debug(`Starting slide sorting. Head slide ID: ${currentId}`);
   while (currentId) {
     const slide = slidesMap[currentId];
+    globalLogger.debug(`Processing slide ID: ${currentId}`);
     if (!slide) {
+      globalLogger.debug(`Slide not found in slidesMap. Breaking loop.`);
       break;
     }
     if (!slide.hidden) {
       sortedSlidesArray.push(slide);
+      globalLogger.debug(`Added slide ${currentId} to sortedSlidesArray. Current length: ${sortedSlidesArray.length}`);
+    } else {
+      globalLogger.debug(`Skipped hidden slide ${currentId}`);
     }
     currentId = slide.next!;
+    globalLogger.debug(`Next slide ID: ${currentId}`);
   }
-  globalLogger.info(`Sorted slides`);
+  globalLogger.info(`Sorted slides. Total slides: ${sortedSlidesArray.length}`);
+  globalLogger.debug(`Final sorted slide IDs: ${sortedSlidesArray.map(slide => slide.slide_id).join(', ')}`);
+
+  if (sortedSlidesArray.length === 0) {
+    throw new Error("No slides after sorting");
+  }
+
+  if (sortedSlidesArray.length !== unsortedSlidesArray.length) {
+    globalLogger.warn(`Sorted slides array length ${sortedSlidesArray.length} does not match unsorted slides array length ${unsortedSlidesArray.length}`);
+  }
 
   return { presentation, sortedSlidesArray };
 }
@@ -98,7 +124,8 @@ export async function uploadBufferToS3(buffer: Buffer, key: string, contentType:
 }
 
 export function generateSignedUrlSuffix(presentationId: string): string {
-  const privateKey = process.env.CLOUDFRONT_PRIVATE_KEY!;
+  const privateKeyPath = path.join(__dirname, '../../cloudfront-private-key.pem');
+  const privateKey = fs.readFileSync(privateKeyPath, 'utf8').trim();
   const keyPairId = process.env.CLOUDFRONT_KEY_PAIR_ID!;
   const expires = Math.floor(Date.now() / 1000) + 5 * 60;
 

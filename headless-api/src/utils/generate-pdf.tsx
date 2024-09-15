@@ -36,7 +36,6 @@ export async function generatePDF(req: Request, res: Response) {
     const { tailwindCssContent, iconifyIconContent, fontCSS } = readStaticFiles();
 
     const { browser, page } = await setupBrowser();
-
     const slidesHtml = sortedSlidesArray
       .map(
         (slide) =>

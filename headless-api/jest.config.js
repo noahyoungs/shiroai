@@ -1,6 +1,6 @@
-module.exports = {
+export default {
   testMatch: [
-    "**/tests/service-tests/**/*.ts"
+    "**/tests/service-tests/**/*test.ts"
   ],
   moduleFileExtensions: [
     "js",
@@ -10,5 +10,7 @@ module.exports = {
   transform: {
     "^.+\\.ts$": "ts-jest"
   },
-  testEnvironment: "node"
+  testEnvironment: "node",
+  // Add global timeout of 2 minutes (120000 ms)
+  testTimeout: 1000 * 60 * 2,
 };

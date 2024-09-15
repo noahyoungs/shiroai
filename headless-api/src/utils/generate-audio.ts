@@ -113,7 +113,7 @@ export async function generateAudio(
                     return null; // Resolve with null to continue processing other slides
                 });
         } else {
-            globalLogger.warn(`Invalid or empty script for slide ${slide.id}, skipping audio generation.`);
+            globalLogger.warn(`Invalid or empty script for slide ${slide.slide_id}, skipping audio generation.`);
             return Promise.resolve(null);
         }
     });

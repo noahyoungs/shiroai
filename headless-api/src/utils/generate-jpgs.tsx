@@ -152,7 +152,7 @@ export async function generateJPGs(
         // Generate consistent filename and update the manifest
         const sanitizedTitle = sanitizeFileName(slide.slide_title ? `${index + 1} ${slide.slide_title}` : `Slide_${index + 1}`)
         const slideFileName = `${sanitizedTitle}.jpg`;
-        manifest.push({ slide_id: slide.id, image_filename: slideFileName });
+        manifest.push({ slide_id: slide.slide_id, image_filename: slideFileName });
 
       } catch (error: any) {
         globalLogger.warn(`Error rendering slide ${index + 1}, omitted from manifest: ${error.message}\n${error.stack}`);
