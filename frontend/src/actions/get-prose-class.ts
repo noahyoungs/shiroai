@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = process.env.NEXT_PUBLIC_HEADLESS_API_PATH;
+const BASE_URL = process.env.HEADLESS_API_URL;
 
 export async function getProseClass(markdown: string, title: string): Promise<string> {
 

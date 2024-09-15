@@ -13,7 +13,7 @@ export async function exportToPDF(presentationId: string, theme: 'dark' | 'light
 
   try {
     const response = await axios.post(
-      `${process.env.HEADLESS_API_PATH}/generate-pdf/${presentationId}/pdf`,
+      `${process.env.HEADLESS_API_URL}/generate-pdf/${presentationId}/pdf`,
       { theme, footnotes },
       {
         headers: {

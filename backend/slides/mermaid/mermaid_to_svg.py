@@ -8,7 +8,7 @@ import asyncio
 
 from slides.mermaid.tall_shapes_lines_inference import predict_ideal_lines
 
-HEADLESS_API_PATH = os.getenv('HEADLESS_API_PATH')
+HEADLESS_API_URL = os.getenv('HEADLESS_API_URL')
 HEADLESS_API_INTERNAL_KEY = os.getenv('HEADLESS_API_INTERNAL_KEY')  # Get the API key from environment variable
 SSL_VERIFY = False  # Set to True to enable SSL verification, False to disable
 
@@ -80,7 +80,7 @@ def process_tall_shapes(diagram):
 async def get_dimensions_from_headless_api(diagram):
     headers = {'x-api-key': HEADLESS_API_INTERNAL_KEY}  # Include the API key in the headers
     async with aiohttp.ClientSession() as session:
-        url = f"{HEADLESS_API_PATH}/mermaid-dimensions"
+        url = f"{HEADLESS_API_URL}/mermaid-dimensions"
         async with session.post(url, json={"code": diagram}, headers=headers, ssl=ssl_context) as response:
             response_data = await response.json()
             if response.status == 200:
@@ -91,7 +91,7 @@ async def get_dimensions_from_headless_api(diagram):
 async def generate_svgs_from_headless_api(diagram):
     headers = {'x-api-key': HEADLESS_API_INTERNAL_KEY}  # Include the API key in the headers
     async with aiohttp.ClientSession() as session:
-        url = f"{HEADLESS_API_PATH}/mermaid"
+        url = f"{HEADLESS_API_URL}/mermaid"
         async with session.post(url, json={"code": diagram}, headers=headers, ssl=ssl_context) as response:
             response_data = await response.json()
             if response.status == 200:

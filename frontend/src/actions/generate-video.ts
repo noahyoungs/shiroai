@@ -19,7 +19,7 @@ export async function generateVideo(
 
   try {
     const response = await axios.post(
-      `${process.env.HEADLESS_API_PATH}/generate-mp4/${presentationID}/mp4`,
+      `${process.env.HEADLESS_API_URL}/generate-mp4/${presentationID}/mp4`,
       { resolution, theme, footnotes, voice },
       {
         headers: {

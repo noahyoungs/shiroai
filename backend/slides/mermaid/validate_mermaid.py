@@ -2,7 +2,7 @@ import os
 import aiohttp
 import ssl
 
-HEADLESS_API_PATH = os.getenv('HEADLESS_API_PATH')
+HEADLESS_API_URL = os.getenv('HEADLESS_API_URL')
 HEADLESS_API_INTERNAL_KEY = os.getenv('HEADLESS_API_INTERNAL_KEY')  # Get the API key from environment variable
 SSL_VERIFY = False  # Set to True to enable SSL verification, False to disable
 
@@ -17,7 +17,7 @@ async def validate_mermaid_diagram(diagram):
     headers = {'x-api-key': HEADLESS_API_INTERNAL_KEY}  # Include the API key in the headers
     async with aiohttp.ClientSession() as session:
         async with session.post(
-            f'{HEADLESS_API_PATH}/validate-mermaid',
+            f'{HEADLESS_API_URL}/validate-mermaid',
             json={'diagram': diagram},
             headers=headers,  # Pass headers with the API key
             ssl=ssl_context
