@@ -124,8 +124,15 @@ export async function uploadBufferToS3(buffer: Buffer, key: string, contentType:
 }
 
 export function generateSignedUrlSuffix(presentationId: string): string {
-  const privateKeyPath = path.join(__dirname, '../../cloudfront-private-key.pem');
-  const privateKey = fs.readFileSync(privateKeyPath, 'utf8').trim();
+  let privateKey: string;
+
+  if (process.env.CLOUDFRONT_PRIVATE_KEY) {
+    privateKey = process.env.CLOUDFRONT_PRIVATE_KEY.trim();
+  } else {
+    const privateKeyPath = path.join(__dirname, '../../cloudfront-private-key.pem');
+    privateKey = fs.readFileSync(privateKeyPath, 'utf8').trim();
+  }
+
   const keyPairId = process.env.CLOUDFRONT_KEY_PAIR_ID!;
   const expires = Math.floor(Date.now() / 1000) + 5 * 60;
 
