@@ -4,18 +4,19 @@ import path from "path";
 import puppeteer, { Browser, Page } from "puppeteer";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import fs from "fs";
-import { Slide } from "@shared-utils/database-types";
+import { Presentation, Slide } from "@shared-utils/database-types";
 import globalLogger from "./logger";
-import { getPresentationByID, getAllSlides } from "./dynamodb";
+import { getItems, getAllItemsForPresentation } from "./dynamodb-interface-factory";
 import { createSignedUrlSuffix } from "./create-signed-url-suffix";
 
 export const DEBUG = false;
 
-export async function fetchAndSortSlides(presentationId: string, slide_attrs?: string[]): Promise<{ presentation: any, sortedSlidesArray: Slide[] }> {
-  const presentation = await getPresentationByID(presentationId, ["head_slide_id", "topic"]);
+export async function fetchAndSortSlides(userId: string, presentationId: string, slide_attrs?: string[]): Promise<{ presentation: any, sortedSlidesArray: Slide[] }> {
+  // const presentation = await getPresentationByID(presentationId, ["head_slide_id", "topic"]);
+  const presentation = await getItems('presentation', { user_id: userId, presentation_id: presentationId }, ["head_slide_id", "topic"]) as Presentation;
   globalLogger.info(`Fetched presentation`);
 
-  if (!presentation.topic) {
+  if (!presentation) {
     throw new Error("Presentation not found, please check the presentation id");
   }
 
@@ -23,7 +24,7 @@ export async function fetchAndSortSlides(presentationId: string, slide_attrs?: s
     throw new Error("No head slide found for the presentation");
   }
 
-  const unsortedSlidesArray = await getAllSlides(presentationId, slide_attrs);
+  const unsortedSlidesArray = await getAllItemsForPresentation("slide", userId, presentationId, slide_attrs) as Slide[];
   globalLogger.info(`Fetched unsorted slides`);
 
   if (!unsortedSlidesArray.length) {
@@ -84,7 +85,7 @@ export function readStaticFiles() {
 }
 
 export async function uploadBufferToS3(buffer: Buffer, key: string, contentType: string): Promise<void> {
-  const s3Client = new S3Client({ region: process.env.AWS_REGION });
+  const s3Client = new S3Client();
   const uploadCommand = new PutObjectCommand({
     Bucket: process.env.SOURCES_BUCKET_NAME,
     Key: key,

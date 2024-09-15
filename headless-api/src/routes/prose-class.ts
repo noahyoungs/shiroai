@@ -1,7 +1,6 @@
 // headless-service/src/routes/prose-class.ts
 import { Router, Request, Response } from 'express';
 import { launchCluster } from '../utils/cluster';
-import globalLogger from '../utils/logger';
 import { marked } from 'marked';
 import path from 'path';
 
@@ -12,12 +11,12 @@ const ENABLE_SCREENSHOT = false; // Flag to enable or disable screenshot taking
 router.post('/', async (req: Request, res: Response) => {
   const { markdown, title } = req.body;
   if (!markdown) {
-    globalLogger.warn('Markdown is required');
+    req.log.warn('Markdown is required');
     return res.status(400).send('Markdown is required');
   }
 
   if (!title) {
-    globalLogger.warn('Title is required');
+    req.log.warn('Title is required');
     return res.status(400).send('Title is required');
   }
 
@@ -82,11 +81,11 @@ router.post('/', async (req: Request, res: Response) => {
     };
 
     const { proseClass, screenshotPath } = await cluster.execute({ markdown, title }, determineProseClass);
-    globalLogger.info('Prose class determined');
+    req.log.info('Prose class determined');
     res.json({ proseClass });
   } catch (error: any) {
-    globalLogger.error(`Failed to determine prose class: ${error.message}`);
-    res.status(500).send(`Failed to determine prose class: ${error.message}`);
+    req.log.error({ error }, 'Failed to determine prose class');
+    res.status(500).send('Failed to determine prose class');
   }
 });
 

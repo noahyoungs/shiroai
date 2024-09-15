@@ -214,7 +214,7 @@ export async function generateJPGsHandler(req: Request, res: Response) {
 
   try {
     globalLogger.info(`Fetching and sorting slides for presentation ID: ${presentationId}`);
-    const { presentation, sortedSlidesArray } = await fetchAndSortSlides(presentationId);
+    const { presentation, sortedSlidesArray } = await fetchAndSortSlides((req as any).userId, presentationId);
 
     // Generate sanitized zip file name based on presentation topic
     const zipFileName = sanitizeFileName(presentation.topic);

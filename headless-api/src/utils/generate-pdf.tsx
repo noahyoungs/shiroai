@@ -30,7 +30,7 @@ export async function generatePDF(req: Request, res: Response) {
   globalLogger.info(`Received theme: ${theme}, footnotes: ${footnotes}`);
 
   try {
-    const { presentation, sortedSlidesArray } = await fetchAndSortSlides(presentationId);
+    const { presentation, sortedSlidesArray } = await fetchAndSortSlides((req as any).userId, presentationId);
     const signedUrlSuffix = generateSignedUrlSuffix(presentationId);
 
     const { tailwindCssContent, iconifyIconContent, fontCSS } = readStaticFiles();

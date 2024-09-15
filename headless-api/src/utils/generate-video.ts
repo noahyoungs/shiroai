@@ -36,6 +36,7 @@ const savePayloadForDebugging = process.env.SAVE_PAYLOAD_FOR_DEBUGGING === 'true
  * @param voiceId - The voice ID to use for Polly (e.g., 'Joanna', 'Matthew').
  */
 export async function generateVideo(
+  userId: string,
   presentationID: string,
   s3Subdirectory: string,
   outputResolution: string,
@@ -47,7 +48,7 @@ export async function generateVideo(
 
   try {
     // Fetch and sort slides for the presentation
-    const {presentation, sortedSlidesArray}  = await fetchAndSortSlides(presentationID);
+    const {presentation, sortedSlidesArray}  = await fetchAndSortSlides(userId, presentationID);
 
     // Images zip file name
     const imagesZipFileName = sanitizeFileName(presentation.topic);
@@ -191,7 +192,7 @@ export async function generateVideoHandler(req: Request, res: Response) {
   const s3Subdirectory = `/export/mp4`;
 
   try {
-    const result = await generateVideo(presentationId, s3Subdirectory, resolution, theme, footnotes, voice);
+    const result = await generateVideo((req as any).userId, presentationId, s3Subdirectory, resolution, theme, footnotes, voice);
 
     if (result instanceof Error) {
       res.status(500).send(result.message);

@@ -2,13 +2,17 @@
   "name": "headless-service",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "esbuild src/index.ts --bundle --platform=node --outfile=dist/index.js",
+    "start": "node dist/index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build:css": "postcss src/globals.css -o dist/tailwind.css"
   },
   "keywords": [],
   "author": "",
+  "type": "module",
   "license": "ISC",
   "dependencies": {
     "@aws-sdk/client-lambda": "^3.637.0",
@@ -23,9 +27,11 @@
     "morgan": "^1.10.0",
     "path": "^0.12.7",
     "pdf-lib": "^1.17.1",
+    "pino-http": "^10.3.0",
     "puppeteer-cluster": "^0.24.0",
     "puppeteer-firefox": "^0.5.1",
-    "stream-buffers": "^3.0.3"
+    "stream-buffers": "^3.0.3",
+    "tsconfig-paths": "^4.2.0"
   },
   "devDependencies": {
     "@iconify-icon/react": "^2.1.0",
@@ -33,7 +39,10 @@
     "@types/cors": "^2.8.17",
     "@types/stream-buffers": "^3.0.7",
     "axios-mock-adapter": "^1.22.0",
+    "esbuild": "^0.19.12",
     "postcss-cli": "^11.0.0",
-    "ts-jest": "^29.2.3"
+    "ts-jest": "^29.2.3",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.19.1"
   }
 }

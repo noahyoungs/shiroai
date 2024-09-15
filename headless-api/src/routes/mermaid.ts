@@ -1,13 +1,12 @@
 import { Router, Request, Response } from 'express';
 import { launchCluster } from '../utils/cluster';
-import globalLogger from '../utils/logger';
 
 const router = Router();
 
 router.post('/', async (req: Request, res: Response) => {
   const { code } = req.body;
   if (!code) {
-    globalLogger.warn('Mermaid code is required');
+    // No need for additional logging here, as pino-http will log the 400 status
     return res.status(400).send('Mermaid code is required');
   }
 
@@ -35,11 +34,12 @@ router.post('/', async (req: Request, res: Response) => {
     const lightSvg = await cluster.execute({ theme: 'default', code }, generateSvg);
     const darkSvg = await cluster.execute({ theme: 'dark', code }, generateSvg);
 
-    globalLogger.info('SVG generated successfully');
+    // No need for additional success logging, as pino-http will log the 200 status
     res.json({ lightSvg, darkSvg });
   } catch (error: any) {
-    globalLogger.error(`Failed to generate SVG: ${error.message}`);
-    res.status(500).send(`Failed to generate SVG: ${error.message}`);
+    // Log additional error details that pino-http wouldn't capture
+    req.log.error({ error }, 'SVG generation failed');
+    res.status(500).send('Failed to generate SVG');
   }
 });
 
