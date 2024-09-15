@@ -1,6 +1,6 @@
 // frontend/src/components/slides/view-only/view-only-title.tsx
 import React from "react";
-import { cn } from "../../../utils/cn";
+import { cn } from '@shared-utils/cn';
 
 type ViewOnlyTitleProps = {
   title: string;

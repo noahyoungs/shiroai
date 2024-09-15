@@ -1,6 +1,6 @@
 // frontend/src/components/slides/view-only/view-only-presentation-title-slide.tsx
 import React from "react";
-import { PresentationTitleSlide } from "../../../utils/database-types";
+import { PresentationTitleSlide } from '@shared-utils/database-types';
 import { ViewOnlySlideImage } from "./view-only-slide-image";
 import { ViewOnlyTitle } from "./view-only-title";
 

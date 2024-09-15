@@ -2,9 +2,9 @@
 "use client";
 import Markdown from "markdown-to-jsx";
 import { ViewOnlyTitle } from "./view-only-title";
-import { cn } from "../../../utils/cn";
+import { cn } from '@shared-utils/cn';
 import React, { useEffect, useRef, useState } from "react";
-import { MarkdownSlide } from "../../../utils/database-types";
+import { MarkdownSlide } from '@shared-utils/database-types';
 
 type ViewOnlyMarkdownSlideComponentProps = {
   slide: MarkdownSlide;

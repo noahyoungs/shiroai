@@ -6,7 +6,7 @@ import {TRANSITION_EASINGS} from "@nextui-org/framer-transitions";
 import React from "react";
 import {Modal, ModalBody, ModalContent} from "@nextui-org/react";
 
-import {cn} from "@/utils/cn";
+import {cn} from "@nextui-org/react";
 
 const SidebarDrawer = React.forwardRef<
   HTMLDivElement,

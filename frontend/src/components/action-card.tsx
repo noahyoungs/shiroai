@@ -5,7 +5,7 @@ import React from "react";
 import {Card, CardBody} from "@nextui-org/react";
 import {Icon} from "@iconify/react";
 
-import {cn} from "@/utils/cn";
+import {cn} from "@shared-utils/cn";
 
 export type ActionCardProps = CardProps & {
   icon: string;

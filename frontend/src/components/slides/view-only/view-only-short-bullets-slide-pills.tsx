@@ -1,8 +1,8 @@
 // frontend/src/components/slides/view-only/view-only-short-bullets-slide-pills.tsx
-import { ShortBulletsSlide, IconData } from "../../../utils/database-types";
+import { ShortBulletsSlide, IconData } from '@shared-utils/database-types';
 import { Icon } from "@iconify/react";
 import React from "react";
-import { cn } from "../../../utils/cn";
+import { cn } from '@shared-utils/cn';
 import { ViewOnlyTitle } from "./view-only-title";
 
 type BulletItemProps = {

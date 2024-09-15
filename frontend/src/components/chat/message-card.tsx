@@ -6,7 +6,7 @@ import {useClipboard} from "@nextui-org/use-clipboard";
 import {Icon} from "@iconify/react";
 import Markdown from 'react-markdown'
 
-import {cn} from "@/utils/cn";
+import {cn} from "@shared-utils/cn";
 
 export type MessageCardProps = React.HTMLAttributes<HTMLDivElement> & {
   avatar?: string;

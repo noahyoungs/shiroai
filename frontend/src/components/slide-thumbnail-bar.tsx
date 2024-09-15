@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { Slide } from '@/utils/database-types';
-import { cn } from '@/utils/cn';
+import { Slide } from '@shared-utils/database-types';
+import { cn } from '@shared-utils/cn';
 import { SlideComponent } from './slides/slide-component';
 
 interface SlideThumbnailBarProps {
