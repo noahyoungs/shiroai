@@ -6,7 +6,9 @@ import ssl
 import asyncio
 from database_models import *
 from uuid_extensions import uuid7str
+from session_log_config import get_child_logger, current_user_id
 
+CONTEXT_USER_ID = current_user_id.get()
 HEADLESS_API_URL = os.getenv('HEADLESS_API_URL')
 HEADLESS_API_INTERNAL_KEY = os.getenv('HEADLESS_API_INTERNAL_KEY')  # Get the API key from environment variable
 SSL_VERIFY = False  # Set to True to enable SSL verification, False to disable
@@ -19,7 +21,11 @@ if not SSL_VERIFY:
     ssl_context.verify_mode = ssl.CERT_NONE
 
 async def split_markdown(markdown_text):
-    headers = {'x-api-key': HEADLESS_API_INTERNAL_KEY}  # Include the API key in the headers
+    context_user_id = current_user_id.get()
+    headers = {
+        'x-api-key': HEADLESS_API_INTERNAL_KEY,
+        'x-user-id': context_user_id
+    }
     async with aiohttp.ClientSession() as session:
         async with session.post(
             f'{HEADLESS_API_URL}/markdown-split/split', 
@@ -36,7 +42,11 @@ async def split_markdown(markdown_text):
                 return None, None
 
 async def get_prose_class(markdown, title):
-    headers = {'x-api-key': HEADLESS_API_INTERNAL_KEY}  # Include the API key in the headers
+    context_user_id = current_user_id.get()
+    headers = {
+        'x-api-key': HEADLESS_API_INTERNAL_KEY,
+        'x-user-id': context_user_id
+    }
     async with aiohttp.ClientSession() as session:
         async with session.post(
             f'{HEADLESS_API_URL}/prose-class', 
@@ -92,92 +102,3 @@ async def process_slide(slide):
     slides.extend(await process_slide(second_slide))
     
     return slides
-
-# Sample data for testing
-# test_slides = [
-#     MarkdownSlide(
-#         slide_title="Short Text Markdown Slide",
-#         topic_id="topic-1",
-#         slide_id=uuid7str(),
-#         slide_content={
-#             "content": "This is a short text.",
-#             "footnotes": []
-#         },
-#         hidden=False,
-#         previous=None,
-#         next=None,
-#         generation_messages=[LLMMessage(role="system", content="Generate a short markdown slide.")],
-#         extra={}
-#     ),
-#     MarkdownSlide(
-#         slide_title="Large Text Markdown Slide",
-#         topic_id="topic-2",
-#         slide_id=uuid7str(),
-#         slide_content={
-#             "content": "This is a very large text. " * 300,
-#             "footnotes": []
-#         },
-#         hidden=False,
-#         previous=None,
-#         next=None,
-#         generation_messages=[LLMMessage(role="system", content="Generate a large markdown slide.")],
-#         extra={}
-#     ),
-#     MarkdownSlide(
-#         slide_title="Markdown Slide with Table",
-#         topic_id="topic-3",
-#         slide_id=uuid7str(),
-#         slide_content={
-#             "content": "| Header 1 | Header 2 | Header 3 |\n|----------|----------|----------|\n" + 
-#                        "| Cell 1.1 | Cell 1.2 | Cell 1.3 |\n" * 20,
-#             "footnotes": []
-#         },
-#         hidden=False,
-#         previous=None,
-#         next=None,
-#         generation_messages=[LLMMessage(role="system", content="Generate a markdown slide with a table.")],
-#         extra={}
-#     ),
-#     SimpleMermaidSlide(
-#         slide_title="Simple Mermaid Slide",
-#         topic_id="topic-4",
-#         slide_id=uuid7str(),
-#         slide_content={
-#             "mermaid_code": "graph TD;\nA-->B;",
-#             "excerpts": [],
-#             "light_svg": "<svg>Light SVG Content</svg>",
-#             "dark_svg": "<svg>Dark SVG Content</svg>"
-#         },
-#         hidden=False,
-#         previous=None,
-#         next=None,
-#         generation_messages=[LLMMessage(role="system", content="Generate a simple mermaid slide.")],
-#         extra={}
-#     ),
-#     SectionHeaderSlide(
-#         slide_title="Section Header Slide",
-#         topic_id="topic-5",
-#         slide_id=uuid7str(),
-#         image=Image(
-#             prompt="Sunset over mountains",
-#             model="stable-diffusion",
-#             width=800,
-#             height=600,
-#             shape="rectangle",
-#             type="generated"
-#         ),
-#         hidden=False,
-#         previous=None,
-#         next=None,
-#         generation_messages=[LLMMessage(role="system", content="Generate a section header slide.")],
-#         extra={}
-#     )
-# ]
-
-# Run the functions
-# if __name__ == "__main__":
-#     for slide in test_slides:
-#         print(f"Processing original slide: {slide.slide_title}")
-#         processed_slides = asyncio.run(process_slide(slide))
-#         for processed_slide in processed_slides:
-#             print(processed_slide)

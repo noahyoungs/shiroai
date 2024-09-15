@@ -5,6 +5,7 @@ import aiohttp
 import os
 import ssl
 import asyncio
+from session_log_config import current_user_id
 
 from slides.mermaid.tall_shapes_lines_inference import predict_ideal_lines
 
@@ -78,7 +79,11 @@ def process_tall_shapes(diagram):
     return diagram
 
 async def get_dimensions_from_headless_api(diagram):
-    headers = {'x-api-key': HEADLESS_API_INTERNAL_KEY}  # Include the API key in the headers
+    context_user_id = current_user_id.get()
+    headers = {
+        'x-api-key': HEADLESS_API_INTERNAL_KEY,
+        'x-user-id': context_user_id
+    }
     async with aiohttp.ClientSession() as session:
         url = f"{HEADLESS_API_URL}/mermaid-dimensions"
         async with session.post(url, json={"code": diagram}, headers=headers, ssl=ssl_context) as response:
@@ -89,7 +94,11 @@ async def get_dimensions_from_headless_api(diagram):
                 raise ValueError(f"Failed to get dimensions: {response_data.get('message')}")
 
 async def generate_svgs_from_headless_api(diagram):
-    headers = {'x-api-key': HEADLESS_API_INTERNAL_KEY}  # Include the API key in the headers
+    context_user_id = current_user_id.get()
+    headers = {
+        'x-api-key': HEADLESS_API_INTERNAL_KEY,
+        'x-user-id': context_user_id
+    }
     async with aiohttp.ClientSession() as session:
         url = f"{HEADLESS_API_URL}/mermaid"
         async with session.post(url, json={"code": diagram}, headers=headers, ssl=ssl_context) as response:
