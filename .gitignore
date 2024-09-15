@@ -65,3 +65,6 @@ headless-api/mermaid_light.svg
 # Sam lambda
 sam-lambda/generate-video/layer/ffmpeg/bin/ffmpeg
 headless-api/src/utils/lambdaPayloadDebug.json
+
+*.swp
+frontend/certificates/localhost.pem
