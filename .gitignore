@@ -68,3 +68,4 @@ headless-api/src/utils/lambdaPayloadDebug.json
 
 *.swp
 frontend/certificates/localhost.pem
+headless-api/mermaid_dark.svg

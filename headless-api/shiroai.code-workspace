@@ -1,0 +1,19 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"path": "."
+		},
+		{
+			"path": "../backend"
+		},
+		{
+			"path": "../frontend"
+		}
+	],
+	"settings": {
+		"typescript.tsdk": "shiroai/node_modules/typescript/lib"
+	}
+}
