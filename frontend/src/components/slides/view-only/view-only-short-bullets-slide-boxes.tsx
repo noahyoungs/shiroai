@@ -97,7 +97,7 @@ const renderSlideContent = (
           <div className="grid grid-cols-2 gap-8 h-full row-span-1">
             {slide.slide_content.map((bullet, index) => (
               <BulletItem
-                key={bullet.id}
+                key={bullet.bullet_id}
                 bullet={bullet}
                 index={index}
                 allSources={allSources}
@@ -118,7 +118,7 @@ const renderSlideContent = (
           <div className="grid grid-cols-3 gap-8 h-full row-span-1">
             {slide.slide_content.map((bullet, index) => (
               <BulletItem
-                key={bullet.id}
+                key={bullet.bullet_id}
                 bullet={bullet}
                 index={index}
                 allSources={allSources}
@@ -139,7 +139,7 @@ const renderSlideContent = (
           <div className="col-span-2 grid grid-cols-2 grid-rows-2 gap-8">
             {slide.slide_content.map((bullet, index) => (
               <BulletItem
-                key={bullet.id}
+                key={bullet.bullet_id}
                 bullet={bullet}
                 index={index}
                 allSources={allSources}
@@ -159,7 +159,7 @@ const renderSlideContent = (
           </div>
           {slide.slide_content.map((bullet, index) => (
             <BulletItem
-              key={bullet.id}
+              key={bullet.bullet_id}
               bullet={bullet}
               index={index}
               allSources={allSources}

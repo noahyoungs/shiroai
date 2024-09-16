@@ -80,7 +80,7 @@ export interface ShortBulletContent {
   source_excerpt_id: string;
   excerpt: Excerpt | null;
   icon: IconData;
-  id: string;
+  bullet_id: string;
 }
 
 export interface SimpleMermaidSlide extends BaseSlide {

@@ -82,7 +82,7 @@ Remember you must cite an <excerpt_id></excerpt_id> as a source for every bullet
                 'excerpt_id': source_excerpt_id,
                 'text': source_excerpt
             },
-            'id': uuid7str()
+            'bullet_id': uuid7str()
         })
 
     icon_data = await hybrid_icon_assignment([bullet_point['content'] for bullet_point in bullet_points_list])

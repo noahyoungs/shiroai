@@ -653,7 +653,7 @@ export function PillShortBulletsSlideComponent({
           <div className="w-2/3 flex justify-end flex-grow">
             <ul className="flex flex-col justify-center gap-6 h-full max-w-max">
               {slide.slide_content.map((bullet, index) => (
-                <React.Fragment key={bullet.id}>
+                <React.Fragment key={bullet.bullet_id}>
                   <BulletItem
                     content={bullet.content}
                     excerptText={bullet.excerpt && bullet.excerpt.text}
@@ -695,7 +695,7 @@ export function PillShortBulletsSlideComponent({
           <div className="flex justify-center w-full flex-grow">
             <ul className="flex flex-col justify-evenly gap-6 max-w-max my-8">
               {slide.slide_content.map((bullet, index) => (
-                <React.Fragment key={bullet.id}>
+                <React.Fragment key={bullet.bullet_id}>
                   <BulletItem
                     content={bullet.content}
                     excerptText={bullet.excerpt?.text}

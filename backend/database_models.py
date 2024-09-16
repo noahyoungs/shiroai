@@ -123,11 +123,11 @@ class ShortBulletContent(Partialable):
     source_excerpt_id: Optional[str] = None
     excerpt: Optional[Excerpt] = None
     icon: IconData
-    id: Optional[str] = None
+    bullet_id: Optional[str] = None
 
     def __repr__(self):
         return (f"ShortBulletContent(content={self.content}, source_excerpt_id={self.source_excerpt_id}, "
-                f"excerpt={self.excerpt}, icon={self.icon}, id={self.id})")
+                f"excerpt={self.excerpt}, icon={self.icon}, id={self.bullet_id})")
 
 class ShortBulletsSlide(BaseSlide):
     slide_type: str = 'short_bullets_slide'

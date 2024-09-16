@@ -359,7 +359,7 @@ async def edit_slide_content(
                 )
 
                 bullet_points_list.append(ShortBulletContent(
-                    id=uuid7str(),
+                    bullet_id=uuid7str(),
                     content=bullet_point['content'],
                     excerpt=Excerpt(
                         source_id=source_id,
@@ -402,7 +402,7 @@ async def edit_slide_content(
                     (doc['page_content'] for doc in reduced_docs if doc['metadata']['document_id'] == excerpt_id), None)
                 source_id = next(
                     (doc['metadata']['source']['source_id'] for doc in reduced_docs if doc['metadata']['document_id'] == excerpt_id), None)
-                new_footnotes[old_footnote['marker']] = {
+                new_footnotes[str(old_footnote['marker'])] = { # map keys in dynamodb must be strings
                     'excerpt_id': excerpt_id,
                     'source_id': source_id,
                     'text': source_excerpt
