@@ -3,6 +3,7 @@ import Markdown, { RuleType } from "markdown-to-jsx";
 import { ViewOnlyTitle } from "./view-only-title";
 import { cn } from "@shared-utils/cn";
 import { MarkdownSlide } from "@shared-utils/database-types";
+import React from "react";
 
 type ViewOnlyMarkdownSlideComponentProps = {
   slide: MarkdownSlide;

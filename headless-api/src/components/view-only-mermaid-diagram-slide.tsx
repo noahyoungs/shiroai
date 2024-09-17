@@ -1,6 +1,7 @@
 import { SimpleMermaidSlide } from "@shared-utils/database-types";
 // import "../mermaid-styles.css";
 import { ViewOnlyTitle } from "./view-only-title";
+import React from "react";
 
 const SvgRenderer = ({ svgString }: { svgString: string }) => {
   const sanitizedSvgString = svgString;

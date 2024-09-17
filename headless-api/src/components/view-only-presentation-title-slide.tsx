@@ -15,7 +15,7 @@ export function ViewOnlyPresentationTitleSlideComponent({
   signedUrlSuffix,
 }: ViewOnlyPresentationTitleSlideComponentProps) {
   return (
-    <div className="relative overflow-visible w-full h-full">
+    <div className="relative overflow-visible w-full h-full ">
       <div
         className="absolute mx-12 mb-3 bottom-10 z-[21] text-white/90 w-[90%]"
         id="presentation-title"
