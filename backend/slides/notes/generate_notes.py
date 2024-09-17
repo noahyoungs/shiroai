@@ -122,7 +122,7 @@ async def generate_all_notes(psl: PersistentSlideList, style_key: int = 0, custo
         print(f"Error generating notes: number of notes ({len(notes)}) doesn't match number of slides ({len(slides_l)})")
         return
 
-    update_partial_slides = [{'id': slide.slide_id, 'speaker_notes': note} for slide, note in zip(slides_l, notes)]
+    update_partial_slides = [{'slide_id': slide.slide_id, 'speaker_notes': note} for slide, note in zip(slides_l, notes)]
     print(f"Updating {len(update_partial_slides)} slides with generated speaker notes")
     await psl.update_slides(update_partial_slides)
     print("Notes generated and updated")

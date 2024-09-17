@@ -181,7 +181,7 @@ async def generate_all_scripts(psl: PersistentSlideList, interface_data: Any, em
         max_char_per_slide=max_char_per_slide
     ):
         await psl.update_slides({
-            'id': slide.slide_id,
+            'slide_id': slide.slide_id,
             'script': script
         })  
         # update status in interface_data for progress bar
