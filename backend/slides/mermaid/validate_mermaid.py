@@ -5,7 +5,11 @@ from session_log_config import current_user_id
 
 HEADLESS_API_URL = os.getenv('HEADLESS_API_URL')
 HEADLESS_API_INTERNAL_KEY = os.getenv('HEADLESS_API_INTERNAL_KEY')  # Get the API key from environment variable
-SSL_VERIFY = False  # Set to True to enable SSL verification, False to disable
+
+# Get the DISABLE_SSL_VERIFY value from environment variables
+DISABLE_SSL_VERIFY = os.getenv('DISABLE_SSL_VERIFY', 'false').lower() == 'true'
+
+SSL_VERIFY = not DISABLE_SSL_VERIFY
 
 # Create an SSL context that disables verification if SSL_VERIFY is False
 ssl_context = None

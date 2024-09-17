@@ -7,6 +7,10 @@ from research.summarize import summarize_source
 import aiohttp
 import tempfile 
 import asyncio
+import os 
+
+# Get the DISABLE_SSL_VERIFY value from environment variables
+DISABLE_SSL_VERIFY = os.getenv('DISABLE_SSL_VERIFY', 'false').lower() == 'true'
 
 tabluar_file_types = ['xlsx', 'xls', 'csv', 'tsv']
 
@@ -45,7 +49,7 @@ async def read_source(source, presentation_id):
         # if url ends with .pdf
         if url.endswith('.pdf'):
             async with aiohttp.ClientSession() as session:
-                async with session.get(url, verify_ssl=False) as response:
+                async with session.get(url, verify_ssl=not DISABLE_SSL_VERIFY) as response:
                     if response.status == 200:
                         with tempfile.NamedTemporaryFile(delete=False) as temp_file:
                             temp_file.write(await response.read())

@@ -1,6 +1,12 @@
 import axios from 'axios';
 
 const BASE_URL = process.env.HEADLESS_API_URL;
+const DISABLE_SSL_VERIFY = process.env.DISABLE_SSL_VERIFY === 'true';
+
+const axiosInstance = axios.create({
+  baseURL: BASE_URL,
+  httpsAgent: DISABLE_SSL_VERIFY ? new (require('https').Agent)({ rejectUnauthorized: false }) : undefined
+});
 
 export async function getProseClass(markdown: string, title: string): Promise<string> {
 

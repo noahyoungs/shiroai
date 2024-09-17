@@ -11,7 +11,11 @@ from session_log_config import get_child_logger, current_user_id
 CONTEXT_USER_ID = current_user_id.get()
 HEADLESS_API_URL = os.getenv('HEADLESS_API_URL')
 HEADLESS_API_INTERNAL_KEY = os.getenv('HEADLESS_API_INTERNAL_KEY')  # Get the API key from environment variable
-SSL_VERIFY = False  # Set to True to enable SSL verification, False to disable
+
+# Get the DISABLE_SSL_VERIFY value from environment variables
+DISABLE_SSL_VERIFY = os.getenv('DISABLE_SSL_VERIFY', 'false').lower() == 'true'
+
+SSL_VERIFY = not DISABLE_SSL_VERIFY
 
 # Create an SSL context that disables verification if SSL_VERIFY is False
 ssl_context = None
@@ -47,20 +51,41 @@ async def get_prose_class(markdown, title):
         'x-api-key': HEADLESS_API_INTERNAL_KEY,
         'x-user-id': context_user_id
     }
-    async with aiohttp.ClientSession() as session:
-        async with session.post(
-            f'{HEADLESS_API_URL}/prose-class', 
-            json={'markdown': markdown, 'title': title}, 
-            headers=headers,  # Pass headers with the API key
-            ssl=ssl_context
-        ) as response:
-            if response.status == 200:
-                data = await response.json()
-                return data['proseClass']
+    max_retries = 3
+    retry_count = 0
+    
+    while retry_count < max_retries:
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f'{HEADLESS_API_URL}/prose-class', 
+                    json={'markdown': markdown, 'title': title}, 
+                    headers=headers,
+                    ssl=ssl_context
+                ) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        return data['proseClass']
+                    elif 500 <= response.status < 600:
+                        retry_count += 1
+                        if retry_count < max_retries:
+                            await asyncio.sleep(1)  # Wait for 1 second before retrying
+                            continue
+                    else:
+                        error_message = await response.text()
+                        print(f"Failed to get prose class: {response.status} - {error_message}")
+                        return None
+        except aiohttp.ClientError as e:
+            retry_count += 1
+            if retry_count < max_retries:
+                await asyncio.sleep(1)  # Wait for 1 second before retrying
+                continue
             else:
-                error_message = await response.text()
-                print(f"Failed to get prose class: {response.status} - {error_message}")
+                print(f"Failed to get prose class after {max_retries} attempts: {str(e)}")
                 return None
+    
+    print(f"Failed to get prose class after {max_retries} attempts")
+    return None
 
 
 async def process_slide(slide):
@@ -74,6 +99,8 @@ async def process_slide(slide):
         slide.slide_content['prose_class'] = prose_class
         return [slide]
     
+    # Overheight
+
     first_half, second_half = await split_markdown(slide.slide_content['content'])
     if not first_half or not second_half:
         print("Error splitting markdown content.")
@@ -92,7 +119,7 @@ async def process_slide(slide):
     second_slide = MarkdownSlide(
         **{**slide.__dict__, 
            'slide_title': second_title, 
-           'id': uuid7str(), 
+           'slide_id': uuid7str(), 
            'slide_content': {**slide.slide_content, 'content': second_half}}
     )
     

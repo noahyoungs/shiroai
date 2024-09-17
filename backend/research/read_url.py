@@ -4,8 +4,9 @@ import aiohttp
 from main_content_extractor import MainContentExtractor
 from bs4 import BeautifulSoup
 from langchain.docstore.document import Document
-
+import os
 from playwright.async_api import async_playwright
+
 
 urls = [
         "https://en.wikipedia.org/wiki/Seven_Natural_Wonders_(CNN)",
@@ -26,10 +27,15 @@ urls = [
         "https://www.worldometers.info/world-population/#:~:text=The%20current%20world%20population%20is,currently%20living)%20of%20the%20world.",
     ]
 
+
+
+# Get the DISABLE_SSL_VERIFY value from environment variables
+DISABLE_SSL_VERIFY = os.getenv('DISABLE_SSL_VERIFY', 'false').lower() == 'true'
+
 async def download_html(url):
     async with aiohttp.ClientSession() as session:
         try:
-            async with session.get(url, verify_ssl=False) as response:
+            async with session.get(url, ssl=not DISABLE_SSL_VERIFY) as response:
                 html = None
                 title = None
                 download_method = "requests"

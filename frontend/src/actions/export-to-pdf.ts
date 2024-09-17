@@ -6,8 +6,8 @@ import https from 'https';
 import { auth } from "@/auth";
 import { uuidv7 } from "uuidv7";
 
-// Control SSL verification for development purposes
-const DISABLE_SSL_VERIFICATION = process.env.NODE_ENV === 'development';
+// Control SSL verification based on the environment variable DISABLE_SSL_VERIFY
+const DISABLE_SSL_VERIFICATION = process.env.DISABLE_SSL_VERIFY === 'true';
 
 export async function exportToPDF(presentationId: string, theme: 'dark' | 'light' | 'print', footnotes: boolean) {
   // Create an HTTPS agent that ignores SSL certificate errors if SSL verification is disabled

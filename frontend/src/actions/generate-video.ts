@@ -5,8 +5,8 @@ import axios from 'axios';
 import https from 'https';
 import { auth } from "@/auth";
 
-// Control SSL verification for development purposes
-const DISABLE_SSL_VERIFICATION = process.env.NODE_ENV === 'development';
+// Control SSL verification based on the environment variable DISABLE_SSL_VERIFY
+const DISABLE_SSL_VERIFICATION = process.env.DISABLE_SSL_VERIFY === 'true';
 
 export async function generateVideo(
   presentationID: string,
