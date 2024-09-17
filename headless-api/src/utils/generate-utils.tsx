@@ -129,7 +129,7 @@ export function generateSignedUrlSuffix(presentationId: string): string {
   if (process.env.CLOUDFRONT_PRIVATE_KEY) {
     privateKey = process.env.CLOUDFRONT_PRIVATE_KEY.trim();
   } else {
-    const privateKeyPath = path.join(__dirname, '../../cloudfront-private-key.pem');
+    const privateKeyPath = path.join(__dirname, '../../../cloudfront-private-key.pem');
     privateKey = fs.readFileSync(privateKeyPath, 'utf8').trim();
   }
 
