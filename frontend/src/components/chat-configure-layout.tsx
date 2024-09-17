@@ -85,5 +85,9 @@ export default function ChatConfigureLayout({ chat, interfaceComponent, thirds=f
                 </div>
             )}
         </>
+        // <div>
+        //     <div>Chat: {chat}</div>
+        //     <div>Interface: {interfaceComponent}</div>
+        // </div>
     );
 }
