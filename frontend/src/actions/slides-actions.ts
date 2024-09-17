@@ -171,7 +171,7 @@ export async function getSlides(
   slideIDs: string | string[]
 ): Promise<Slide | Slide[]> {
 
-  let slides: Slide | Slide[] | null;
+  let slides: Slide | null | (Slide | null)[];
 
   try {
     if (typeof slideIDs === "string") {
@@ -179,9 +179,7 @@ export async function getSlides(
       slides = await getItemsWithAuth('slide', { presentation_id: presentationID, slide_id: slideIDs }) as Slide | null;
     } else if (Array.isArray(slideIDs)) {
       // Multiple slideIDs case
-      slides = await Promise.all(slideIDs.map(slide_id => 
-        getItemsWithAuth('slide', { presentation_id: presentationID, slide_id }) as Promise<Slide>
-      ));
+      slides = await getItemsWithAuth('slide', slideIDs.map(slideID => ({ presentation_id: presentationID, slide_id: slideID }))) as (Slide | null)[];
     } else {
       throw new Error("Invalid slideIDs type.");
     }
@@ -203,83 +201,91 @@ export async function getSlides(
   const nullSlides = slides.filter(slide => !slide);
   if (nullSlides.length > 0) {
     console.warn("Null slides found:", nullSlides);
-    slides = slides.filter(slide => slide) as Slide[];
   }
 
-  let updatedSlides: Slide[] = (
-    await Promise.all(
-      slides.map(async (slide) => {
-        let processedSlides = await addProseClassesAndSplitOverheight(
-          slide,
-          true
-        );
-        // will result in Slide[], containing one or more slides
+  slides = slides.filter(slide => slide) as Slide[];
 
-        if (processedSlides.length > 1) {
-          // Update the prev and next of the slides
-          for (let i = 0; i < processedSlides.length; i++) {
-            const currentSlide = processedSlides[i];
-            const prevSlide = processedSlides[i - 1];
-            const nextSlide = processedSlides[i + 1];
+  // let updatedSlides: Slide[] = (
+  //   await Promise.all(
+  //     slides.map(async (slide) => {
+  //       let processedSlides = await addProseClassesAndSplitOverheight(
+  //         slide,
+  //         true
+  //       );
+  //       // will result in Slide[], containing one or more slides
 
-            currentSlide.previous = prevSlide?.slide_id || slide.previous; // if prevSlide is undefined, use original previous
-            currentSlide.next = nextSlide?.slide_id || slide.next; // if nextSlide is undefined, use original next
-          }
-        }
+  //       if (processedSlides.length > 1) {
+  //         // Update the prev and next of the slides
+  //         for (let i = 0; i < processedSlides.length; i++) {
+  //           const currentSlide = processedSlides[i];
+  //           const prevSlide = processedSlides[i - 1];
+  //           const nextSlide = processedSlides[i + 1];
 
-        return processedSlides; // This returns Slide[], so the map function returns Slide[][]
-      })
-    )
-  ).flat(); // Flatten Slide[][] to Slide[]
+  //           currentSlide.previous = prevSlide?.slide_id || slide.previous; // if prevSlide is undefined, use original previous
+  //           currentSlide.next = nextSlide?.slide_id || slide.next; // if nextSlide is undefined, use original next
+  //         }
+  //       }
 
-  // Add a slide to the end of the array to set the previous pointer of the slide after the last slide
-  let nextSlide = {
-    id: updatedSlides[updatedSlides.length - 1].next,
-    previous: updatedSlides[updatedSlides.length - 1].slide_id,
-  };
+  //       return processedSlides; // This returns Slide[], so the map function returns Slide[][]
+  //     })
+  //   )
+  // ).flat(); // Flatten Slide[][] to Slide[]
 
-  let updatedSlidesWithNext: Partial<Slide>[] = [
-    ...updatedSlides,
-    nextSlide as Partial<Slide>,
-  ];
+  // // Add a slide to the end of the array to set the previous pointer of the slide after the last slide
+  // let nextSlide = {
+  //   id: updatedSlides[updatedSlides.length - 1].next,
+  //   previous: updatedSlides[updatedSlides.length - 1].slide_id,
+  // };
 
-  // TODO: Fix the previous pointers of the slides not being updated
+  // let updatedSlidesWithNext: Partial<Slide>[] = [
+  //   ...updatedSlides,
+  //   nextSlide as Partial<Slide>,
+  // ];
 
-  // Optimize updatedSlides by only including fields that are different
-  const optimizedUpdatedSlides = updatedSlidesWithNext.map(
-    (updatedSlide, index): Partial<Slide> => {
-      // Find the matching slide in the original slides array
-      const matchingOriginalSlides = slides!.find(
-        (slide: Slide) => slide.slide_id === updatedSlide.slide_id
-      );
+  // // TODO: Fix the previous pointers of the slides not being updated
 
-      // Always include slide_id and presentation_id
-      const updatedFields: Partial<Slide> = {
-        slide_id: updatedSlide.slide_id,
-        presentation_id: presentationID,
-      };
+  // // Optimize updatedSlides by only including fields that are different
+  // const optimizedUpdatedSlides = updatedSlidesWithNext.map(
+  //   (updatedSlide, index): Partial<Slide> => {
+  //     // Find the matching slide in the original slides array
+  //     const matchingOriginalSlides = slides!.find(
+  //       (slide: Slide) => slide.slide_id === updatedSlide.slide_id
+  //     );
 
-      if (matchingOriginalSlides) {
-        // Check if any fields are different, include them in the updatedFields
-        for (const key in updatedSlide) {
-          if (updatedSlide[key] !== matchingOriginalSlides[key]) {
-            updatedFields[key] = updatedSlide[key];
-          }
-        }
-      } else {
-        for (const key in updatedSlide) {
-          // Include all fields if the slide is new
-          updatedFields[key] = updatedSlide[key];
-        }
-      }
+  //     // Always include slide_id and presentation_id
+  //     const updatedFields: Partial<Slide> = {
+  //       slide_id: updatedSlide.slide_id,
+  //       presentation_id: presentationID,
+  //     };
 
-      return updatedFields;
-    }
-  );
+  //     if (matchingOriginalSlides) {
+  //       // Check if any fields are different, include them in the updatedFields
+  //       for (const key in updatedSlide) {
+  //         if (updatedSlide[key] !== matchingOriginalSlides[key]) {
+  //           updatedFields[key] = updatedSlide[key];
+  //         }
+  //       }
+  //     } else {
+  //       for (const key in updatedSlide) {
+  //         // Include all fields if the slide is new
+  //         updatedFields[key] = updatedSlide[key];
+  //       }
+  //     }
 
-  await updateItemsWithAuth('slide', optimizedUpdatedSlides);
+  //     return updatedFields;
+  //   }
+  // );
+
+  // await updateItemsWithAuth('slide', optimizedUpdatedSlides);
+
+  // if theres only one slide, return it as a single element 
+  if (slides.length === 1) {
+    return slides[0] as Slide;
+  }
+
+  // otherwise return the array
   
-  return updatedSlides;
+  return slides as Slide[];
 }
 
 /**
@@ -309,7 +315,7 @@ export async function updateSlides(
 }
 
 
-export async function getHeadSlideID(presentationID: string): Promise<string> {
+export async function getHeadSlideID(presentationID: string): Promise<string | null> {
   try {
     const presentation = await getItemsWithAuth('presentation', { presentation_id: presentationID }, ["head_slide_id"]) as Partial<Presentation> | null; // Only one id means only one presentation returend
 
@@ -318,7 +324,7 @@ export async function getHeadSlideID(presentationID: string): Promise<string> {
     }
 
     if (!presentation.head_slide_id) {
-      throw new Error("Head slide ID not found in presentation");
+      return null;
     }
 
     return presentation.head_slide_id;
