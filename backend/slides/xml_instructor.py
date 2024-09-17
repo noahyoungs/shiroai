@@ -314,7 +314,7 @@ def parse_response_tags(text):
     return matches[0].strip()
 
 
-async def get_basemodel_instance_from_llm(client, pydantic_model_class, dynamic_val_params={}, max_iterations=5, stop_on_last_tag_close=True, force_start_with_first_tag=True, temperature=0.5, temperature_multiplier=None, max_temperature=2, error_message_prefix=None, **kwargs):
+async def get_basemodel_instance_from_llm(client, pydantic_model_class, dynamic_val_params={}, max_iterations=5, stop_on_last_tag_close=True, force_start_with_first_tag=True, temperature=0.5, temperature_multiplier=None, max_temperature=1, error_message_prefix=None, **kwargs):
     """
     Asynchronously generate a Pydantic model instance from an LLM response.
 
