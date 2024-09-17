@@ -5,13 +5,68 @@ import { Spinner } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import { cn } from "@shared-utils/cn";
 import { stat } from "fs";
+import ToolReport from "./tool-report";
+import { auth } from "@/auth";
 
-export default function Component({
+function getComponentForMessage(index: number, message: any, userProfileURL: string | undefined) {
+  switch (message.role) {
+    case "tool":
+      return null;
+    case "meta_web_search":
+      return <WebSearchCard
+        key={index}
+        avatar="https://nextuipro.nyc3.cdn.digitaloceanspaces.com/components-images/avatar_ai.png"
+        data={message.content}
+        messageClassName="bg-sky-50 dark:bg-sky-950"
+      />
+    case "meta_content_editor":
+      return <ToolReport
+        key={index}
+        title="Edited Slide Content"
+        content={message.content}
+      />
+    case "meta_image_editor":
+      return <ToolReport
+        key={index}
+        title="Edited Slide Image"
+        content={message.content}
+      />
+    case "user":
+      return message.content ? <MessageCard
+        key={index}
+        avatar={userProfileURL}
+        message={message.content}
+        messageClassName="bg-content3 text-content3-foreground"
+        /> : null
+    case "assistant":
+      return message.content ? <MessageCard
+        key={index}
+        avatar="https://nextuipro.nyc3.cdn.digitaloceanspaces.com/components-images/avatar_ai.png"
+        message={message.content}
+        // messageClassName="bg-content3 text-content3-foreground"
+        /> : null
+    case "error":
+      return <MessageCard
+        key={index}
+        avatar="https://nextuipro.nyc3.cdn.digitaloceanspaces.com/components-images/avatar_ai.png"
+        message={message.content}
+        status={'failed'}
+        />
+    default:
+      return `Strange message: ${JSON.stringify(message)}`;
+  }
+}
+
+export default async function Component({
   messages = [] as any[],
   typing = false,
   classNames = "",
   statusMessage = "",
 }) {
+
+  const session = await auth()
+  const userProfileURL = session?.user?.image ?? undefined;
+  
   return (
     <>
       {/* {JSON.stringify(messages)} */}
@@ -26,40 +81,8 @@ export default function Component({
         </div>
       ) : (
         <div className={cn("flex flex-col gap-4 px-1", classNames)}>
-          {messages.map(({ role, content }, index) =>
-            role === "tool" ? null : role === "meta_web_search" ? (
-              <WebSearchCard
-                key={index}
-                avatar="https://nextuipro.nyc3.cdn.digitaloceanspaces.com/components-images/avatar_ai.png"
-                data={content}
-                messageClassName="bg-sky-50 dark:bg-sky-950"
-              />
-            ) : (
-              content && (
-                <MessageCard
-                  key={index}
-                  avatar={
-                    role === "user"
-                      ? "https://d2u8k2ocievbld.cloudfront.net/memojis/male/6.png"
-                      : "https://nextuipro.nyc3.cdn.digitaloceanspaces.com/components-images/avatar_ai.png"
-                  }
-                  message={content}
-                  messageClassName={
-                    role === "user"
-                      ? "bg-content3 text-content3-foreground"
-                      : role === "meta_research_agent"
-                      ? "bg-sky-50 dark:bg-sky-950"
-                      : role === "meta_content_editor"
-                      ? "bg-emerald-50 dark:bg-emerald-950"
-                      : role === "meta_image_editor"
-                      ? "bg-fuchsia-50 dark:bg-fuchsia-950"
-                      : ""
-                  }
-                  showFeedback={role === "assistant"}
-                  status={role === "error" ? "failed" : "success"}
-                />
-              )
-            )
+          {messages.map((message, index) =>
+            getComponentForMessage(index, message, userProfileURL)
           )}
           {
             statusMessage && !typing && (
