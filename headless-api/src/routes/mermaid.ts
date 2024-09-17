@@ -37,8 +37,13 @@ router.post('/', async (req: Request, res: Response) => {
     // No need for additional success logging, as pino-http will log the 200 status
     res.json({ lightSvg, darkSvg });
   } catch (error: any) {
-    // Log additional error details that pino-http wouldn't capture
-    req.log.error({ error }, 'SVG generation failed');
+    req.log.error({
+      error: {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      }
+    }, 'SVG generation failed');
     res.status(500).send('Failed to generate SVG');
   }
 });

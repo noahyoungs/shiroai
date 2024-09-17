@@ -8,7 +8,7 @@ process.env["NODE_ENV"] === "production"
   pino({ level: "warn" })
   : // Pretty print in development
   pino({
-    level: 'info',
+    level: 'warn',
     timestamp: pino.stdTimeFunctions.isoTime,
     transport: {
       targets: [

@@ -7,7 +7,8 @@ export async function launchCluster(): Promise<Cluster> {
   if (!cluster) {
     cluster = await Cluster.launch({
       concurrency: Cluster.CONCURRENCY_CONTEXT,
-      maxConcurrency: 4,
+      maxConcurrency: 6,
+      timeout: 30000,
       puppeteerOptions: { headless: true },
     });
     globalLogger.info('Cluster launched');

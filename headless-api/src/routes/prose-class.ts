@@ -84,7 +84,13 @@ router.post('/', async (req: Request, res: Response) => {
     req.log.info('Prose class determined');
     res.json({ proseClass });
   } catch (error: any) {
-    req.log.error({ error }, 'Failed to determine prose class');
+    req.log.error({
+      error: {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      }
+    }, 'Failed to determine prose class');
     res.status(500).send('Failed to determine prose class');
   }
 });
