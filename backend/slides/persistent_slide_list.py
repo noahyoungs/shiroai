@@ -155,7 +155,7 @@ class PersistentSlideList:
         else:
             raise ValueError("Slide IDs must be either a string or a list of strings")
 
-        fetched_slides = await get_items_with_user('slide', identifiers, 'model')
+        fetched_slides = await get_items_with_user('slide', identifiers, return_type='model')
 
         if not fetched_slides:
             raise ValueError(f"Error: Slides with IDs {slide_ids} not found")
