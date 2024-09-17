@@ -66,37 +66,9 @@ class Excerpt(Partialable):
     def __repr__(self):
         return f"Excerpt(source_id={self.source_id}, excerpt_id={self.excerpt_id}, text={self.text})"
 
-class Image(Partialable):
-    s3_key: Optional[str] = None
-    url: Optional[str] = None
-    prompt: Optional[str] = None
-    negative_prompt: Optional[str] = None
-    style: Optional[str] = None
-    model: Optional[str] = None
-    width: Optional[int] = None
-    height: Optional[int] = None
-    shape: Optional[str] = None
-    type: Optional[str] = None
 
-    def __repr__(self):
-        return (f"Image(s3_key={self.s3_key}, url={self.url}, prompt={self.prompt}, "
-                f"negative_prompt={self.negative_prompt}, style={self.style}, model={self.model}, "
-                f"width={self.width}, height={self.height}, shape={self.shape}, type={self.type})")
 
-class IconData(Partialable):
-    name: str
-    source: str
-    detailed_name: Optional[str] = None
 
-    def __repr__(self):
-        return f"IconData(name={self.name}, source={self.source}, detailed_name={self.detailed_name})"
-
-class LLMMessage(Partialable):
-    role: str
-    content: str
-
-    def __repr__(self):
-        return f"LLMMessage(role={self.role}, content={self.content})"
 
 class BaseSlide(Partialable):
     user_id: Optional[str] = None # This is required in the database but the dynamodb_service will fill it in
@@ -108,7 +80,7 @@ class BaseSlide(Partialable):
     hidden: Optional[bool] = False
     previous: Optional[str] = None
     next: Optional[str] = None
-    generation_messages: Optional[List[LLMMessage]] = None
+    generation_messages: Optional[List[Dict]] = None
     script: Optional[str] = None
     speaker_notes: Optional[str] = None
     extra: Dict[str, Any] = Field(default_factory=dict)
@@ -118,20 +90,10 @@ class BaseSlide(Partialable):
                 f"hidden={self.hidden}, previous={self.previous}, next={self.next}, "
                 f"generation_messages={self.generation_messages}, extra={self.extra})")
 
-class ShortBulletContent(Partialable):
-    content: str
-    source_excerpt_id: Optional[str] = None
-    excerpt: Optional[Excerpt] = None
-    icon: IconData
-    bullet_id: Optional[str] = None
-
-    def __repr__(self):
-        return (f"ShortBulletContent(content={self.content}, source_excerpt_id={self.source_excerpt_id}, "
-                f"excerpt={self.excerpt}, icon={self.icon}, id={self.bullet_id})")
 
 class ShortBulletsSlide(BaseSlide):
     slide_type: str = 'short_bullets_slide'
-    slide_content: List[ShortBulletContent]
+    slide_content: List[dict]
     sequential: bool
     layout: str = Field(default_factory=random_layout)  # 'list' or 'grid'
 
@@ -155,7 +117,7 @@ class MarkdownSlide(BaseSlide):
 
 class SectionHeaderSlide(BaseSlide):
     slide_type: str = 'section_header_slide'
-    image: Image
+    image: dict
     image_position: str = Field(default_factory=random_image_position)  # 'left' or 'right'
 
     def __repr__(self):
@@ -164,7 +126,7 @@ class SectionHeaderSlide(BaseSlide):
 
 class PresentationTitleSlide(BaseSlide):
     slide_type: str = 'presentation_title_slide'
-    image: Image
+    image: dict
 
     def __repr__(self):
         return (f"PresentationTitleSlide(slide_type={self.slide_type}, slide_title={self.slide_title}, "
@@ -187,7 +149,7 @@ class Topic(Partialable):
 Slide = Union[ShortBulletsSlide, MarkdownSlide, SimpleMermaidSlide, SectionHeaderSlide, PresentationTitleSlide]
 
 __all__ = [
-    'Excerpt', 'Image', 'IconData', 'BaseSlide', 'ShortBulletContent', 
+    'Excerpt', 'BaseSlide', 
     'ShortBulletsSlide', 'SimpleMermaidSlide', 'MarkdownSlide', 
-    'SectionHeaderSlide', 'PresentationTitleSlide', 'Slide', 'LLMMessage', 'Topic'
+    'SectionHeaderSlide', 'PresentationTitleSlide', 'Slide', 'Topic'
 ]
