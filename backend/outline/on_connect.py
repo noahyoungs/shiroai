@@ -1,6 +1,6 @@
 import global_prompts_config
 import json
-from dynamodb_service import get_items_with_user
+from dynamodb_service import get_items_with_user, update_items_with_user
 
 interface = "outline"
 
@@ -52,6 +52,9 @@ async def initialize(user_id, presentation_id):
         # background about previous steps
         summary_message = { 'role':'system', 'content':f"Remember, you are working on a presentation with these parameters:\n\nPresentation Topic:\n{presentation['topic']}\n\nTarget Audience:\n{presentation['audience']}\n\nPresentation Goal:\n{presentation['goal']}"}
         messages.append(summary_message)
+
+        # update the presentation status with the new interface
+        update_items_with_user('presentation', {'presentation_id': presentation_id, 'status': interface})
     
     interface_data = {
         'all_topics': all_topics,

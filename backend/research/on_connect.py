@@ -1,5 +1,5 @@
 import global_prompts_config
-from dynamodb_service import get_items_with_user, get_all_items_for_presentation_with_user
+from dynamodb_service import get_items_with_user, get_all_items_for_presentation_with_user, update_items_with_user
 import json
 import asyncio
 from session_log_config import get_child_logger
@@ -61,6 +61,9 @@ async def initialize(user_id, presentation_id):
         }
         messages.append(summary_message)
         messages += global_prompts_config.get_interface_changed_messages(interface)
+
+        # update the presentation status with the new interface
+        update_items_with_user('presentation', {'presentation_id': presentation_id, 'status': interface})
     
     interface_data = {
         'sources': sources or [],
