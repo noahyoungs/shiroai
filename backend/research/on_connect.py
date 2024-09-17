@@ -31,8 +31,8 @@ async def initialize(user_id, presentation_id):
     while asyncio.get_event_loop().time() - start_time < 30:
         if presentation.get('topic') and presentation.get('audience') and presentation.get('goal'):
             break
-        logger.info(f"Waiting for topic, audience, and goal. Retrying in 5 seconds...")
-        await asyncio.sleep(5)
+        logger.info(f"Waiting for topic, audience, and goal. Retrying in 3 seconds...")
+        await asyncio.sleep(3)
         presentation = await get_presentation()
     
     if not presentation.get('topic'):
