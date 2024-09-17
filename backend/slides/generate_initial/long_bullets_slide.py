@@ -75,7 +75,7 @@ Remember you must cite an excerpt id as a source for every bullet point, so you 
             (doc['page_content'] for doc in reduced_docs if doc['metadata']['document_id'] == excerpt_id), None)
         source_id = next((doc['metadata']['source']['source_id']
                          for doc in reduced_docs if doc['metadata']['document_id'] == excerpt_id), None)
-        new_footnotes[old_footnote['marker']] = {
+        new_footnotes[str(old_footnote['marker'])] = { # map keys in dynamodb must be strings
             'excerpt_id': excerpt_id,
             'source_id': source_id,
             'text': source_excerpt
