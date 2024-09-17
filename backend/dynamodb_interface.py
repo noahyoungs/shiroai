@@ -24,8 +24,13 @@ deserializer = TypeDeserializer()
 
 item_types = ['user', 'presentation', 'slide', 'topic', 'source']
 item_types_literal = Literal['user', 'presentation', 'slide', 'topic', 'source']
-item_ids = ['user_id', 'presentation_id', 'slide_id', 'topic_id', 'source_id']
-
+item_ids_by_type = {
+    'user': ['user_id'],
+    'presentation': ['user_id', 'presentation_id'],
+    'slide': ['user_id', 'presentation_id', 'slide_id'],
+    'topic': ['user_id', 'presentation_id', 'topic_id'],
+    'source': ['user_id', 'presentation_id', 'source_id']
+}
 # Utility functions
 
 def log_debug(message: str, data: Any = None):
@@ -116,7 +121,7 @@ def build_update_expression(item_dict: Dict[str, Any], item_type: str) -> Dict[s
     item_dict = convert_floats_to_decimals(item_dict)
 
     for key, value in item_dict.items():
-        if key not in ['PK', 'SK', 'last_updated'] and key not in item_ids:
+        if key not in ['PK', 'SK', 'last_updated', 'GSI1SK'] and key not in item_ids_by_type[item_type]:
             update_expression_parts.append(f'#{key} = :{key}')
             expression_attribute_values[f':{key}'] = serializer.serialize(value)
             expression_attribute_names[f'#{key}'] = key
