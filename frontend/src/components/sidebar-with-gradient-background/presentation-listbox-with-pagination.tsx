@@ -1,90 +1,78 @@
 "use client"
 import { useState, useEffect, useRef } from "react";
 import PresentationListbox from "@/components/presentation-listbox";
-import {Spinner} from "@nextui-org/react";
+import { Spinner } from "@nextui-org/react";
 
-interface Presentation {
-  id: string;
-  topic: string;
-  status: string;
-  time_updated: number;
-  href: string;
-}
+const PresentationListboxWithPagination = () => {
+  const [presentations, setPresentations] = useState<Array<{presentation_id: string, topic: string, gsi1sk: string, status: string}>>([]);
+  const [loading, setLoading] = useState(false);
+  const [lastFetchedGSI1SK, setLastFetchedGSI1SK] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const loaderRef = useRef(null);
 
-interface PresentationsResponse {
-  presentations: Presentation[] | undefined;
-  lastEvaluatedKey: any;
-}
+  const loadPresentations = async () => {
+    if (loading || !hasMore) return;
+    setLoading(true);
+    try {
+      const response = await fetch('/api/get_presentations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ lastFetchedGSI1SK }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setPresentations(prev => [...prev, ...data.presentations]);
+        setLastFetchedGSI1SK(data.lastFetchedGSI1SK);
+        setHasMore(!!data.lastFetchedGSI1SK);
+      } else {
+        console.error("Error loading presentations:", data.message);
+        setHasMore(false);
+      }
+    } catch (error) {
+      console.error("Error loading presentations:", error);
+      setHasMore(false);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-const PresentationListboxWithPagination = ({ initialPresentations, initialLastEvaluatedKey }: {initialPresentations: Presentation[], initialLastEvaluatedKey: any}) => {
-    const [presentations, setPresentations] = useState<Presentation[]>(initialPresentations);
-    const [lastEvaluatedKey, setLastEvaluatedKey] = useState(initialLastEvaluatedKey);
-    const [loading, setLoading] = useState(false);
-    const loaderRef = useRef(null);
-  
-    const loadMorePresentations = async () => {
-      if (!lastEvaluatedKey || loading) return;
-  
-      setLoading(true);
-      try {
-        const response = await fetch("/api/get_presentations", {
-          method: "POST",
-          body: JSON.stringify({ lastEvaluatedKey }),
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-  
-        if (!response.ok) {
-          console.error(`Error: ${response.statusText}`);
-          setLoading(false);
-          return;
+  useEffect(() => {
+    loadPresentations();
+  }, []);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !loading && hasMore) {
+          loadPresentations();
         }
-  
-        const responseText = await response.text();
-        console.log("Response Text:", responseText);
-        const data: PresentationsResponse = JSON.parse(responseText);
-  
-        setPresentations((prev) => [...prev, ...data.presentations]);
-        setLastEvaluatedKey(data.lastEvaluatedKey);
-      } catch (error) {
-        console.error("Failed to load more presentations:", error);
-      } finally {
-        setLoading(false);
+      },
+      {
+        threshold: 1.0,
+      }
+    );
+
+    if (loaderRef.current) {
+      observer.observe(loaderRef.current);
+    }
+
+    return () => {
+      if (loaderRef.current) {
+        observer.unobserve(loaderRef.current);
       }
     };
-  
-    useEffect(() => {
-      const observer = new IntersectionObserver(
-        (entries) => {
-          if (entries[0].isIntersecting) {
-            loadMorePresentations();
-          }
-        },
-        {
-          threshold: 1.0,
-        }
-      );
-  
-      if (loaderRef.current) {
-        observer.observe(loaderRef.current);
-      }
-  
-      return () => {
-        if (loaderRef.current) {
-          observer.unobserve(loaderRef.current);
-        }
-      };
-    }, [loaderRef.current, lastEvaluatedKey]);
-  
-    return (
-      <>
-        <PresentationListbox presentations={presentations} />
-        <div ref={loaderRef} style={{ height: 20, backgroundColor: "transparent" }}>
-          {loading && <div className="flex flex-row justify-center my-2"><Spinner size="sm" color="primary"/></div>}
-        </div>
-      </>
-    );
-  };
-  
-  export default PresentationListboxWithPagination;
+  }, [loaderRef.current, loading, hasMore]);
+
+  return (
+    <>
+      <PresentationListbox presentations={presentations} />
+      <div ref={loaderRef} style={{ height: 20, backgroundColor: "transparent" }}>
+        {loading && <div className="flex flex-row justify-center my-2"><Spinner size="sm" color="primary"/></div>}
+      </div>
+    </>
+  );
+};
+
+export default PresentationListboxWithPagination;

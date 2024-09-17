@@ -1,6 +1,6 @@
 // app/api/getPresentations/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getPresentationsByUserID } from '@/utils/dynamodb';
+import { fetchPresentationsForAuthenticatedUser } from "@/utils/dynamodb-service";
 import { auth } from "@/auth"
 
 export async function POST(request: NextRequest) {
@@ -10,22 +10,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const { lastEvaluatedKey } = await request.json();
+    const { lastFetchedGSI1SK } = await request.json();
 
-    const response = await getPresentationsByUserID(
-      session.user.id,
-      ["topic", "status", "time_updated"],
-      10,
-      lastEvaluatedKey
+    const presentations = await fetchPresentationsForAuthenticatedUser(
+      lastFetchedGSI1SK,
+      15
     );
 
-    if (!response?.presentations) {
+    if (!presentations) {
       return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
     }
 
+    const lastItem = presentations[presentations.length - 1];
+    const newLastFetchedGSI1SK = lastItem ? lastItem.gsi1sk : null;
+
     return NextResponse.json({
-      presentations: response.presentations,
-      lastEvaluatedKey: response.lastEvaluatedKey,
+      presentations,
+      lastFetchedGSI1SK: newLastFetchedGSI1SK,
     });
   } catch (error) {
     console.error("Error fetching presentations:", error);

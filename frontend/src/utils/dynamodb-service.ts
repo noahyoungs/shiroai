@@ -1,6 +1,7 @@
-// frontend/src/utils/dynamodb-service.ts
+"use server"
 // import path is "@/utils/dynamodb-service"
 import * as dynamoDBInterface from "@/utils/dynamodb-interface-factory";
+import { Identifiers, ItemWithIdentifiers, ValidItemTypes } from "@shared-utils/database-types";
 import { Slide, Topic, Source } from "@shared-utils/database-types";
 import { auth } from "@/auth";
 
@@ -56,17 +57,17 @@ export async function getAuthenticatedUserId(): Promise<string> {
  * ]);
  * ```
  */
-export async function getItemsWithAuth<T extends dynamoDBInterface.ValidItemTypes>(
+export async function getItemsWithAuth<T extends ValidItemTypes>(
   itemType: T,
-  identifiers: Omit<dynamoDBInterface.Identifiers<T>, "user_id"> | Omit<dynamoDBInterface.Identifiers<T>, "user_id">[],
+  identifiers: Omit<Identifiers<T>, "user_id"> | Omit<Identifiers<T>, "user_id">[],
   attributes?: string[]
 ) {
   const userId = await getAuthenticatedUserId();
 
   // Add the user_id to the identifiers and cast them to the appropriate type
   const enrichedIdentifiers = Array.isArray(identifiers)
-    ? (identifiers.map(id => ({ ...id, user_id: userId })) as dynamoDBInterface.Identifiers<T>[])
-    : ({ ...identifiers, user_id: userId } as dynamoDBInterface.Identifiers<T>);
+    ? (identifiers.map(id => ({ ...id, user_id: userId })) as Identifiers<T>[])
+    : ({ ...identifiers, user_id: userId } as Identifiers<T>);
 
   // Call the original function with the enriched identifiers
   return dynamoDBInterface.getItems(itemType, enrichedIdentifiers, attributes);
@@ -105,9 +106,9 @@ export async function getItemsWithAuth<T extends dynamoDBInterface.ValidItemType
  * In this example, the first item is missing `user_id`, so it will be enriched with the authenticated user's ID.
  * The second item includes `user_id`, so it will be validated against the authenticated user's ID before proceeding.
  */
-export async function updateItemsWithAuth<T extends dynamoDBInterface.ValidItemTypes>(
+export async function updateItemsWithAuth<T extends ValidItemTypes>(
   itemType: T,
-  items: Omit<dynamoDBInterface.ItemWithIdentifiers<T>, "user_id">[] | dynamoDBInterface.ItemWithIdentifiers<T>[]
+  items: Omit<ItemWithIdentifiers<T>, "user_id">[] | ItemWithIdentifiers<T>[]
 ): Promise<void> {
   const userId = await getAuthenticatedUserId();
 
@@ -129,7 +130,7 @@ export async function updateItemsWithAuth<T extends dynamoDBInterface.ValidItemT
         user_id: userId,
       };
     }
-  }) as dynamoDBInterface.ItemWithIdentifiers<T>[];
+  }) as ItemWithIdentifiers<T>[];
 
   // Proceed with the update using the enriched items
   return dynamoDBInterface.updateItems(itemType, enrichedItems);
@@ -161,14 +162,14 @@ export async function updateItemsWithAuth<T extends dynamoDBInterface.ValidItemT
  * ]);
  * ```
  */
-export async function deleteItemsWithAuth<T extends dynamoDBInterface.ValidItemTypes>(
+export async function deleteItemsWithAuth<T extends ValidItemTypes>(
   itemType: T,
-  identifiers: Omit<dynamoDBInterface.Identifiers<T>, "user_id">[]
+  identifiers: Omit<Identifiers<T>, "user_id">[]
 ): Promise<void> {
   const userId = await getAuthenticatedUserId();
 
   // Add the user_id to the identifiers and cast them to the appropriate type
-  const enrichedIdentifiers = identifiers.map(id => ({ ...id, user_id: userId })) as dynamoDBInterface.Identifiers<T>[];
+  const enrichedIdentifiers = identifiers.map(id => ({ ...id, user_id: userId })) as Identifiers<T>[];
 
   // Call the original function with the enriched identifiers
   return dynamoDBInterface.deleteItems(itemType, enrichedIdentifiers);
@@ -307,4 +308,37 @@ export async function deleteAllItemsForPresentationWithAuth(
 
   // Call the original function with the authenticated user ID
   return dynamoDBInterface.deleteAllItemsForPresentation(itemType, userId, presentationID);
+}
+
+
+/**
+ * Fetch presentations for the authenticated user.
+ * This wrapper function automatically injects the authenticated user's ID, eliminating the need 
+ * to pass the user ID manually.
+ *
+ * @param {string} [gsi1sk] - Optional GSI1SK value to start fetching from (for pagination).
+ * @param {number} [n=25] - Number of items to fetch (default: 25).
+ * @returns {Promise<Array<{presentation_id: string, topic: string, gsi1sk: string, status: string}>>} - Array of presentation objects.
+ *
+ * @throws Will throw an error if the user is not authenticated or if there's an issue fetching the presentations.
+ *
+ * Example usage:
+ * ```typescript
+ * const presentations = await fetchPresentationsForAuthenticatedUser();
+ * // For pagination:
+ * const nextPage = await fetchPresentationsForAuthenticatedUser(lastFetchedGSI1SK);
+ * ```
+ */
+export async function fetchPresentationsForAuthenticatedUser(
+  gsi1sk?: string,
+  n: number = 25
+): Promise<Array<{presentation_id: string, topic: string, gsi1sk: string, status: string}>> {
+  const userId = await getAuthenticatedUserId();
+
+  try {
+    return await dynamoDBInterface.fetchPresentations(userId, gsi1sk, n);
+  } catch (error) {
+    console.error('Error fetching presentations for authenticated user:', error);
+    throw error;
+  }
 }

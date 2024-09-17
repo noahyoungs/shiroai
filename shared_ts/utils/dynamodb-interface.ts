@@ -6,6 +6,7 @@ import {
   TransactWriteItemsCommand,
   DeleteItemCommand,
   QueryCommand,
+  QueryCommandInput,
 } from "@aws-sdk/client-dynamodb";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { ValidItemTypes, Identifiers, DBItemMap, ItemWithIdentifiers, Slide, Topic, Source } from "./database-types";
@@ -702,4 +703,69 @@ public async deleteAllItemsForPresentation(
   }
 }
 
+ /**
+   * Fetch presentations for a user, optionally starting from a specific presentation.
+   * 
+   * @param {string} userID - The user ID to fetch presentations for.
+   * @param {string} [gsi1sk] - Optional GSI1SK value to start fetching from (for pagination).
+   * @param {number} [n=25] - Number of items to fetch (default: 25).
+   * @returns {Promise<Array<{presentation_id: string, topic: string}>>} - Array of presentation objects.
+   */
+public async fetchPresentations(
+  userID: string,
+  gsi1sk?: string,
+  n: number = 25
+): Promise<Array<{presentation_id: string, topic: string, gsi1sk: string, status: string}>> {
+  this.logger.info(`Fetching presentations for user ${userID}, starting from GSI1SK ${gsi1sk || 'beginning'}`);
+
+  const pk = `USER#${userID}`;
+  const queryParams: QueryCommandInput = {
+    TableName: this.tableName,
+    IndexName: 'GSI1',
+    KeyConditionExpression: 'PK = :pk',
+    ExpressionAttributeValues: marshall({
+      ':pk': pk
+    }),
+    ExpressionAttributeNames: {
+      '#SK': 'SK',
+      '#topic': 'topic',
+      '#GSI1SK': 'GSI1SK',
+      '#status': 'status'
+    },
+    Limit: n,
+    ScanIndexForward: false,
+    ProjectionExpression: '#SK, #topic, #GSI1SK, #status'
+  };
+
+  if (gsi1sk) {
+    queryParams.ExclusiveStartKey = marshall({
+      PK: pk,
+      GSI1SK: gsi1sk
+    });
+  }
+
+  try {
+    const command = new QueryCommand(queryParams);
+    const response = await this.client.send(command);
+    
+    const presentations = response.Items?.map(item => {
+      const unmarshalledItem = unmarshall(item);
+      return {
+        presentation_id: unmarshalledItem.SK.split('#')[1],
+        topic: unmarshalledItem.topic,
+        gsi1sk: unmarshalledItem.GSI1SK,
+        status: unmarshalledItem.status
+      };
+    }) || [];
+
+    this.logger.info(`Successfully fetched ${presentations.length} presentations`);
+    return presentations;
+  } catch (error: any) {
+    this.logger.error({ error }, 'Error fetching presentations');
+    throw error;
+  }
+}
+
 } // end class
+
+

@@ -41,17 +41,24 @@
 
 ---
 
-## **Side Panel Read Operation (Updated)**
+## **Side Panel Read Operation**
 
 To retrieve the list of presentations for the side panel, sorted by the most recent update:
 
 1. Query GSI1 with:
    - Partition Key (PK) = `USER#{user_id}`
-   - Sort Key (SK) begins with `LASTUPDATED#`
-   - Limit the query to 25 items
-   - Sort in descending order
+   - Sort Key (SK) begins with `PRESENTATION#`
+   - Limit the query to N items (e.g., 25)
+   - Sort in descending order by GSI1SK (set `ScanIndexForward` to false)
 
-2. Perform a batch get operation to retrieve the full presentation items based on the `SK` values, which contain the `PRESENTATION#{presentation_id}`.
+2. This query will directly return the presentation items with their `topic` attribute and `presentation_id` (extracted from the SK), sorted by the most recent update.
+
+3. For pagination or loading more items:
+   - Use the `ExclusiveStartKey` parameter with the last evaluated key from the previous query.
+   - This allows retrieving the next N items after a given PK and SK combination, still sorted by GSI1SK.
+   - Example: To get the next 25 items after a specific presentation, use its PK, SK, and GSI1SK as the `ExclusiveStartKey`.
+
+Note: This pagination approach works efficiently because only presentation items have the GSI1SK attribute, which contains the `LASTUPDATED#` timestamp used for sorting.
 
 ---
 
@@ -63,4 +70,4 @@ When creating or updating **presentation** items:
 2. Set the `GSI1SK` as follows:
    - `GSI1SK = LASTUPDATED#{current_timestamp}`
 
-   **Note**: Do not set the `GSI1SK` for Slides, Topics, or Sources. Only presentations will update the GSI.
+   **Note**: Only presentation items have the `GSI1SK` attribute. Slides, Topics, and Sources do not use the GSI.

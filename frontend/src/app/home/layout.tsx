@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { redirect } from "next/navigation";
 import { auth } from "@/auth"
 import SideBar from "@/components/sidebar-with-gradient-background/sidebar";
-import SidebarList from "@/components/sidebar-with-gradient-background/sidebar-list";
+import PresentationListboxWithPagination from "@/components/sidebar-with-gradient-background/presentation-listbox-with-pagination";
 
 type LayoutProps = {
     children: ReactNode;
@@ -18,7 +18,7 @@ async function Layout({ children }: LayoutProps) {
     return (
         <section style={{ height: '100vh' }}>
             <SideBar
-                list={<SidebarList />}
+                list={<PresentationListboxWithPagination />}
             >
                 {children}
             </SideBar>
