@@ -27,24 +27,29 @@ export function SlideThumbnailBar({ slides, currentSlideID, setCurrentSlideID, b
   return (
     <div className="flex overflow-x-scroll overflow-y-visible pt-1 pb-4 px-1 gap-6 -ml-1">
       {slides.map((slide, index) => (
-        <div className={cn('rounded-lg flex-none overflow-hidden w-[192px] ring-1 ring-foreground/30', slide.slide_id === currentSlideID && 'ring-2 ring-primary-500')}>
-        <div
+        <div 
           key={slide.slide_id}
-          ref={(el) => (thumbnailRefs.current[index] = el)}
-          className={"flex-none"}
-          onClick={!blockSlideSwitching ? () => setCurrentSlideID(slide.slide_id) : undefined}
-          style={{ width: '192px', height: '108px', transform: 'scale(0.15)', transformOrigin: 'top left' }}
+          className={cn('rounded-lg flex-none overflow-hidden w-[192px] ring-1 ring-foreground/30 relative', slide.slide_id === currentSlideID && 'ring-2 ring-primary-500')}
         >
-          <div className="w-[1280px] h-[720px]">
-          <div className="flex flex-none text-foreground bg-foreground/5 w-full aspect-video box-border shadow-lg">
-            <SlideComponent 
-              slide={slide} 
-              viewOnly={true} 
-              thumbnail={true}
-            />
+          <div
+            ref={(el) => { thumbnailRefs.current[index] = el; }}
+            className="flex-none"
+            onClick={!blockSlideSwitching ? () => setCurrentSlideID(slide.slide_id) : undefined}
+            style={{ width: '192px', height: '108px', transform: 'scale(0.15)', transformOrigin: 'top left' }}
+          >
+            <div className="w-[1280px] h-[720px]">
+              <div className="flex flex-none text-foreground bg-foreground/5 w-full aspect-video box-border shadow-lg">
+                <SlideComponent 
+                  slide={slide} 
+                  viewOnly={true} 
+                  thumbnail={true}
+                />
+              </div>
             </div>
           </div>
-        </div>
+          <div className="absolute bottom-1 left-1 bg-background text-foreground text-sm px-1 rounded">
+            {index + 1}
+          </div>
         </div>
       ))}
     </div>
