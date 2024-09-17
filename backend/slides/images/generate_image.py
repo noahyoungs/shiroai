@@ -16,6 +16,7 @@ from uuid_extensions import uuid7str
 import ssl
 import httpx
 from llm_clients import content_gen_client, content_gen_model
+import asyncio
 
 
 load_dotenv()
@@ -264,6 +265,7 @@ async def generate_image_dalle(prompt, style_preset, shape="square"):
 
             return img_data, revised_prompt
 
+
 async def get_prompt(presentation_topic, presentation_audience="General", presentation_goal="N/A", section_topic=None, model_type="sdxl"):
         
     class DalleGenerationTemplate(BaseModel):
@@ -345,18 +347,32 @@ Remember to follow the instructions for creating a good prompt and to provide a 
 
     messages = [{"role": "user", "content": prompt}]
 
-    template, messages = await get_basemodel_instance_from_llm(
-        client=content_gen_client,
-        pydantic_model_class=DalleGenerationTemplate if model_type == "dalle" else StabilityGenerationTemplate,
-        model=content_gen_model,
-        temperature=1.0,
-        temperature_multiplier=1.1,
-        max_temperature=2,
-        messages=messages,
-        max_tokens=500,
-    )
+    max_retries = 3
+    retry_delay = 1  # Start with 1 second delay
 
-    return template, messages
+    for attempt in range(max_retries):
+        try:
+            template, messages = await get_basemodel_instance_from_llm(
+                client=content_gen_client,
+                pydantic_model_class=DalleGenerationTemplate if model_type == "dalle" else StabilityGenerationTemplate,
+                model=content_gen_model,
+                temperature=1.0,
+                max_temperature=1,
+                messages=messages,
+                max_tokens=500,
+            )
+            return template, messages
+        except Exception as e:
+            if attempt < max_retries - 1:
+                print(f"WARNING: APIConnectionError occurred. Retrying in {retry_delay} seconds... (Attempt {attempt + 1}/{max_retries})")
+                await asyncio.sleep(retry_delay)
+                retry_delay *= 2  # Exponential backoff
+            else:
+                print(f"ERROR: APIConnectionError persisted after {max_retries} attempts. Raising the error.")
+                raise
+
+    # This line should never be reached due to the raise in the else clause above, but including it for completeness
+    raise RuntimeError("Failed to get basemodel instance after multiple retries")
 
 async def upload_image(image_data, presentation_id):
     """Uploads the image and its thumbnail to S3 and returns the S3 key."""
