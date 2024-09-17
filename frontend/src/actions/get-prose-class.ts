@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { auth } from "@/auth";
 
 const BASE_URL = process.env.HEADLESS_API_URL;
 const DISABLE_SSL_VERIFY = process.env.DISABLE_SSL_VERIFY === 'true';
@@ -9,6 +10,18 @@ const axiosInstance = axios.create({
 });
 
 export async function getProseClass(markdown: string, title: string): Promise<string> {
+  const session = await auth();
+  const userId = session?.user?.id;
+
+  if (!userId) {
+    throw new Error("User is not authenticated. Database calls should not be made.");
+  }
+
+  const INTERNAL_API_KEY = process.env.HEADLESS_API_INTERNAL_KEY;
+
+  if (!INTERNAL_API_KEY) {
+    throw new Error("Internal API key is not set");
+  }
 
   if (!markdown) {
     throw new Error("Markdown is required to determine prose class");
@@ -27,13 +40,21 @@ export async function getProseClass(markdown: string, title: string): Promise<st
 
   while (attempt < maxRetries) {
     try {
-      // Send the markdown and title to the new service
-      const response = await axios.post(`${BASE_URL}/prose-class`, { markdown, title });
+      // Use the axiosInstance instead of axios directly
+      const response = await axiosInstance.post('/prose-class', 
+        { markdown, title },
+        {
+          headers: {
+            'x-api-key': INTERNAL_API_KEY,
+            'x-user-id': userId
+          }
+        }
+      );
       const { proseClass } = response.data;
 
       console.log("Prose class:", proseClass);
       return proseClass;
-    } catch (error) {
+    } catch (error: any) {
       attempt++;
       const delay = Math.pow(2, attempt) * 500; // Exponential backoff
       console.error(`Attempt ${attempt} failed: ${error.message}. Retrying in ${delay / 1000} seconds...`);
