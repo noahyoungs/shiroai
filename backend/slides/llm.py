@@ -23,7 +23,7 @@ def slide_to_text(current_slide: Slide):
     slide_content_string = ""
     
     if current_slide.slide_type == 'short_bullets_slide':
-        slide_content_string = "\n".join([f"Icon: {item.icon.name if item.icon and item.icon.name else 'Icon'}, Text: {item.content}" for item in current_slide.slide_content])
+        slide_content_string = "\n".join([f"Icon: {item.get('icon', {}).get('name') if item.get('icon') and item.get('icon', {}).get('name') else 'Icon'}, Text: {item.get('content')}" for item in current_slide.slide_content])
         slide_content_string = f"Slide Content:\n{slide_content_string}"
     elif current_slide.slide_type == 'markdown_slide':
         slide_content_string = current_slide.slide_content['content']
@@ -32,7 +32,7 @@ def slide_to_text(current_slide: Slide):
         slide_content_string = current_slide.slide_content['mermaid_code']
         slide_content_string = f"Slide Content:\nA mermaid diagram with the following code is rendered for the user:\n{slide_content_string}"
     elif current_slide.slide_type in ['section_header_slide', 'presentation_title_slide']:
-        slide_content_string = f"Slide Image: An image containing `{current_slide.image.prompt}` is displayed on the slide."
+        slide_content_string = f"Slide Image: An image containing `{current_slide.image['prompt']}` is displayed on the slide."
     
     prompt = f"""\
 Slide Type: {slide_type_descriptions.get(current_slide.slide_type, 'Unknown Slide Type')}
@@ -101,7 +101,7 @@ async def complete(presentation_id, messages, emitter, memory, interface_data, m
             
             async def run(self):
                 nonlocal current_slide
-                await slide_list.update_slides([{'id': current_slide_id, 'slide_title': self.new_slide_title}], wait_for_db=True)
+                await slide_list.update_slides([{'slide_id': current_slide_id, 'slide_title': self.new_slide_title}], wait_for_db=True)
                 return f"Success, New Slide Title: {self.new_slide_title}"
             
             

@@ -1,6 +1,6 @@
 from database_models import Slide, Topic
 from typing import List
-
+import traceback
 slide_type_descriptions = {
     'short_bullets_slide': 'Icon Node Slide (This slide type has a title and 2-5 nodes, each with an icon and a short text description (<=80 chars). The nodes can be arranged in a list or a grid, and arrows can be displayed between the nodes to indicate sequentiality. The layout and arrangement of the title and nodes are determined by the content and number of nodes.)',
     'markdown_slide': 'Markdown Slide (A slide with a title and markdown content. The title is displayed above the markdown content. The markdown content typically includes either headings and bullet points or a table. Images are not supported. Icons are not supported, but emojis can be used.)',
@@ -61,7 +61,7 @@ def slide_content_to_xml(current_slide: Slide, all_topics: List[Topic]):
         return xml_content
     except AttributeError:
         # Log the error for debugging purposes
-        print(f"Error processing slide: {current_slide}. Slide will be omitted.")
+        print(f"Error processing slide {current_slide.slide_id}: {traceback.format_exc()}. Slide will be omitted.")
         return ""
 
 def slide_to_xml(current_slide: Slide):
@@ -73,8 +73,8 @@ def slide_to_xml(current_slide: Slide):
             xml_content += "  <content>\n"
             for item in current_slide.slide_content:
                 xml_content += f"    <bullet-point>\n"
-                xml_content += f"      <icon>{item.icon.name if item.icon and item.icon.name else 'Icon'}</icon>\n"
-                xml_content += f"      <text>{item.content}</text>\n"
+                xml_content += f"      <icon>{item.get('icon', {}).get('name') if item.get('icon') and item.get('icon', {}).get('name') else 'Icon'}</icon>\n"
+                xml_content += f"      <text>{item.get('content')}</text>\n"
                 xml_content += f"    </bullet-point>\n"
             xml_content += "  </content>\n"
         elif current_slide.slide_type == 'markdown_slide':
@@ -87,14 +87,14 @@ def slide_to_xml(current_slide: Slide):
             xml_content += "  </content>\n"
         elif current_slide.slide_type in ['section_header_slide', 'presentation_title_slide']:
             xml_content += "  <image>\n"
-            xml_content += f"    <prompt>{current_slide.image.prompt}</prompt>\n"
+            xml_content += f"    <prompt>{current_slide.image.get('prompt')}</prompt>\n"
             xml_content += "  </image>\n"
         
         xml_content += "</slide>"
         return xml_content
     except AttributeError:
         # Log the error for debugging purposes
-        print(f"Error processing slide: {current_slide}. Slide will be omitted.")
+        print(f"Error processing slide {current_slide.slide_id}: {traceback.format_exc()}. Slide will be omitted.")
         return ""
 
 def slides_to_xml(slides: List[Slide]):

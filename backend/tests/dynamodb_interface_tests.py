@@ -43,7 +43,7 @@ def create_dummy_data(item_type):
             slide_content=[
                 {
                     "content": "Test bullet point",
-                    "icon": IconData(name="test_icon", source="test_source"),
+                    "icon":{ 'name': 'test_icon', 'source': 'test_source'},
                     "slide_id": f"test_bullet_{uuid7str()}"
                 }
             ],

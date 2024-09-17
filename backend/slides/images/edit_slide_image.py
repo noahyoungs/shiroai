@@ -4,7 +4,7 @@ from PIL import Image
 from typing import Awaitable, List, Literal, Optional, Callable, Tuple, Union, Dict
 from pydantic import BaseModel
 from slides.xml_instructor import generate_variable_input_xml, get_basemodel_instance_from_llm, generate_xml_from_instance
-from database_models import Image as ImageType, Slide
+from database_models import Slide
 from slides.images.generate_image import openai_style_presets, stability_style_presets, generate_image_stable_core, generate_image_dalle, generate_image_sdxl, upload_image, default_negative_prompt
 from llm_clients import content_gen_client, content_gen_model
 
@@ -101,17 +101,17 @@ Please respond in the following format:
 
 async def _edit_image(old_messages, instruction, current_slide, presentation_id):
     
-    if not current_slide.image.shape:
+    if not current_slide.image['shape']:
         raise ValueError("No shape found for the image")
     
-    if not current_slide.image.prompt:
+    if not current_slide.image['prompt']:
         raise ValueError("No prompt found for the image")
     
-    old_prompt = current_slide.image.prompt
-    shape = current_slide.image.shape
-    old_style = current_slide.image.style or "default"
-    old_negative_prompt = current_slide.image.negative_prompt or None
-    model_type = current_slide.image.model or "sdxl"
+    old_prompt = current_slide.image['prompt']
+    shape = current_slide.image['shape']
+    old_style = current_slide.image['style'] or "default"
+    old_negative_prompt = current_slide.image.get('negative_prompt', None)
+    model_type = current_slide.image['model'] or "sdxl"
     
     # make sure style is supported by the model
     if model_type == "dalle" and old_style not in openai_style_presets:
@@ -174,7 +174,7 @@ async def edit_slide_image(
     
     image_data, generation_messages, message_to_user = await _edit_image(current_slide.generation_messages, instruction, current_slide, presentation_id)    
     
-    current_slide.image = ImageType(**image_data)
+    current_slide.image = image_data
     current_slide.generation_messages = generation_messages
     
     # update the slide in the PersistentSlideList and DynamoDB

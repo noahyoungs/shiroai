@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from slides.mermaid.validate_mermaid import validate_mermaid_diagram
 from dynamodb_service import get_items_with_user
 from slides.icons.icon_similarity_search import hybrid_icon_assignment
-from database_models import Slide, Excerpt, ShortBulletContent, IconData
+from database_models import Slide, Excerpt
 from uuid_extensions import uuid7str
 from llm_clients import content_gen_client, content_gen_model
 
@@ -56,8 +56,8 @@ async def edit_sbs(slide_title, slide_content, sequential, instruction, messages
             "slide_title": slide_title,
             "bullet_points": [
                 BulletPoint(
-                    content=bp.content,
-                    excerpt_id=bp.excerpt.excerpt_id[-8:],
+                    content=bp['content'],
+                    excerpt_id=bp['excerpt']['excerpt_id'][-8:],
                     valid_ids=id_suffixes
                 ) for bp in slide_content
             ],
@@ -225,9 +225,8 @@ async def edit_mermaid_slide(slide_title, slide_content, instruction, messages, 
 
     diagram = slide_content['mermaid_code']
     excerpts = slide_content['excerpts']
-    excerpt_id_suffixes = [ex.excerpt_id[-8:] for ex in excerpts]
+    excerpt_id_suffixes = [ex['excerpt_id'][-8:] for ex in excerpts]
 
-    id_suffixes = [id[-8:] for id in excerpt_ids]
 
     class ExcerptId(BaseModel):
         excerpt_id: str = Field(..., min_length=8, max_length=8)
@@ -291,7 +290,7 @@ Respond in the following format:
         max_tokens=2000,
         messages=messages,
         temperature=1.0,
-        dynamic_val_params={"valid_ids": id_suffixes},
+        dynamic_val_params={"valid_ids": excerpt_id_suffixes},
     )
 
     return markdown_slide, new_messages
@@ -314,15 +313,20 @@ async def edit_slide_content(
 
     reduced_docs = None
     excerpt_ids = None
+    topic_id = current_slide.topic_id
     if current_slide.topic_id:
         # Get reduced docs
         # reduced_docs = (await get_topics(presentation_id, current_slide.topic_id, ['reduced_docs'])).reduced_docs
-        reduced_docs = (await get_items_with_user('topic', [{'presentation_id': presentation_id, 'topic_id': current_slide.topic_id}], ['reduced_docs'], 'model')).reduced_docs
+        print(f"Getting reduced docs for Presentation ID: {presentation_id}, Topic ID: {current_slide.topic_id}")
+        # get the topic
+        topic = (await get_items_with_user('topic', [{'presentation_id': presentation_id, 'topic_id': current_slide.topic_id}], ['reduced_docs'], 'model'))[0]
+        reduced_docs = topic.reduced_docs
         if not reduced_docs:
             raise RuntimeError("No reduced docs found for the topic")
-
         # Get excerpt ids
         excerpt_ids = get_excerpt_ids(reduced_docs)
+    else:
+        print(f"No topic for Presentation ID: {presentation_id}, Slide ID: {current_slide.slide_id}")
 
     if slide_type == 'short_bullets_slide':
         print("Editing Short Bullets Slide")
@@ -357,30 +361,28 @@ async def edit_slide_content(
                 source_id = next(
                     (doc['metadata']['source']['source_id'] for doc in reduced_docs if doc['metadata']['document_id'] == source_excerpt_id), None
                 )
-
-                bullet_points_list.append(ShortBulletContent(
-                    bullet_id=uuid7str(),
-                    content=bullet_point['content'],
-                    excerpt=Excerpt(
-                        source_id=source_id,
-                        excerpt_id=source_excerpt_id,
-                        text=source_excerpt
-                    )
-                ))
+                bullet_points_list.append({
+                    "bullet_id": uuid7str(),
+                    "content": bullet_point['content'],
+                    "excerpt": {
+                        "source_id": source_id,
+                        "excerpt_id": source_excerpt_id,
+                        "text": source_excerpt
+                    }
+                })
             
             current_slide.slide_content = bullet_points_list
 
-            icon_data = await hybrid_icon_assignment([bullet_point.content for bullet_point in bullet_points_list])
+            icon_data = await hybrid_icon_assignment([bullet_point['content'] for bullet_point in bullet_points_list])
 
             updated_bullet_points_list = []
             for bullet_point in bullet_points_list:
-                print(f"Bullet point: {bullet_point.content}, Icon Name: {icon_data[bullet_point.content][0]}, Icon Source: {icon_data[bullet_point.content][1]}")
-                updated_bullet_point = bullet_point.copy(update={
-                    "icon": IconData(
-                        name=icon_data[bullet_point.content][0],
-                        source=icon_data[bullet_point.content][1]
-                    )
-                })
+                print(f"Bullet point: {bullet_point['content']}, Icon Name: {icon_data[bullet_point['content']][0]}, Icon Source: {icon_data[bullet_point['content']][1]}")
+                updated_bullet_point = bullet_point.copy()  # Create a shallow copy
+                updated_bullet_point['icon'] = {
+                    'name': icon_data[bullet_point['content']][0],
+                    'source': icon_data[bullet_point['content']][1]
+                }
                 updated_bullet_points_list.append(updated_bullet_point)
             
             current_slide.slide_content = updated_bullet_points_list
@@ -452,6 +454,9 @@ async def edit_slide_content(
         current_slide.generation_messages = messages
 
     # print(f"Updated slide: {current_slide.dict()}")
+
+    # make sure topic id hasnt been changed
+    current_slide.topic_id = topic_id
 
     # update the slide in the PersistentSlideList and DynamoDB
     await update_slides(current_slide, True)
