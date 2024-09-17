@@ -178,7 +178,7 @@ export default function Interface({
             <Button
                 color="primary"
                 className="min-h-[64px] flex flex-row rounded-b-none text-base"
-                isDisabled={block}
+                isDisabled={!includedTopics.length}
                 onClick={() => {
                     !block && router.push(redirectPath);
                 }}
