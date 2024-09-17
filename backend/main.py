@@ -267,17 +267,24 @@ async def interface_update(sid, data):
             logger.info(f"Pushing slides: {push_value}")
             if push_value == '*':
                 logger.error("Error: Pushing all slides not implemented yet.")
-            try:
-                if type(push_value) != str and not (type(push_value) == list and len(push_value) > 0 and all(isinstance(x, str) for x in push_value)):
-                    raise ValueError("Push value must be a string or a list of strings")
-                await connected_users[sid]["memory"]["slide_list"].fetch_slides(push_value)
-                await sio.emit('update_complete', {'status': 'success', 'slide_ids': push_value}, to=sid)
-                logger.info(f"Pushed slides: {push_value}")
+            else:
+                try:
+                    # Convert push_value to a list if it's a string
+                    slide_ids = [push_value] if isinstance(push_value, str) else push_value
+
+                    if not all(isinstance(x, str) for x in slide_ids):
+                        raise ValueError("Push value must be a string or a list of strings")
+
+                    logger.info(f"Fetching slides with IDs: {slide_ids}")
+                    await connected_users[sid]["memory"]["slide_list"].fetch_slides(slide_ids)
+                    await sio.emit('update_complete', {'status': 'success', 'slide_ids': slide_ids}, to=sid)
+                    logger.info(f"Successfully pushed slides: {slide_ids}")
                     
-            except Exception as e:
-                await sio.emit('update_complete', {'status': 'error', 'message': str(e)}, to=sid)
-                logger.error(f"Error pushing slides: {str(e)}")
-                
+                except Exception as e:
+                    error_msg = f"Error pushing slides: {str(e)}\n{traceback.format_exc()}"
+                    await sio.emit('update_complete', {'status': 'error', 'message': str(e)}, to=sid)
+                    logger.error(error_msg)
+        
         connected_users[sid]["interface_data"].update(other_keys)
         
         if data.get('script', {}).get('status', {None}) == 'requested':
