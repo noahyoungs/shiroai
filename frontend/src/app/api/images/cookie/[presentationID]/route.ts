@@ -52,7 +52,7 @@ export async function GET(req: NextRequest, { params }: { params: { presentation
     console
 
     const response = new NextResponse(`Signed cookies set, resource: ${resource}`, { status: 200 });
-
+    console.log(`Signed cookies set, resource: ${resource}`);
     return response;
   } catch (error) {
     console.error("Error generating signed cookies:", error);
