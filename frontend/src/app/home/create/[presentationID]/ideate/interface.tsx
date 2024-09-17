@@ -3,6 +3,7 @@
 import { Textarea, Button, Spacer, ScrollShadow, Tooltip } from "@nextui-org/react";
 import { useRouter } from 'next/navigation';
 import { Icon } from "@iconify/react";
+import { useState } from "react";
 
 
 interface InterfaceProps {
@@ -19,6 +20,7 @@ interface InterfaceProps {
 
 export default function Interface({ topic, audience, goal, setTopic, setAudience, setGoal, block, redirectPath }: InterfaceProps) {
     const router = useRouter();
+    const [continueButtonLoading, setContinueButtonLoading] = useState(false);
     return (
         <div className="flex flex-col h-full flex-auto">
             {/* Sticky title at top */}
@@ -86,9 +88,11 @@ export default function Interface({ topic, audience, goal, setTopic, setAudience
                 color="primary"
                 className="min-h-[64px] flex flex-row rounded-b-none text-base"
                 onClick={() => {
-                    router.push(redirectPath);
+                    block || !topic || !audience || !goal && setContinueButtonLoading(true);
+                    block || !topic || !audience || !goal && router.push(redirectPath);
                 }}
                 isDisabled={block || !topic || !audience || !goal}
+                isLoading={continueButtonLoading}
             >
                 <span>Proceed to the next step</span>
                 <Icon icon="tabler:arrow-narrow-right" width={30} />

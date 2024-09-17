@@ -31,6 +31,7 @@ export default function Interface({
     const router = useRouter();
    
     const [allSources, setAllSources] = useState<any[]>([]);
+    const [continueButtonLoading, setContinueButtonLoading] = useState(false);
 
       useEffect(() => {
         const updateSources = async () => {
@@ -178,10 +179,12 @@ export default function Interface({
             <Button
                 color="primary"
                 className="min-h-[64px] flex flex-row rounded-b-none text-base"
-                isDisabled={!includedTopics.length}
+                isDisabled={!includedTopics.length || block}
                 onClick={() => {
-                    !block && router.push(redirectPath);
+                    includedTopics.length && !block && setContinueButtonLoading(true);
+                    includedTopics.length && !block && router.push(redirectPath);
                 }}
+                isLoading={continueButtonLoading}
             >
                 <span>Proceed to the next step</span>
                 <Icon icon="tabler:arrow-narrow-right" width={30} />
