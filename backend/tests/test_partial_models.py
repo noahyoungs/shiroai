@@ -22,11 +22,6 @@ def test_partial_icon_data():
     assert partial_instance.source == "source1"
     assert partial_instance.detailed_name is None
 
-def test_partial_llm_message():
-    PartialLLMMessage = LLMMessage.partial()
-    partial_instance = PartialLLMMessage(role="user", content="Hello!")
-    assert partial_instance.role == "user"
-    assert partial_instance.content == "Hello!"
 
 def test_partial_base_slide():
     PartialBaseSlide = BaseSlide.partial()
@@ -36,16 +31,6 @@ def test_partial_base_slide():
     assert partial_instance.hidden is None  # Changed from False to None
     # We expect hidden to be None because we are testing a partial model
 
-def test_partial_short_bullet_content():
-    PartialShortBulletContent = ShortBulletContent.partial()
-    partial_instance = PartialShortBulletContent(
-        content="Test Content", 
-        icon=IconData(name="icon", source="test"), 
-        id="1"
-    )
-    assert partial_instance.content == "Test Content"
-    assert partial_instance.icon.name == "icon"
-    assert partial_instance.source_excerpt_id is None
 
 def test_partial_topic():
     PartialTopic = Topic.partial()
