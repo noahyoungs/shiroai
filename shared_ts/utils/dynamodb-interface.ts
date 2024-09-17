@@ -12,6 +12,13 @@ import { ValidItemTypes, Identifiers, DBItemMap, ItemWithIdentifiers, Slide, Top
 import { AttributeValue } from "@aws-sdk/client-dynamodb";
 import { Logger } from "pino";
 
+const itemIdsByType: Record<ValidItemTypes, string[]> = {
+  user: ['user_id'],
+  presentation: ['user_id', 'presentation_id'],
+  slide: ['user_id', 'presentation_id', 'slide_id'],
+  topic: ['user_id', 'presentation_id', 'topic_id'],
+  source: ['user_id', 'presentation_id', 'source_id']
+}
 
 export class DynamoDBInterface {
   private client: DynamoDBClient;
@@ -283,7 +290,7 @@ private getUpdateExpression<T extends ValidItemTypes>(
 ): [string, Record<string, any>, Record<string, any>] {
   this.logger.debug(`Generating update expression for item of type ${itemType}`);
 
-  const omitAttributes = ['PK', 'SK', 'user_id', 'presentation_id', 'slide_id', 'source_id', 'topic_id', 'GSI1SK', 'last_updated'];
+  const omitAttributes = ['PK', 'SK', 'GSI1SK', 'last_updated'].concat(itemIdsByType[itemType]);
   let updateExpression = "SET ";
   const expressionAttributeValues: Record<string, any> = {};
   const expressionAttributeNames: Record<string, string> = {};
