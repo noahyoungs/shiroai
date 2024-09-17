@@ -9,8 +9,7 @@ import ChatConfigureLayout from "@/components/chat-configure-layout";
 import { PersistentSlideList } from "@/utils/persistent-slides-list";
 import { getSources } from "@/actions/slides-actions";
 import debounce from "lodash/debounce";
-import internal from "stream";
-import { set } from "lodash";
+
 import { toast } from "sonner"
 import {ToastProgress } from "@/components/toast-progress";
 
