@@ -54,7 +54,7 @@ export function ViewOnlySlideImage({
         src={imageUrl}
         alt={image.prompt}
         width={image?.width || tempWidth}
-        height={image?.height || tempHeight}
+        // height={image?.height || tempHeight}
         classNames={{
           img: cn(roundedClass),
           wrapper: cn(roundedClass, "w-full"),
@@ -64,7 +64,7 @@ export function ViewOnlySlideImage({
         <div className={cn("absolute inset-0 rounded-[15px]")}>
           <div
             className={cn(
-              "absolute inset-0 bg-gradient-to-t from-foreground/80 via-transparent to-transparent z-20 rounded-[15px]"
+              "absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent z-20 rounded-[15px]"
             )}
           ></div>
         </div>

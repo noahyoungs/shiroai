@@ -21,7 +21,7 @@ export function ViewOnlyPresentationTitleSlideComponent({
       <div className="absolute mx-12 mb-3 bottom-10 z-[21] text-background/90 w-[90%]" id="presentation-title">
         <ViewOnlyTitle
           title={slide.slide_title}
-          classNames="!text-text-background/90"
+          classNames="!text-white/90"
         />
       </div>
       <ViewOnlySlideImage image={slide.image} variant="full" thumbnail={thumbnail}/>

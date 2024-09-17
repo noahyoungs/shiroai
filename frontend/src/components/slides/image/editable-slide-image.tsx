@@ -209,9 +209,9 @@ export function SlideImage({
             src={imageUrl}
             alt={currentImage?.prompt}
             width={currentImage?.width || tempWidth}
-            height={currentImage?.height || tempHeight}
+            // height={currentImage?.height || tempHeight}
             classNames={{
-              img: cn("object-cover w-full h-full", roundedClass),
+              img: cn("object-none w-full object-cover", roundedClass),
               wrapper: cn(roundedClass, "w-full h-full"),
             }}
             // fallbackSrc={variant === "full" ? "/1920placeholder.jpeg" : "/1080placeholder.jpeg"}
@@ -220,7 +220,7 @@ export function SlideImage({
             <div className={cn("absolute inset-0 rounded-[15px]")}>
               <div
                 className={cn(
-                  "absolute inset-0 bg-gradient-to-t from-foreground/80 via-transparent to-transparent z-20 rounded-[15px]"
+                  "absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent z-20 rounded-[15px]"
                 )}
               ></div>
             </div>
