@@ -15,7 +15,7 @@ from slides.generate_initial.section_header_slide import get_section_header_slid
 from slides.generate_initial.presentation_title_slide import get_presentation_title_slide
 from slides.generate_initial.utils import get_excerpt_ids, get_presentation_xml, get_subtopic_xml, get_research_xml
 from slides.generate_initial.intro_conclusion_slides import get_intro_or_conclusion_slides
-
+import logging
 
 async def get_slide_content(presentation_id, presentation_xml, subtopic_xml, all_docs, slide_idea, excerpt_ids):
     slide_type = slide_idea['slide_type']
@@ -30,7 +30,6 @@ async def get_slide_content(presentation_id, presentation_xml, subtopic_xml, all
     else:
         raise ValueError(f"Unknown slide type: {slide_type}")
 
-
 async def get_slide_content_wrapper(presentation_id, presentation_xml, subtopic_xml, all_docs, slide_idea, excerpt_ids):
     try:
         slide = await get_slide_content(presentation_id, presentation_xml, subtopic_xml, all_docs, slide_idea, excerpt_ids)
@@ -42,7 +41,6 @@ async def get_slide_content_wrapper(presentation_id, presentation_xml, subtopic_
         print(f"Error creating slide: {e}")
         traceback.print_exc()
         return []
-
 
 async def get_section_header_slide_wrapper(presentation_id, presentation_topic, presentation_audience, presentation_goal, subtopic_name, wrap_in_list=False):
     try:
@@ -63,7 +61,6 @@ async def get_section_header_slide_wrapper(presentation_id, presentation_topic, 
         print(f"Error creating section header slide: {e}")
         traceback.print_exc()
         return None
-
 
 async def get_topic_slides(presentation_id, presentation_topic, presentation_audience, presentation_goal, subtopic_name, subtopic_id, all_docs):
     presentation_xml = get_presentation_xml(
@@ -124,7 +121,6 @@ async def get_topic_slides(presentation_id, presentation_topic, presentation_aud
 
     return content_slides
 
-
 async def get_intro_conclusion_slides_wrapper(presentation_id, presentation_topic, presentation_audience, presentation_goal, slides, slide_type):
     try:
         slides = await get_intro_or_conclusion_slides(
@@ -152,7 +148,6 @@ async def get_intro_conclusion_slides_wrapper(presentation_id, presentation_topi
         traceback.print_exc()
         return []
 
-
 async def get_presentation_title_wrapper(presentation_id, presentation_topic, presentation_audience, presentation_goal):
     try:
         return await get_presentation_title_slide(
@@ -165,7 +160,6 @@ async def get_presentation_title_wrapper(presentation_id, presentation_topic, pr
         print(f"Error creating presentation title slide: {e}")
         traceback.print_exc()
         return None
-
 
 async def make_presentation_slides(presentation_id, emitter, all_docs=None,):
     print("REMAKING SLIDES")
@@ -184,9 +178,9 @@ async def make_presentation_slides(presentation_id, emitter, all_docs=None,):
     final_topics = [(next((candidate_topic for candidate_topic in candidate_topics if candidate_topic['topic_id']
                      == outline_topic['topic_id']), None)) for outline_topic in outline if outline_topic['included']]
 
-    if not final_topics:
+    if len(final_topics) == 0:
         raise ValueError("No final topics found")
-
+        
     slide_tasks = [
         get_presentation_title_wrapper(
             presentation_id=presentation_id,
@@ -218,15 +212,64 @@ async def make_presentation_slides(presentation_id, emitter, all_docs=None,):
 
     slides_list = await asyncio.gather(*slide_tasks)
 
-    for topic, topic_slides in zip(final_topics, slides_list[1:]):
-        topic_id = topic['topic_id']
+    if slides_list is None:
+        raise RuntimeError("slides_list is None")
+
+    if len(slides_list) == 0:
+        raise RuntimeError("Not a single slide was created")
+
+    # Check if the number of topics matches the number of slide sets (excluding title and conclusion)
+    if len(final_topics) != len(slides_list) - 2:  # -2 for title and conclusion
+        raise ValueError(f"Mismatch between number of topics ({len(final_topics)}) and number of slide sets ({len(slides_list) - 2})")
+
+    # Handle the presentation title slide
+    if slides_list[0] is None:
+        print("WARNING: Presentation title slide is None")
+        presentation_title_slide = None
+    else:
+        presentation_title_slide = slides_list[0][0] if slides_list[0] else None
+
+    # Add topic_id to each slide except the first one (presentation title) and the last one (conclusion header slide)
+    for i, (topic, topic_slides) in enumerate(zip(final_topics, slides_list[1:-1])):
+        if topic_slides is None:
+            print(f"ERROR: topic_slides is None for topic {i+1}")
+            continue
+        topic_id = topic.get('topic_id')
+        if topic_id is None:
+            print(f"ERROR: topic_id is None for topic {i+1}")
+            continue
         for slide in topic_slides:
+            if slide is None:
+                print(f"ERROR: Found None slide in topic {i+1}")
+                continue
             slide.topic_id = topic_id
 
-    flat_slides = [
-        slide for topic_slides in slides_list for slide in topic_slides
-    ]
+    # More robust flattening with error checking
+    flat_slides = []
+    if presentation_title_slide:
+        flat_slides.append(presentation_title_slide)
 
+    for i, topic_slides in enumerate(slides_list[1:], start=1):  # Skip the first element (title slide)
+        if topic_slides is None:
+            print(f"ERROR: Found None at index {i} in slides_list")
+            continue
+        for j, slide in enumerate(topic_slides):
+            if slide is None:
+                print(f"ERROR: Found None slide at index {i},{j} in slides_list")
+                continue
+            flat_slides.append(slide)
+
+
+    # Make sure that all slides that should have a topic_id have one
+    for slide in flat_slides:
+        if slide.slide_type not in ['section_header_slide', 'presentation_title_slide'] and slide.topic_id is None:
+            raise ValueError(f"Slide at index {flat_slides.index(slide)} has no topic_id")
+        
+
+    if not flat_slides:
+        raise RuntimeError("No valid slides were created after flattening")
+    
+    
     # Create and add intro and conclusion slides concurrently
     intro_slides, conclusion_slides = await asyncio.gather(
         get_intro_conclusion_slides_wrapper(
@@ -246,18 +289,21 @@ async def make_presentation_slides(presentation_id, emitter, all_docs=None,):
             slide_type="conclusion"
         )
     )
-
+    
+    # Handle cases where intro_slides or conclusion_slides might be None or empty
+    intro_slides = intro_slides if intro_slides is not None and len(intro_slides) > 0 else []
+    conclusion_slides = conclusion_slides if conclusion_slides is not None and len(conclusion_slides) > 0 else []
+    
     # Prepend intro slides and append conclusion slides to flat_slides
-    flat_slides = flat_slides[:1] + intro_slides + \
-        flat_slides[1:] + conclusion_slides
+    final_flat_slides = flat_slides[:1] + intro_slides + flat_slides[1:] + conclusion_slides
 
     # await delete_all_slides(presentation_id)
     await delete_all_items_for_presentation_with_user('slide', presentation_id)
 
     slide_list = PersistentSlideList(
-        presentation_id, slides=flat_slides, emitter=emitter)
+        presentation_id, slides=final_flat_slides, emitter=emitter)
 
     # await update_presentation(presentation_id, slide_generation_status="complete", head_slide_id=flat_slides[0].id)
-    await update_items_with_user('presentation', [{"presentation_id": presentation_id, "slide_generation_status": "complete", "head_slide_id": flat_slides[0].slide_id}])
+    await update_items_with_user('presentation', [{"presentation_id": presentation_id, "slide_generation_status": "complete", "head_slide_id": final_flat_slides[0].slide_id}])
 
     return slide_list
