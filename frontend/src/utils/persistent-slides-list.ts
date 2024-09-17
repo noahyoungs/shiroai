@@ -1,4 +1,4 @@
-import { Slide } from "./database-types";
+import { Slide } from "@shared-utils/database-types";
 import {
   getHeadSlideID as getHeadSlideIDAction,
   getSlides as getSlidesAction,
@@ -41,7 +41,12 @@ export class PersistentSlideList {
 
     try {
       if (!this.headID) {
-        this.headID = await getHeadSlideIDAction(this.presentationID);
+        let fetchedHeadID = await getHeadSlideIDAction(this.presentationID);
+        if (!fetchedHeadID) {
+          // there are no slides yet
+          return;
+        }
+        this.headID = fetchedHeadID;
       }
 
       const slides = await getAllSlidesAction(this.presentationID);
@@ -58,6 +63,7 @@ export class PersistentSlideList {
         "allSlides",
         `Error fetching all slides: ${(error as Error).message}`
       );
+      console.warn(`Sync Error: Error fetching all slides: ${(error as Error).message}`);
     }
   }
 
@@ -129,6 +135,9 @@ export class PersistentSlideList {
           }`
         );
       }
+      console.warn(`Fetch Error: Error fetching slide with ID ${slideIDs}: ${
+        (error as Error).message
+      }`);
       return [];
     }
   }
@@ -192,7 +201,7 @@ export class PersistentSlideList {
 
         // Add a slide containing the next id of the last slide with a previous pointer to the last slide
         let nextSlide = {
-          id: splitSlides[splitSlides.length - 1].next,
+          slide_id: splitSlides[splitSlides.length - 1].next,
           previous: splitSlides[splitSlides.length - 1].slide_id,
         };
 
@@ -254,6 +263,7 @@ export class PersistentSlideList {
                 slide.slide_id!,
                 `Error updating slide: ${(error as Error).message}`
               );
+              console.warn(`Update Error: Error updating slide: ${(error as Error).message}`);
             });
           })
           .then(() => {
@@ -273,6 +283,7 @@ export class PersistentSlideList {
           `Error updating slide: ${(error as Error).message}`
         );
       });
+      console.warn("Sync Error: Error updating slides", error);
     }
   }
 
@@ -313,12 +324,14 @@ export class PersistentSlideList {
         this.updatePushingSlideStatus(newSlide.slide_id, "uploading");
         updateSlidesAction(this.presentationID, slidesToUpdate)
           .catch((error) => {
+            console.warn(`Sync Error: Error adding slide after ${previousSlideId}: ${
+              (error as Error).message
+            }`);
             this.updateErrors(
               newSlide.slide_id,
-              `Error adding slide after ${previousSlideId}: ${
-                (error as Error).message
-              }`
+              `Error adding slide after ${previousSlideId}`
             );
+
             this.updatePushingSlideStatus(newSlide.slide_id, "errored");
           })
           .then(() => {
@@ -327,13 +340,15 @@ export class PersistentSlideList {
           });
       }
     } catch (error) {
+      console.warn(`Sync Error: Error adding slide after ${previousSlideId}: ${
+        (error as Error).message
+      }`);
       this.updateErrors(
         newSlide.slide_id,
-        `Error adding slide after ${previousSlideId}: ${
-          (error as Error).message
-        }`
+        `Error adding slide after ${previousSlideId}`
       );
       this.updatePushingSlideStatus(newSlide.slide_id, "errored");
+      
     }
   }
 
@@ -349,9 +364,12 @@ export class PersistentSlideList {
       }
       return Object.freeze({ ...this.slides[slideID] });
     } catch (error) {
+      console.warn(`Sync Error: Error getting slide with ID ${slideID}: ${
+        (error as Error).message
+      }`);
       this.updateErrors(
         "getSlide",
-        `Error getting slide with ID ${slideID}: ${(error as Error).message}`
+        `Error getting slide with ID ${slideID}`
       );
       return null as any;
     }
@@ -409,9 +427,12 @@ export class PersistentSlideList {
         updateSlidesAction(this.presentationID, slidesToUpdate)
           .catch((error) => {
             slidesToUpdate.forEach((slide) => {
+              console.warn(`Sync Error: Error hiding slide with ID ${slideID}: ${
+                (error as Error).message
+              }`);
               this.updateErrors(
                 slide.slide_id!,
-                `Error hiding slide: ${(error as Error).message}`
+                `Error hiding slide with ID ${slideID}`
               );
               this.updatePushingSlideStatus(slide.slide_id!, "errored");
             });
@@ -422,9 +443,12 @@ export class PersistentSlideList {
           });
       }
     } catch (error) {
+      console.warn(`Sync Error: Error hiding slide with ID ${slideID}: ${
+        (error as Error).message
+      }`);
       this.updateErrors(
         slideID,
-        `Error hiding slide with ID ${slideID}: ${(error as Error).message}`
+        `Error hiding slide with ID ${slideID}`
       );
       this.updatePushingSlideStatus(slideID, "errored");
     }
