@@ -15,7 +15,7 @@ import {
   Switch,
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
-import { generateVideo } from "@/actions/generate-video"; 
+import { generateVideo } from "@/actions/generate-video";
 import { Key } from "@react-types/shared";
 
 // Define a type for the audio refs
@@ -134,66 +134,66 @@ export function GenerateVideoModal({ presentationID }: { presentationID: string 
                 )}
                 <Spacer y={1} />
                 <div className="flex flex-row items-center justify-start gap-3">
-                <Select
-                  label="Select a resolution"
-                  className="max-w-xs"
-                  description="Select the resolution for your video."
-                  selectedKeys={new Set([selectedResolution])}
-                  fullWidth
-                  onSelectionChange={(keys: Set<Key> | "all") => {
-                    if (keys === "all") throw new Error("Unexpected value");
-                    setSelectedResolution(keys.values().next().value as "1980x1080" | "1280x720");
-                  }}
-                >
-                  {resolutions.map((resolution) => (
-                    <SelectItem key={resolution.key} textValue={resolution.label}>
-                      {resolution.label}
-                    </SelectItem>
-                  ))}
-                </Select>
-                <Spacer y={1} />
-                <Select
-                  label="Select a voice"
-                  className="max-w-xs"
-                  description="Select an AI voice for your voiceover."
-                  onClick={() => setSelectIsOpen(!selectIsOpen)}
-                  isOpen={selectIsOpen}
-                  disallowEmptySelection
-                  selectedKeys={new Set([selectedVoice])}
-                  onSelectionChange={(keys: Set<Key> | "all") => {
-                    if (keys === "all") throw new Error("Unexpected value");
-                    const value = keys.values().next().value;
-                    setSelectedVoice(value as "Danielle" | "Gregory" | "Ruth");
-                  }}
-                  onOpenChange={(isOpen) => isOpen && setPlayingVoice(null)}
-                >
-                  {voices.map((voice) => (
-                    <SelectItem key={voice.key} textValue={voice.key}>
-                      <div className="flex flex-row gap-2 items-center" onClick={() => setSelectIsOpen(false)}>
-                        <Button
-                          color="primary"
-                          isIconOnly
-                          onClick={(event) => {
-                            event.stopPropagation(); // Stop event propagation
-                            togglePlaySample(voice.key as "Danielle" | "Gregory" | "Ruth");
-                          }}
-                        >
-                          <Icon
-                            icon={playingVoice === voice.key ? "tabler:player-stop" : "tabler:player-play"} // Toggle icon based on playing state
-                            width={20}
-                            className={playingVoice === voice.key ? "animate-pulse" : undefined}
+                  <Select
+                    label="Select a resolution"
+                    className="max-w-xs"
+                    description="Select the resolution for your video."
+                    selectedKeys={new Set([selectedResolution])}
+                    fullWidth
+                    onSelectionChange={(keys: Set<Key> | "all") => {
+                      if (keys === "all") throw new Error("Unexpected value");
+                      setSelectedResolution(keys.values().next().value as "1920x1080" | "1280x720");
+                    }}
+                  >
+                    {resolutions.map((resolution) => (
+                      <SelectItem key={resolution.key} textValue={resolution.label}>
+                        {resolution.label}
+                      </SelectItem>
+                    ))}
+                  </Select>
+                  <Spacer y={1} />
+                  <Select
+                    label="Select a voice"
+                    className="max-w-xs"
+                    description="Select an AI voice for your voiceover."
+                    onClick={() => setSelectIsOpen(!selectIsOpen)}
+                    isOpen={selectIsOpen}
+                    disallowEmptySelection
+                    selectedKeys={new Set([selectedVoice])}
+                    onSelectionChange={(keys: Set<Key> | "all") => {
+                      if (keys === "all") throw new Error("Unexpected value");
+                      const value = keys.values().next().value;
+                      setSelectedVoice(value as "Danielle" | "Gregory" | "Ruth");
+                    }}
+                    onOpenChange={(isOpen) => isOpen && setPlayingVoice(null)}
+                  >
+                    {voices.map((voice) => (
+                      <SelectItem key={voice.key} textValue={voice.key}>
+                        <div className="flex flex-row gap-2 items-center" onClick={() => setSelectIsOpen(false)}>
+                          <Button
+                            color="primary"
+                            isIconOnly
+                            onClick={(event) => {
+                              event.stopPropagation(); // Stop event propagation
+                              togglePlaySample(voice.key as "Danielle" | "Gregory" | "Ruth");
+                            }}
+                          >
+                            <Icon
+                              icon={playingVoice === voice.key ? "tabler:player-stop" : "tabler:player-play"} // Toggle icon based on playing state
+                              width={20}
+                              className={playingVoice === voice.key ? "animate-pulse" : undefined}
+                            />
+                          </Button>
+                          <p>{voice.key}</p>
+                          {/* Audio element for the sample */}
+                          <audio
+                            ref={audioRefs[voice.key]}
+                            src={`/audio/${voice.key.toLowerCase()}_sample.mp3`}
                           />
-                        </Button>
-                        <p>{voice.key}</p>
-                        {/* Audio element for the sample */}
-                        <audio
-                          ref={audioRefs[voice.key]}
-                          src={`/audio/${voice.key.toLowerCase()}_sample.mp3`}
-                        />
-                      </div>
-                    </SelectItem>
-                  ))}
-                </Select>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </Select>
                 </div>
                 <Spacer y={1} />
                 <div className="flex flex-row items-center gap-3">
@@ -222,25 +222,24 @@ export function GenerateVideoModal({ presentationID }: { presentationID: string 
                         </div>
                       }
                     />
-                    <Tab
-                      key="print"
-                      title={
-                        <div className="flex items-center space-x-2">
-                          <Icon icon="tabler:printer" width={25} />
-                          <span>Print Friendly</span>
-                        </div>
-                      }
-                    />
                   </Tabs>
                 </div>
                 <Spacer y={1} />
                 <div className="flex flex-row items-center gap-3">
-                  <p>Include Sources/References</p>
+                  <p>Include Sources/References (Coming Soon)</p>
                   <Switch
                     isSelected={includeSources}
                     onChange={() => setIncludeSources(!includeSources)}
+                    isDisabled={true}
                   />
                 </div>
+                <p>
+                  Note: This function is currently in beta and may not work as expected.
+                <br /> Rendering videos can take up to ~15 minutes and may time out.
+                <br /> Please keep the tab open after clicking generate and return after 10-15 minutes.
+                <br /> A feature to notify you when the video is ready will be added soon.
+                <br /> If you get the error `Lambda function did not return a valid S3 key for the video.`, please try again using 720p or with a shorter presentation.
+                </p>
               </ModalBody>
               <ModalFooter>
                 <Button color="danger" variant="light" onPress={onClose}>
