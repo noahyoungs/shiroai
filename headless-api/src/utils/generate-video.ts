@@ -119,19 +119,19 @@ export async function generateVideo(
     }
 
     // // Invoke AWS Lambda function for video stitching synchronously
-    // logger.info(`Initiating Lambda function: ${lambdaFunctionName}`);
-    // const invokeCommand = new InvokeCommand({
-    //   FunctionName: lambdaFunctionName,
-    //   Payload: Buffer.from(JSON.stringify(lambdaPayload)),
-    //   InvocationType: "RequestResponse", // Synchronous invocation to wait for the response
-    // });
+    globalLogger.info(`Initiating Lambda function: ${lambdaFunctionName}`);
+    const invokeCommand = new InvokeCommand({
+      FunctionName: lambdaFunctionName,
+      Payload: Buffer.from(JSON.stringify(lambdaPayload)),
+      InvocationType: "RequestResponse", // Synchronous invocation to wait for the response
+    });
 
-    // const lambdaResponse = await lambdaClient.send(invokeCommand);
+    const lambdaResponse = await lambdaClient.send(invokeCommand);
 
-    const lambdaResponse = {
-      StatusCode: 500,
-      Payload: undefined,
-    };
+    // const lambdaResponse = {
+    //   StatusCode: 500,
+    //   Payload: undefined,
+    // };
     
     // Parse Lambda response
     const responsePayload = JSON.parse(new TextDecoder().decode(lambdaResponse.Payload));
@@ -139,8 +139,17 @@ export async function generateVideo(
       throw new Error(`Lambda function failed with status code ${lambdaResponse.StatusCode}, message: ${responsePayload.message}`);
     }
 
-    const videoS3Key = responsePayload.videoS3Key;
+    let videoS3Key;
+    if (responsePayload.body) {
+      const bodyContent = JSON.parse(responsePayload.body);
+      videoS3Key = bodyContent.videoS3Key;
+    } else {
+      videoS3Key = responsePayload.videoS3Key;
+    }
+
     if (!videoS3Key) {
+      // Log the responsePayload
+      globalLogger.error(`Lambda function response payload: ${JSON.stringify(responsePayload)}`);
       throw new Error('Lambda function did not return a valid S3 key for the video.');
     }
 

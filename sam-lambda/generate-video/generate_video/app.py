@@ -92,7 +92,7 @@ def lambda_handler(event, context):
         return {
             "statusCode": 200,
             "body": json.dumps({
-                "videoS3Key": f"s3://{bucket_name}/{output_s3_key}"
+                "videoS3Key": output_s3_key
             })
         }
 

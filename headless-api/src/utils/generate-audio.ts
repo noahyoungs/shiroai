@@ -98,7 +98,7 @@ export async function generateAudio(
                             const fileName = sanitizeFileName(`Slide_${index + 1}`) + '.mp3';
 
                             audioBuffers.push({ buffer, slide, fileName });
-                            manifest.push({ slide_id: slide!.id, audio_filename: fileName }); // Updated manifest structure
+                            manifest.push({ slide_id: slide!.slide_id, audio_filename: fileName }); // Updated manifest structure
 
                             globalLogger.info(`Audio generated successfully for slide: ${slide!.id}`);
                         });
