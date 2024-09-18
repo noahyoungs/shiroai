@@ -24,7 +24,7 @@ export const ScriptSpeakerNotesTabs = ({
   useEffect(() => {
     setScript(currentSlide?.script || "");
     setSpeakerNotes(currentSlide?.speaker_notes || "");
-  }, [currentSlide?.id]);
+  }, [currentSlide?.slide_id]);
 
   const updateSlideScript = useCallback(
     debounce((value) => {
@@ -64,7 +64,7 @@ export const ScriptSpeakerNotesTabs = ({
       aria-label="Additional Slide Text"
       placement="start"
       className="-mx-1 mb-4"
-      classNames={{ panel: "flex-grow", tabContent: "flex-grow" }}
+      classNames={{ panel: "flex-grow pr-0", tabContent: "flex-grow"}}
     >
       <Tab
         key="script"
