@@ -38,6 +38,7 @@ interface InterfaceProps {
     customStyle?: string,
     maxChars?: number
   ) => void;
+  scriptNotesUpdateTrigger: number;
 }
 
 export default function Interface({
@@ -51,16 +52,20 @@ export default function Interface({
   errors,
   socketReady,
   generateScriptNotes,
+  scriptNotesUpdateTrigger,
 }: InterfaceProps) {
   const router = useRouter();
 
   const [blockSlideControls, setBlockSlideControls] = useState(false);
   const [slideUpdateTrigger, setSlideUpdateTrigger] = useState(0); // State to trigger re-render
-  const [scriptNotesUpdateTrigger, setScriptNotesUpdateTrigger] = useState(0);
 
   const currentSlide = currentSlideID
     ? slideList.getSlide(currentSlideID)
     : null;
+
+  const slidesArray = slideList.convertToArray();
+  const totalSlides = slidesArray.length;
+  const currentSlideNumber = slidesArray.findIndex((slide) => slide.slide_id === currentSlideID) + 1;
 
   return (
     <div className="flex flex-col h-full flex-auto overflow-visible">
@@ -109,6 +114,9 @@ export default function Interface({
                 />
               </div>
             </div>
+            <div className="w-full flex flex-row justify-end items-center my-1">
+              <p className="text-sm text-foreground/50">Slide {currentSlideNumber} of {totalSlides}</p>
+            </div>
             <Spacer y={4} />
             <ScriptSpeakerNotesTabs
               currentSlide={currentSlide}
@@ -125,7 +133,7 @@ export default function Interface({
           generateScriptNotes={generateScriptNotes}
         />
         <SlideThumbnailBar
-          slides={slideList.convertToArray()}
+          slides={slidesArray}
           currentSlideID={currentSlideID}
           setCurrentSlideID={setCurrentSlideID}
           blockSlideSwitching={blockSlideControls}

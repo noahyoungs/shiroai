@@ -37,9 +37,9 @@ export default function Page({
   }>({});
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  // New states for tracking script and notes generation
-  const [isScriptGenerating, setIsScriptGenerating] = useState<boolean>(false);
-  const [isNotesGenerating, setIsNotesGenerating] = useState<boolean>(false);
+  // For refreshing the script and notes tabs
+  const [scriptNotesUpdateTrigger, setScriptNotesUpdateTrigger] = useState(0);
+
 
   const router = useRouter();
 
@@ -201,15 +201,15 @@ export default function Page({
 
           if (complete >= total) {
             toast(<ToastProgress progress_value={100} message="Script Generated Successfully!" />, {id: "script-gen", duration: 2000})
-            setIsScriptGenerating(false);
           } else {
             toast(<ToastProgress progress_value={progress} message={`Generating Script (Slide ${complete+1}/${total})...`} />, {id: "script-gen", duration: Infinity})
-            setIsScriptGenerating(true);
           }
+
+          // Refresh the script and notes tabs
+          setScriptNotesUpdateTrigger(prevTrigger => prevTrigger + 1);
         }
         if (socketMessage.script?.status === "complete") {
           // toast(<ToastProgress progress_value={100} message="Script Generated Successfully!" />, {id: "script-gen", duration: 2000})
-          setIsScriptGenerating(false);
         }
         if (socketMessage.notes?.status.includes("/")) {
           const numbers = socketMessage.notes.status.split("/");
@@ -220,11 +220,11 @@ export default function Page({
 
           if (complete >= total) {
             toast(<ToastProgress progress_value={100} message="Notes Generated Successfully!" />, {id: "notes-gen", duration: 2000})
-            setIsNotesGenerating(false);
           } else {
-            // toast(<ToastProgress progress_value={progress} message="Generating notes..." />, {id: "notes-gen", duration: 2000})
-            setIsNotesGenerating(true);
+            toast(<ToastProgress progress_value={progress} message={`Generating Notes (Slide ${complete+1}/${total})...`} />, {id: "notes-gen", duration: Infinity})
           }
+          // Refresh the script and notes tabs
+          setScriptNotesUpdateTrigger(prevTrigger => prevTrigger + 1);
         }
       }
     });
@@ -357,11 +357,6 @@ export default function Page({
     console.log(`Requesting ${type} generation with style ${style}, customStyle ${customStyle}, and maxChars ${maxChars}`);
 
     if (socketRef.current && socketRef.current.connected) {
-      if (type === "script") {
-        setIsScriptGenerating(true);
-      } else if (type === "notes") {
-        setIsNotesGenerating(true);
-      }
 
       socketRef.current.emit("interface_update", {
         [type]: {
@@ -384,18 +379,6 @@ export default function Page({
   ) => {
     await requestGenerate(target, style, customStyle, maxChars);
 
-    // Wait until the corresponding generation process is complete
-    if (target === "script") {
-      while (isScriptGenerating) {
-        await new Promise((resolve) => setTimeout(resolve, 200));
-      }
-    } else if (target === "notes") {
-      while (isNotesGenerating) {
-        await new Promise((resolve) => setTimeout(resolve, 200));
-      }
-    } else {
-      console.error("Invalid target for generating script/notes");
-    }
   };
 
   // get all slides in the beginning
@@ -441,6 +424,7 @@ export default function Page({
       errors={errors}
       socketReady={socketRef.current && socketRef.current.connected}
       generateScriptNotes={generateScriptNotes}
+      scriptNotesUpdateTrigger={scriptNotesUpdateTrigger}
     />
     </>
   );
