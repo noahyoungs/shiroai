@@ -88,8 +88,8 @@ export default function Interface({ topic, audience, goal, setTopic, setAudience
                 color="primary"
                 className="min-h-[64px] flex flex-row rounded-b-none text-base"
                 onClick={() => {
-                    block || !topic || !audience || !goal && setContinueButtonLoading(true);
-                    block || !topic || !audience || !goal && router.push(redirectPath);
+                    !block && topic && audience && goal && setContinueButtonLoading(true);
+                    !block && topic && audience && goal && router.push(redirectPath);
                 }}
                 isDisabled={block || !topic || !audience || !goal}
                 isLoading={continueButtonLoading}
