@@ -146,7 +146,7 @@ Begin writing the script for slide {i+1}/{len(slides)}, adhering to the guidelin
                 pydantic_model_class=Response,
                 max_iterations=5,
                 model=content_gen_model,
-                max_tokens=100000,
+                max_tokens=round(approx_max_words*1.5),
                 messages=trim_messages(messages + [{'role':'user', 'content': init_prompt if i == 0 else rep_prompt}]),
                 error_message_prefix=f"There was an issue with the response you provided. Please fix the issue below and respond again with the <slide_script></slide_script> for slide {i+1}.",
             )
@@ -161,8 +161,8 @@ Begin writing the script for slide {i+1}/{len(slides)}, adhering to the guidelin
 
 async def generate_all_scripts(psl: PersistentSlideList, interface_data: Any, emitter: Callable[[Any], None],  style_key: int = 0, custom_style: str = None, max_char_per_slide: int = None):
     print(f"Generating scripts for presentation {psl.presentation_id}, style {style_key}, custom style {custom_style}, max characters per slide {max_char_per_slide}")
-    topics: List[Topic] = await get_all_items_for_presentation_with_user('topic', [{'presentation_id': psl.presentation_id}], return_type='model')
-    presentation = await get_items_with_user('presentation', [{'presentation_id': psl.presentation_id}], ['topic', 'audience', 'goal'])
+    topics: List[Topic] = await get_all_items_for_presentation_with_user('topic', psl.presentation_id, return_type='model')
+    presentation = await get_items_with_user('presentation', {'presentation_id': psl.presentation_id}, ['topic', 'audience', 'goal'])
     
     slides_l: List[Slide] = psl.convert_to_array()
 
@@ -181,6 +181,7 @@ async def generate_all_scripts(psl: PersistentSlideList, interface_data: Any, em
         max_char_per_slide=max_char_per_slide
     ):
         await psl.update_slides({
+            'presentation_id': psl.presentation_id,
             'slide_id': slide.slide_id,
             'script': script
         })  
