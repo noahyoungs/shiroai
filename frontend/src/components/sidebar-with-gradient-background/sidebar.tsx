@@ -25,7 +25,7 @@ export default function Component({
   const { data: session } = useSession();
 
   const content = (
-    <div className="relative flex h-full w-72 flex-1 flex-col bg-gradient-to-b from-default-100 via-danger-100 to-secondary-100 p-6">
+    <div className="relative flex h-full w-72 flex-1 flex-col bg-gradient-to-b from-default-100 via-primary-100 to-secondary-100 p-6">
       <div className="flex flex-row justify-between">
         <div className="flex items-center gap-2 px-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-full border-small border-foreground/20">
@@ -83,10 +83,10 @@ export default function Component({
             className="flex-none"
           />
           <div className="flex flex-col max-w-[80%]">
-            <p className="text-small text-primary-foreground truncate">
+            <p className="text-small text-foreground truncate">
               {session?.user?.name || 'Not logged in'}
             </p>
-            <p className="text-tiny text-primary-foreground/60 truncate">
+            <p className="text-tiny text-foreground/60 truncate">
               {session?.user?.email || ""}
             </p>
           </div>
