@@ -116,7 +116,7 @@ export function ExportToPdfModal({ presentationID }: { presentationID: string })
                   </Tabs>
                 </div>
                 <Spacer y={1} />
-                <Switch isDisabled>Include Sources/References</Switch>
+                <Switch isDisabled>Include Sources/References (Coming Soon)</Switch>
               </ModalBody>
               <ModalFooter>
                 <Button color="danger" variant="light" onPress={onClose}>

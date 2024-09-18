@@ -12,8 +12,9 @@ export function ExportToPptModal() {
         startContent={<Icon icon="tabler:file-type-ppt" width={25} />}
         className="flex-grow"
         onPress={onOpen}
+        isDisabled={true}
       >
-        Export to PPTX
+        PPTX (Coming Soon)
       </Button>
       <Modal
         isOpen={isOpen}

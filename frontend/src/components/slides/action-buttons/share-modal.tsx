@@ -1,5 +1,5 @@
 import React from "react";
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, useDisclosure } from "@nextui-org/react";
+import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, useDisclosure, Tooltip } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 
 export function ShareModal() {
@@ -11,9 +11,10 @@ export function ShareModal() {
         color="primary"
         startContent={<Icon icon="tabler:share-2" width={25} />}
         className="flex-grow"
-        onPress={onOpen}
+        // onPress={onOpen}
+        isDisabled={true}
       >
-        Share
+        Share (Coming Soon)
       </Button>
       <Modal
         isOpen={isOpen}

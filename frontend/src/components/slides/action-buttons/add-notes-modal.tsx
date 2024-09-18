@@ -52,8 +52,9 @@ export function AddNotesModal({ onGenerate }: AddNotesModalProps) {
         startContent={<Icon icon="tabler:script-plus" width={25} />}
         className="flex-grow"
         onPress={onOpen}
+        isDisabled={true}
       >
-        Add Speaker Notes
+        Speaker Notes (Coming Soon)
       </Button>
       <Modal
         isOpen={isOpen}
