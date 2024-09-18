@@ -8,12 +8,13 @@ export const globalLogger: Logger =
     pino({ level: "warn" })
     : // Pretty print in development
     pino({
-      // transport: {
-      //   target: 'pino-pretty',
-      //   options: {
-      //     colorize: true
-      //   }
-      // }
+      transport: {
+        target: 'pino-pretty',
+        options: {
+          colorize: true
+        },
+        level: "info"
+      }
     });
 
 /**
