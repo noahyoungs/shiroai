@@ -11,7 +11,7 @@ type PresentationListboxProps = {
 };
 
 
-function PresentationListbox({ presentations }: { presentations: { presentation_id: string; topic: string; gsi1sk: string; status: string }[]}) {
+function PresentationListbox({ presentations }: { presentations: { presentation_id: string; topic: string; status: string }[]}) {
 
   return (
 

@@ -703,20 +703,26 @@ public async deleteAllItemsForPresentation(
   }
 }
 
- /**
-   * Fetch presentations for a user, optionally starting from a specific presentation.
-   * 
-   * @param {string} userID - The user ID to fetch presentations for.
-   * @param {string} [gsi1sk] - Optional GSI1SK value to start fetching from (for pagination).
-   * @param {number} [n=25] - Number of items to fetch (default: 25).
-   * @returns {Promise<Array<{presentation_id: string, topic: string}>>} - Array of presentation objects.
-   */
+/**
+ * Fetch presentations for a user, with optional pagination support.
+ * 
+ * @param {string} userID - The user ID to fetch presentations for.
+ * @param {Record<string, AttributeValue>} [lastEvaluatedKey] - Optional LastEvaluatedKey from the previous query (for pagination).
+ * @param {number} [n=25] - Number of items to fetch (default: 25).
+ * @returns {Promise<{
+*   presentations: Array<{presentation_id: string, topic: string, status: string}>,
+*   lastEvaluatedKey?: Record<string, AttributeValue>
+* }>} - Object containing an array of presentation objects and the LastEvaluatedKey for the next page.
+*/
 public async fetchPresentations(
   userID: string,
-  gsi1sk?: string,
+  lastEvaluatedKey?: Record<string, AttributeValue>,
   n: number = 25
-): Promise<Array<{presentation_id: string, topic: string, gsi1sk: string, status: string}>> {
-  this.logger.info(`Fetching presentations for user ${userID}, starting from GSI1SK ${gsi1sk || 'beginning'}`);
+): Promise<{
+  presentations: Array<{presentation_id: string, topic: string, status: string}>,
+  lastEvaluatedKey?: Record<string, AttributeValue>
+}> {
+  this.logger.info(`Fetching presentations for user ${userID}, with LastEvaluatedKey: ${JSON.stringify(lastEvaluatedKey)}`);
 
   const pk = `USER#${userID}`;
   const queryParams: QueryCommandInput = {
@@ -737,15 +743,14 @@ public async fetchPresentations(
     ProjectionExpression: '#SK, #topic, #GSI1SK, #status'
   };
 
-  if (gsi1sk) {
-    queryParams.ExclusiveStartKey = marshall({
-      PK: pk,
-      GSI1SK: gsi1sk
-    });
+  if (lastEvaluatedKey) {
+    queryParams.ExclusiveStartKey = lastEvaluatedKey;
+    this.logger.debug(`Using ExclusiveStartKey: ${JSON.stringify(lastEvaluatedKey)}`);
   }
 
   try {
     const command = new QueryCommand(queryParams);
+    this.logger.debug(`Query params: ${JSON.stringify(queryParams)}`);
     const response = await this.client.send(command);
     
     const presentations = response.Items?.map(item => {
@@ -753,15 +758,22 @@ public async fetchPresentations(
       return {
         presentation_id: unmarshalledItem.SK.split('#')[1],
         topic: unmarshalledItem.topic,
-        gsi1sk: unmarshalledItem.GSI1SK,
         status: unmarshalledItem.status
       };
     }) || [];
 
     this.logger.info(`Successfully fetched ${presentations.length} presentations`);
-    return presentations;
+    return {
+      presentations,
+      lastEvaluatedKey: response.LastEvaluatedKey
+    };
   } catch (error: any) {
-    this.logger.error({ error }, 'Error fetching presentations');
+    this.logger.error({ 
+      error, 
+      userID, 
+      lastEvaluatedKey: JSON.stringify(lastEvaluatedKey), 
+      queryParams: JSON.stringify(queryParams)
+    }, 'Error fetching presentations');
     throw error;
   }
 }

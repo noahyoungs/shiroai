@@ -1,6 +1,7 @@
 "use server"
 // import path is "@/utils/dynamodb-service"
 import * as dynamoDBInterface from "@/utils/dynamodb-interface-factory";
+import { AttributeValue } from "@aws-sdk/client-dynamodb";
 import { Identifiers, ItemWithIdentifiers, ValidItemTypes } from "@shared-utils/database-types";
 import { Slide, Topic, Source } from "@shared-utils/database-types";
 import { auth } from "@/auth";
@@ -316,29 +317,36 @@ export async function deleteAllItemsForPresentationWithAuth(
  * This wrapper function automatically injects the authenticated user's ID, eliminating the need 
  * to pass the user ID manually.
  *
- * @param {string} [gsi1sk] - Optional GSI1SK value to start fetching from (for pagination).
+ * @param {Record<string, AttributeValue> | undefined} lastEvaluatedKey - Optional LastEvaluatedKey from the previous query (for pagination).
  * @param {number} [n=25] - Number of items to fetch (default: 25).
- * @returns {Promise<Array<{presentation_id: string, topic: string, gsi1sk: string, status: string}>>} - Array of presentation objects.
- *
- * @throws Will throw an error if the user is not authenticated or if there's an issue fetching the presentations.
- *
- * Example usage:
- * ```typescript
- * const presentations = await fetchPresentationsForAuthenticatedUser();
- * // For pagination:
- * const nextPage = await fetchPresentationsForAuthenticatedUser(lastFetchedGSI1SK);
- * ```
- */
+ * @returns {Promise<{
+*   presentations: Array<{presentation_id: string, topic: string, status: string}>,
+*   lastEvaluatedKey?: Record<string, AttributeValue>
+* }>} - Object containing an array of presentation objects and the LastEvaluatedKey for the next page.
+*
+* @throws Will throw an error if the user is not authenticated or if there's an issue fetching the presentations.
+*
+* Example usage:
+* ```typescript
+* const { presentations, lastEvaluatedKey } = await fetchPresentationsForAuthenticatedUser();
+* // For pagination:
+* const nextPage = await fetchPresentationsForAuthenticatedUser(lastEvaluatedKey);
+* ```
+*/
 export async function fetchPresentationsForAuthenticatedUser(
-  gsi1sk?: string,
-  n: number = 25
-): Promise<Array<{presentation_id: string, topic: string, gsi1sk: string, status: string}>> {
-  const userId = await getAuthenticatedUserId();
+ lastEvaluatedKey?: Record<string, AttributeValue>,
+ n: number = 25
+): Promise<{
+ presentations: Array<{presentation_id: string, topic: string, status: string}>,
+ lastEvaluatedKey?: Record<string, AttributeValue>
+}> {
+ const userId = await getAuthenticatedUserId();
 
-  try {
-    return await dynamoDBInterface.fetchPresentations(userId, gsi1sk, n);
-  } catch (error) {
-    console.error('Error fetching presentations for authenticated user:', error);
-    throw error;
-  }
+ try {
+   const result = await dynamoDBInterface.fetchPresentations(userId, lastEvaluatedKey, n);
+   return result;
+ } catch (error) {
+   console.error('Error fetching presentations for authenticated user:', error);
+   throw error;
+ }
 }

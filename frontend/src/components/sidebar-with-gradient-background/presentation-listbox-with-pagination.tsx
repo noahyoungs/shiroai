@@ -2,11 +2,18 @@
 import { useState, useEffect, useRef } from "react";
 import PresentationListbox from "@/components/presentation-listbox";
 import { Spinner } from "@nextui-org/react";
+import { AttributeValue } from "@aws-sdk/client-dynamodb";
+
+interface Presentation {
+  presentation_id: string;
+  topic: string;
+  status: string;
+}
 
 const PresentationListboxWithPagination = () => {
-  const [presentations, setPresentations] = useState<Array<{presentation_id: string, topic: string, gsi1sk: string, status: string}>>([]);
+  const [presentations, setPresentations] = useState<Presentation[]>([]);
   const [loading, setLoading] = useState(false);
-  const [lastFetchedGSI1SK, setLastFetchedGSI1SK] = useState<string | null>(null);
+  const [lastEvaluatedKey, setLastEvaluatedKey] = useState<Record<string, AttributeValue> | undefined>(undefined);
   const [hasMore, setHasMore] = useState(true);
   const loaderRef = useRef(null);
 
@@ -19,13 +26,13 @@ const PresentationListboxWithPagination = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ lastFetchedGSI1SK }),
+        body: JSON.stringify({ lastEvaluatedKey }),
       });
       const data = await response.json();
       if (response.ok) {
         setPresentations(prev => [...prev, ...data.presentations]);
-        setLastFetchedGSI1SK(data.lastFetchedGSI1SK);
-        setHasMore(!!data.lastFetchedGSI1SK);
+        setLastEvaluatedKey(data.lastEvaluatedKey);
+        setHasMore(!!data.lastEvaluatedKey);
       } else {
         console.error("Error loading presentations:", data.message);
         setHasMore(false);
@@ -50,7 +57,8 @@ const PresentationListboxWithPagination = () => {
         }
       },
       {
-        threshold: 1.0,
+        rootMargin: '0px 0px 100px 0px',
+        threshold: 0.1,
       }
     );
 
@@ -63,7 +71,7 @@ const PresentationListboxWithPagination = () => {
         observer.unobserve(loaderRef.current);
       }
     };
-  }, [loaderRef.current, loading, hasMore]);
+  }, [loading, hasMore]);
 
   return (
     <>
