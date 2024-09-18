@@ -40,21 +40,21 @@ def slide_content_to_xml(current_slide: Slide, all_topics: List[Topic]):
             xml_content += "  <content>\n"
             for item in current_slide.slide_content:
                 xml_content += f"    <bullet-point>\n"
-                xml_content += f"      <icon>{item.icon.name if item.icon and item.icon.name else 'Icon'}</icon>\n"
-                xml_content += f"      <text>{item.content}</text>\n"
+                xml_content += f"      <icon>{item.get('icon', {}).get('name') if item.get('icon') and item.get('icon', {}).get('name') else 'Icon'}</icon>\n"
+                xml_content += f"      <text>{item.get('content')}</text>\n"
                 xml_content += f"    </bullet-point>\n"
             xml_content += "  </content>\n"
         elif current_slide.slide_type == 'markdown_slide':
             xml_content += "  <content>\n"
-            xml_content += f"    <markdown>{current_slide.slide_content['content']}</markdown>\n"
+            xml_content += f"    <markdown>{current_slide.slide_content.get('content', '')}</markdown>\n"
             xml_content += "  </content>\n"
         elif current_slide.slide_type == 'simple_mermaid_slide':
             xml_content += "  <content>\n"
-            xml_content += f"    <mermaid-diagram>{current_slide.slide_content['mermaid_code']}</mermaid-diagram>\n"
+            xml_content += f"    <mermaid-diagram>{current_slide.slide_content.get('mermaid_code', 'Not Found')}</mermaid-diagram>\n"
             xml_content += "  </content>\n"
         elif current_slide.slide_type in ['section_header_slide', 'presentation_title_slide']:
             xml_content += "  <image>\n"
-            xml_content += f"    <description>{current_slide.image.prompt}</description>\n"
+            xml_content += f"    <description>{current_slide.image.get('prompt', 'Not found')}</description>\n"
             xml_content += "  </image>\n"
         
         xml_content += "</slide>"
@@ -79,15 +79,15 @@ def slide_to_xml(current_slide: Slide):
             xml_content += "  </content>\n"
         elif current_slide.slide_type == 'markdown_slide':
             xml_content += "  <content>\n"
-            xml_content += f"    <markdown>{current_slide.slide_content['content']}</markdown>\n"
+            xml_content += f"    <markdown>{current_slide.slide_content.get('content', '')}</markdown>\n"
             xml_content += "  </content>\n"
         elif current_slide.slide_type == 'simple_mermaid_slide':
             xml_content += "  <content>\n"
-            xml_content += f"    <mermaid-diagram>{current_slide.slide_content['mermaid_code']}</mermaid-diagram>\n"
+            xml_content += f"    <mermaid-diagram>{current_slide.slide_content.get('mermaid_code', 'Not Found')}</mermaid-diagram>\n"
             xml_content += "  </content>\n"
         elif current_slide.slide_type in ['section_header_slide', 'presentation_title_slide']:
             xml_content += "  <image>\n"
-            xml_content += f"    <prompt>{current_slide.image.get('prompt')}</prompt>\n"
+            xml_content += f"    <prompt>{current_slide.image.get('prompt', 'Not found')}</prompt>\n"
             xml_content += "  </image>\n"
         
         xml_content += "</slide>"
