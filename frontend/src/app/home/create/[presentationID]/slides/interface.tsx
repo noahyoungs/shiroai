@@ -85,6 +85,7 @@ export default function Interface({
       <ScrollShadow
         className="flex-grow overflow-visible overflow-y-scroll px-1 pt-1"
         size={30}
+        hideScrollBar
       >
         {currentSlideID && currentSlide && (
           <>

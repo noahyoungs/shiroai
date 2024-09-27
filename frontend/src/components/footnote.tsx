@@ -63,7 +63,7 @@ export function Footnote({ footnoteKeys, slide, allSources }: FootnoteProps) {
                       key={currentIndex}
                       text={currentExcerpt?.text || ""}
                       source={allSources.find(
-                        (source) => source.id === currentExcerpt?.source_id
+                        (source) => source.source_id === currentExcerpt?.source_id
                       )}
                     />
                     <Icon
@@ -84,7 +84,7 @@ export function Footnote({ footnoteKeys, slide, allSources }: FootnoteProps) {
                     key={currentIndex}
                     text={currentExcerpt?.text || ""}
                     source={allSources.find(
-                      (source) => source.id === currentExcerpt?.source_id
+                      (source) => source.source_id === currentExcerpt?.source_id
                     )}
                   />
                 )}

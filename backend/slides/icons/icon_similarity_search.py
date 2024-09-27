@@ -266,10 +266,12 @@ async def get_unique_embeddings(embeddings, threshold=1):
      
     for i in range(len(embeddings)):
         current_fact = embeddings[i]
+        # get all embeddings except the current one
         other_facts = np.delete(embeddings, i, axis=0)
         
         # Calculate the average of all other fact vectors
         other_facts_avg = np.mean(other_facts, axis=0)
+        # This is a single vector
         
         # Subtract the weighted average of other facts from the current fact
         unique_fact = current_fact - threshold * other_facts_avg
