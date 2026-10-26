@@ -1,6 +1,6 @@
 {
     "private": true,
-    "license": "ISC",
+    "license": "SEE LICENSE IN LICENSE",
     "workspaces": [
         "frontend",
         "headless-api",

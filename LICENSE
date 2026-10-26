@@ -1,3 +1,26 @@
+Licensing scope
+===============
+
+The ISC license below applies only to Noah Youngs' original contributions to
+ShiroAI. It does not license third-party material.
+
+Expressly excluded from that grant are HeroUI Pro v2 (formerly NextUI Pro)
+components, templates, design assets, and portions derived from them, including
+modified or renamed versions and portions embedded in application files.
+Those portions retain NextUI Inc.'s rights and remain subject to the HeroUI Pro
+v2 terms: https://v2.heroui.pro/license. This repository grants no independent
+rights to extract or repackage that material.
+
+This exclusion does not make ordinary use of the open-source @heroui/react
+library (or its @nextui-org/react predecessor) Pro-derived. Those libraries
+have their own licenses. See THIRD_PARTY_NOTICES.md for provenance evidence,
+uncertainties, the v2 open-source application FAQ, and other third-party terms.
+The inventory is not exhaustive; the exclusion follows the material regardless
+of its filename or location. Existing upstream notices remain applicable.
+
+ISC license for original contributions
+======================================
+
 ISC License
 
 Copyright (c) 2024 Noah Youngs

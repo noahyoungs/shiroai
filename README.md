@@ -158,4 +158,8 @@ The declared JavaScript test entry points are `npm test --workspace frontend` an
 
 ## License
 
-ShiroAI is licensed under the [ISC License](LICENSE). Copyright © 2024 Noah Youngs. Third-party dependencies and bundled assets remain subject to their own applicable terms and notices.
+ShiroAI has mixed licensing. Noah Youngs' original contributions remain under the [ISC License](LICENSE), copyright © 2024 Noah Youngs. The ISC grant expressly excludes HeroUI Pro v2 components, templates, design assets, and derived portions, including modified or renamed material embedded in application files. Those portions retain NextUI Inc.'s rights under the [HeroUI Pro v2 terms](https://v2.heroui.pro/license); this repository does not grant independent rights to extract or repackage them.
+
+The [v2 open-source FAQ](https://v2.heroui.pro/pricing) permits applications whose primary purpose is not repackaging or redistributing Pro components. ShiroAI is a presentation application, not a component distribution kit. This permission does not relicense Pro material as ISC.
+
+Paid Pro templates are distinct from the open-source `@heroui/react` library (this checkout uses its `@nextui-org/react` predecessor). Importing that library alone does not establish Pro derivation. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for the evidence-based inventory and unresolved provenance details. Other dependencies and bundled assets retain their own terms and notices.
